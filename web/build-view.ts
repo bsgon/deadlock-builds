@@ -2,18 +2,20 @@ import type { Item } from "../src/data/types.ts";
 import { componentTree, heroAbilities, findHero, progressionFromSouls, MAX_ACTIVE_ITEMS } from "../src/engine/index.ts";
 import { heroItemFit, itemPairLinks, topLinks, type Link } from "../src/interactions/synergy.ts";
 import type { Metrics, Objective } from "../src/optimizer/metrics.ts";
-import { compareWithPopular, type BuildComparison } from "../src/meta/compare.ts";
+import type { BuildComparison } from "../src/meta/compare.ts";
 import { buyMinute, heroMeta, meleePickRate, minuteForSouls, pickRate, powerWindows } from "../src/meta/stats.ts";
-import { optimize, type OptimizeInput, type OptimizeResult } from "../src/optimizer/optimize.ts";
+import type { OptimizeInput, OptimizeResult } from "../src/optimizer/optimize.ts";
 import { CONTROL_LABEL, CONTROL_MIN_PER_MINUTE, heroControl } from "../src/optimizer/control.ts";
 import { defenseOf } from "../src/optimizer/defense.ts";
 import type { Theory, TheoryKind } from "../src/knowledge/theories.ts";
 import { controlBreakdown, DEFAULT_METRIC_OPTIONS } from "../src/optimizer/metrics.ts";
 import { delta, fmt, fmt1, h, icon } from "./dom.ts";
 import type { App } from "./main.ts";
-import { buildPlay, situationalOptions, type Recommendation } from "../src/combat/explain.ts";
-import { SCENARIO_LABEL, scenarioMix, type PlanId, type ScenarioId } from "../src/combat/value.ts";
-import { phaseOf, validateRoute } from "../src/optimizer/route.ts";
+import type { Recommendation } from "../src/combat/explain.ts";
+import { SCENARIO_LABEL, scenarioMix, type ScenarioId } from "../src/combat/value.ts";
+import { phaseOf } from "../src/optimizer/route.ts";
+import { inputKey } from "./build-client.ts";
+import type { BuildPayload } from "./compute.ts";
 
 const OBJECTIVE_LABEL: Record<Objective, { name: string; hint: string }> = {
   optimized: { name: "Otimizada", hint: "dano máximo, com a defesa das builds mais jogadas" },
@@ -546,11 +548,9 @@ function observedLine(o: NonNullable<Recommendation["observed"]>): HTMLElement {
 }
 
 /** Jogadas da build final por tipo de luta (simulação), alternativas situacionais e regras da loja. */
-function playPanel(app: App, result: OptimizeResult, input: OptimizeInput, plan: PlanId): HTMLElement {
-  const ctx = { hero: result.hero, souls: result.souls, abilityTiers: result.abilityTiers, itemSlots: input.itemSlots, uptime: input.metric?.uptime, plan, ...(input.fights ? { fights: input.fights } : {}) };
-  const { report } = buildPlay(app.data, ctx, result.items.map((i) => i.className));
-  const situ = plan === "control" ? situationalOptions(app.data, ctx, result.items.map((i) => i.className), app.data.items.filter((i) => i.isActive && i.tier <= 4 && i.cost <= result.souls / 4)) : [];
-  const issues = validateRoute(app.data, result, input.itemSlots ?? 9);
+function playPanel(app: App, payload: BuildPayload, input: OptimizeInput): HTMLElement {
+  // Simulação, trocas situacionais e checagem da rota vêm prontas do worker (compute.ts).
+  const { scenarios, situational: situ, issues } = payload;
   return h(
     "section",
     { class: "plays" },
@@ -567,7 +567,7 @@ function playPanel(app: App, result: OptimizeResult, input: OptimizeInput, plan:
     h(
       "ul",
       {},
-      report.scenarios.map((s) => {
+      scenarios.map((s) => {
         const sim = s.best?.sim;
         const hits = sim ? Object.values(sim.hits).reduce((a, b) => a + b, 0) : 0;
         const esc = sim ? Object.values(sim.escaped).reduce((a, b) => a + b, 0) : 0;
@@ -700,10 +700,11 @@ function comparisonCard(c: BuildComparison, app: OptimizeResult): HTMLElement {
   );
 }
 
-function comparison(app: App, result: OptimizeResult, input: OptimizeInput): HTMLElement | null {
+function comparison(app: App, payload: BuildPayload, input: OptimizeInput): HTMLElement | null {
   const meta = heroMeta(app.data, findHero(app.data, input.hero).id);
-  if (!meta) return null;
-  const cards = compareWithPopular(app.data, result, input);
+  const cards = payload.comparisons;
+  if (!meta || !cards) return null;
+  const result = payload.result;
   const best = [...powerWindows(meta)].sort((a, b) => b.winrate - a.winrate)[0];
   const window = best ? ` ${input.hero} vence mais em partidas de ${best.bucket.fromMin}${best.bucket.toMin ? ` a ${best.bucket.toMin}` : "+"} minutos (${fmt1(best.winrate * 100)}% de vitória).` : "";
   return h(
@@ -740,8 +741,8 @@ function meleeNote(app: App, result: OptimizeResult, heroId: number): string {
 }
 
 /** De onde vem o controle da build, em segundos por minuto. */
-function controlPanel(app: App, result: OptimizeResult): HTMLElement {
-  const sources = controlBreakdown(result.build, { ...DEFAULT_METRIC_OPTIONS, uptime: app.state.uptime });
+function controlPanel(result: OptimizeResult, uptime: number): HTMLElement {
+  const sources = controlBreakdown(result.build, { ...DEFAULT_METRIC_OPTIONS, uptime });
   return h(
     "section",
     { class: "control-sources" },
@@ -769,13 +770,13 @@ function controlPanel(app: App, result: OptimizeResult): HTMLElement {
   );
 }
 
-export function renderBuildView(app: App): HTMLElement {
-  const { state, data } = app;
-  const hero = findHero(data, state.hero);
-  const objective = objectiveFor(app);
-  const input: OptimizeInput = {
+
+/** Configuração do otimizador a partir do estado da tela. */
+function inputFor(app: App): OptimizeInput {
+  const { state } = app;
+  return {
     hero: state.hero,
-    objective,
+    objective: objectiveFor(app),
     souls: state.souls,
     itemSlots: state.slots,
     required: state.required,
@@ -785,30 +786,55 @@ export function renderBuildView(app: App): HTMLElement {
     mode: state.progressive === false ? "final" : "progressive",
     explain: true,
   };
-  const result = optimize(data, input);
-  const plan: PlanId = result.weights.play ? "control" : "damage";
-  const progression = progressionFromSouls(data.shared, state.souls);
+}
 
-  const main = h(
-    "main",
-    { class: "result" },
+/** Último resultado desenhado: fica na tela, esmaecido, enquanto o próximo é calculado. */
+let shown: { payload: BuildPayload; input: OptimizeInput } | null = null;
+
+function resultHead(app: App, input: OptimizeInput, summary: string | HTMLElement): HTMLElement {
+  const hero = findHero(app.data, input.hero);
+  const objective = input.objective as Objective;
+  return h(
+    "header",
+    { class: "result-head" },
+    icon(hero.image, hero.name, "portrait portrait-big"),
     h(
-      "header",
-      { class: "result-head" },
-      icon(hero.image, hero.name, "portrait portrait-big"),
-      h(
-        "div",
-        {},
-        h("h1", {}, objective === "optimized" ? `${hero.name}, build otimizada` : `${hero.name}, build de ${OBJECTIVE_LABEL[objective].name.toLowerCase()}`),
-        h(
-          "p",
-          {},
-          `Nível ${progression.level} com ${fmt(state.souls)} souls. ${result.items.length} ${result.items.length === 1 ? "item" : "itens"} em ${state.slots} slots, ${fmt1(result.score)}× a pontuação do herói sem itens.${defenseNote(result)}`,
-        ),
-      ),
+      "div",
+      {},
+      h("h1", {}, objective === "optimized" ? `${hero.name}, build otimizada` : `${hero.name}, build de ${OBJECTIVE_LABEL[objective].name.toLowerCase()}`),
+      typeof summary === "string" ? h("p", {}, summary) : summary,
+    ),
+  );
+}
+
+/** Aviso de cálculo em andamento (anunciado por leitores de tela). */
+function calculating(input: OptimizeInput): HTMLElement {
+  return h(
+    "p",
+    { class: "calculating", role: "status" },
+    h("span", { class: "spinner", "aria-hidden": "true" }),
+    `Calculando a build para ${fmt(input.souls)} souls…`,
+  );
+}
+
+/** A build calculada. `status` entra no topo (aviso de recálculo sobre um resultado antigo). */
+function resultView(app: App, payload: BuildPayload, input: OptimizeInput, status: HTMLElement | null = null): HTMLElement {
+  const { result } = payload;
+  const hero = findHero(app.data, input.hero);
+  const objective = input.objective as Objective;
+  const slots = input.itemSlots ?? 9;
+  const progression = progressionFromSouls(app.data.shared, input.souls);
+  return h(
+    "main",
+    { class: status ? "result stale" : "result", "aria-busy": status ? "true" : null },
+    status,
+    resultHead(
+      app,
+      input,
+      `Nível ${progression.level} com ${fmt(input.souls)} souls. ${result.items.length} ${result.items.length === 1 ? "item" : "itens"} em ${slots} slots, ${fmt1(result.score)}× a pontuação do herói sem itens.${defenseNote(result)}`,
     ),
     soulTrack(result),
-    finalBuild(result, state.slots),
+    finalBuild(result, slots),
     h(
       "div",
       { class: "columns" },
@@ -818,8 +844,8 @@ export function renderBuildView(app: App): HTMLElement {
         { class: "side" },
         metricsTable(result.metrics, result.baseline),
         h("p", { class: "hint" }, meleeNote(app, result, hero.id)),
-        objective === "control" ? controlPanel(app, result) : null,
-        playPanel(app, result, input, plan),
+        objective === "control" ? controlPanel(result, input.metric?.uptime ?? app.state.uptime) : null,
+        playPanel(app, payload, input),
         abilityPlan(app, result),
         h(
           "p",
@@ -829,8 +855,50 @@ export function renderBuildView(app: App): HTMLElement {
       ),
     ),
     theoriesSection(app, hero.id),
-    comparison(app, result, input),
+    comparison(app, payload, input),
   );
+}
 
+/** Enquanto o worker calcula: o resultado anterior do mesmo herói, esmaecido, ou só o cabeçalho. */
+function pendingView(app: App, input: OptimizeInput): HTMLElement {
+  if (shown && shown.input.hero === input.hero) return resultView(app, shown.payload, shown.input, calculating(input));
+  const hero = findHero(app.data, input.hero);
+  const progression = progressionFromSouls(app.data.shared, input.souls);
+  return h(
+    "main",
+    { class: "result", "aria-busy": "true" },
+    resultHead(app, input, `Nível ${progression.level} com ${fmt(input.souls)} souls, ${input.itemSlots ?? 9} slots.`),
+    calculating(input),
+    theoriesSection(app, hero.id),
+  );
+}
+
+function failureView(app: App, input: OptimizeInput, message: string): HTMLElement {
+  return h(
+    "main",
+    { class: "result" },
+    resultHead(app, input, `${fmt(input.souls)} souls, ${input.itemSlots ?? 9} slots.`),
+    h("p", { class: "empty" }, `Não deu para montar a build com essa configuração: ${message}`),
+    bannedBar(app),
+  );
+}
+
+export function renderBuildView(app: App): HTMLElement {
+  const input = inputFor(app);
+  const key = inputKey(input);
+  const outcome = app.builds.cached(key);
+  let main: HTMLElement;
+  if (outcome) {
+    // Configuração já calculada: desenha na hora e larga um cálculo de outra que ninguém mais vê.
+    app.builds.cancelUnless(key);
+    if (outcome.ok) shown = { payload: outcome.payload, input };
+    main = outcome.ok ? resultView(app, outcome.payload, input) : failureView(app, input, outcome.message);
+  } else {
+    // Os controles aparecem já; o resultado entra quando o worker responder, se a configuração ainda for a mesma.
+    app.builds.request(key, input, (done) => {
+      if (app.state.tab === "build" && inputKey(inputFor(app)) === done) app.refresh();
+    });
+    main = pendingView(app, input);
+  }
   return h("div", { class: "layout" }, controls(app), main);
 }

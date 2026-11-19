@@ -165,7 +165,15 @@ const COMMUNITY_SWAP_BONUS = 0.01;
 /** Máximo de builds contadas no bônus de uma troca da comunidade. */
 const COMMUNITY_MAX_BUILDS = 4;
 
-export function optimize(data: GameData, input: OptimizeInput): OptimizeResult {
+/**
+ * Avaliações já feitas (build pelo motor + métricas), por contexto, souls, upgrades e
+ * itens. O resultado de uma avaliação só depende disso, então chamadas que medem a
+ * mesma build (a busca do alvo "final" dentro da progressiva, as builds publicadas da
+ * comparação) podem dividir o mesmo mapa. Os objetos guardados não são alterados.
+ */
+export type EvaluationMemo = Map<string, { build: BuildResult; metrics: Metrics }>;
+
+export function optimize(data: GameData, input: OptimizeInput, memo: EvaluationMemo = new Map()): OptimizeResult {
   const hero = findHero(data, input.hero);
   let weights: Weights = typeof input.objective === "string" ? OBJECTIVES[input.objective] : input.objective;
   const slots = input.itemSlots ?? BASE_ITEM_SLOTS;
@@ -181,10 +189,17 @@ export function optimize(data: GameData, input: OptimizeInput): OptimizeResult {
   const byClass = new Map(data.items.map((i) => [i.className, i]));
   let evaluations = 0;
 
+  const context = JSON.stringify([hero.name, slots, options]);
   const run = (items: Item[], tiers: number[], souls = input.souls) => {
     evaluations++;
-    const build = evaluateBuild(data, { hero: hero.name, souls, items: items.map((i) => i.className), abilityTiers: tiers, itemSlots: slots, uptime: options.uptime });
-    return { build, metrics: computeMetrics(build, options) };
+    const classNames = items.map((i) => i.className);
+    const key = `${context}|${souls}|${tiers.join(",")}|${classNames.join(",")}`;
+    let hit = memo.get(key);
+    if (!hit) {
+      const build = evaluateBuild(data, { hero: hero.name, souls, items: classNames, abilityTiers: tiers, itemSlots: slots, uptime: options.uptime });
+      memo.set(key, (hit = { build, metrics: computeMetrics(build, options) }));
+    }
+    return hit;
   };
 
   const runAt = run;
@@ -267,7 +282,7 @@ export function optimize(data: GameData, input: OptimizeInput): OptimizeResult {
     const gates = tierGates(data, hero.id);
     // Alvo: a melhor build para os souls finais. O jogador compra pensando nela; item
     // fora do alvo vai ser vendido pela metade depois, então custa 50% a mais na conta.
-    const target = optimize(data, { ...input, mode: "final" });
+    const target = optimize(data, { ...input, mode: "final" }, memo);
     const targetClasses = new Set(target.items.flatMap((i) => [i.className, ...componentTree(data, i)]));
     const pull = TARGET_PULL;
     // Tier 4 é o fim da cadeia de upgrades: não é comprado para ser vendido, então não paga a revenda.

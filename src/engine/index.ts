@@ -58,20 +58,42 @@ export interface BuildResult {
 
 const norm = (s: string) => s.trim().toLowerCase();
 
+// Buscas por nome repetidas a cada avaliação de build: memorizadas por lista (a mesma
+// lista dá sempre o mesmo primeiro resultado).
+const heroLookup = new WeakMap<Hero[], Map<string, Hero>>();
+const itemLookup = new WeakMap<Item[], Map<string, Item>>();
+const abilityLookup = new WeakMap<Ability[], Map<Hero, Ability[]>>();
+
+function lookup<T>(cache: WeakMap<T[], Map<string, T>>, list: T[], ref: string, match: (x: T) => boolean): T | undefined {
+  let byRef = cache.get(list);
+  if (!byRef) cache.set(list, (byRef = new Map()));
+  let hit = byRef.get(ref);
+  if (hit === undefined) {
+    hit = list.find(match);
+    if (hit !== undefined) byRef.set(ref, hit);
+  }
+  return hit;
+}
+
 export function findHero(data: GameData, ref: string): Hero {
-  const hero = data.heroes.find((h) => norm(h.name) === norm(ref) || h.className === ref);
+  const hero = lookup(heroLookup, data.heroes, ref, (h) => norm(h.name) === norm(ref) || h.className === ref);
   if (!hero) throw new Error(`Herói não encontrado: ${ref}`);
   return hero;
 }
 
 export function findItem(data: GameData, ref: string): Item {
-  const item = data.items.find((i) => norm(i.name) === norm(ref) || i.className === ref);
+  const item = lookup(itemLookup, data.items, ref, (i) => norm(i.name) === norm(ref) || i.className === ref);
   if (!item) throw new Error(`Item não encontrado: ${ref}`);
   return item;
 }
 
+/** Habilidades do herói por slot. A lista devolvida é compartilhada: não altere. */
 export function heroAbilities(data: GameData, hero: Hero): Ability[] {
-  return data.abilities.filter((a) => a.heroId === hero.id).sort((a, b) => a.slot - b.slot);
+  let byHero = abilityLookup.get(data.abilities);
+  if (!byHero) abilityLookup.set(data.abilities, (byHero = new Map()));
+  let list = byHero.get(hero);
+  if (!list) byHero.set(hero, (list = data.abilities.filter((a) => a.heroId === hero.id).sort((a, b) => a.slot - b.slot)));
+  return list;
 }
 
 export function evaluateBuild(data: GameData, input: BuildInput): BuildResult {

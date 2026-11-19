@@ -45,8 +45,18 @@ const M = "MODIFIER_VALUE_";
 /** Fração das lutas em que um efeito com esse cooldown está disponível. */
 const perFight = (cooldown: number) => (cooldown > 0 ? Math.min(1, FIGHT_EVERY / cooldown) : 1);
 
+// Só depende do item e das propriedades resolvidas, que vêm de um cache (mesmo objeto
+// para os mesmos stats) e não mudam. As fontes devolvidas são compartilhadas: não altere.
+const defenseCache = new WeakMap<Record<string, ResolvedProperty>, DefenseSource[]>();
+
 function itemDefense(item: Item, build: BuildResult): DefenseSource[] {
   const p: Record<string, ResolvedProperty> = resolveProperties(item.properties, [], build.stats, build.progression.boons);
+  let hit = defenseCache.get(p);
+  if (!hit) defenseCache.set(p, (hit = itemDefenseUncached(item, p)));
+  return hit;
+}
+
+function itemDefenseUncached(item: Item, p: Record<string, ResolvedProperty>): DefenseSource[] {
   const v = (k: string) => Math.abs(p[k]?.value ?? 0);
   const text = item.sections.map((s) => s.text).join(" ");
   const avail = perFight(v("AbilityCooldown"));

@@ -142,6 +142,65 @@ export function resolveAbility(ability: Ability, stats: HeroStats, boons: number
   return { className: ability.className, name: ability.name, slot: ability.slot, tier, text: ability.text ?? "", properties };
 }
 
+/**
+ * Resultados já resolvidos por fonte. O resultado só depende das propriedades, dos
+ * upgrades aplicados e dos stats que powerStat/multiplier/cargas leem (a chave), e
+ * ninguém altera o objeto devolvido: a mesma fonte com os mesmos stats reaproveita.
+ */
+type ByStats = Map<string, Record<string, ResolvedProperty>>;
+type ResolvedCache = { deps: Dep[]; depsId: string; plain: ByStats; upgraded: WeakMap<PropertyUpgrade[][], Map<number, ByStats>> };
+const resolvedCache = new WeakMap<Record<string, Property>, ResolvedCache>();
+const RESOLVED_CACHE_LIMIT = 4000;
+
+/** Valores que a resolução pode ler: campos dos stats e os boons. */
+type Dep = "spiritPower" | "boons" | "weaponDamagePct" | "cooldownReductionPct" | "itemCooldownReductionPct" | "durationPct" | "rangePct" | "radiusPct" | "healingOutputPct" | "bonusCharges";
+const DEP_ORDER: Dep[] = ["spiritPower", "boons", "weaponDamagePct", "cooldownReductionPct", "itemCooldownReductionPct", "durationPct", "rangePct", "radiusPct", "healingOutputPct", "bonusCharges"];
+/** Campo lido por powerStat/multiplier para cada stat de escala (EChannelDuration é constante). */
+const STAT_DEP: Record<string, Dep> = {
+  ETechPower: "spiritPower",
+  ELevelUpBoons: "boons",
+  EWeaponPower: "weaponDamagePct",
+  EBaseWeaponDamageIncrease: "weaponDamagePct",
+  ETechCooldown: "cooldownReductionPct",
+  EItemCooldown: "itemCooldownReductionPct",
+  ETechDuration: "durationPct",
+  ETechRange: "rangePct",
+  ETechRadius: "radiusPct",
+  EHealingOutput: "healingOutputPct",
+};
+
+/**
+ * O que a resolução da fonte pode ler (com folga): propriedade sem escala não lê nada;
+ * com escala, os stats declarados ou implícitos, Spirit Power e boons (coeficientes sem
+ * stat de poder) e cargas extras. Fonte sem escala nenhuma dá o mesmo resultado em qualquer build.
+ */
+function dependencies(source: Record<string, Property>): Dep[] {
+  const deps = new Set<Dep>();
+  for (const [key, p] of Object.entries(source)) {
+    const scale = p.scale;
+    if (!scale) continue;
+    deps.add("spiritPower");
+    deps.add("boons");
+    const implied = scale.fn ? IMPLIED_STAT[scale.fn] : undefined;
+    for (const stat of implied ? [...scale.stats, implied] : scale.stats) {
+      const dep = STAT_DEP[stat];
+      if (dep) deps.add(dep);
+    }
+    if (key === "AbilityCharges") deps.add("bonusCharges");
+  }
+  return DEP_ORDER.filter((d) => deps.has(d));
+}
+
+/** Chave dos valores lidos, guardada por objeto de stats (que não muda depois de calculado). */
+const statsKeys = new WeakMap<HeroStats, { boons: number; keys: Map<string, string> }>();
+function statsKey(stats: HeroStats, boons: number, deps: Dep[], depsId: string): string {
+  let entry = statsKeys.get(stats);
+  if (!entry || !Object.is(entry.boons, boons)) statsKeys.set(stats, (entry = { boons, keys: new Map() }));
+  let key = entry.keys.get(depsId);
+  if (key === undefined) entry.keys.set(depsId, (key = deps.map((d) => (d === "boons" ? boons : stats[d])).join("|")));
+  return key;
+}
+
 /** Resolve um conjunto de propriedades (de habilidade ou de item) para os stats dados. */
 export function resolveProperties(
   source: Record<string, Property>,
@@ -150,6 +209,32 @@ export function resolveProperties(
   boons: number,
   tier = 0,
 ): Record<string, ResolvedProperty> {
+  // Quantos níveis de upgrade entram (o mesmo que upgradeTiers.slice(0, ...).length).
+  const end = Math.max(0, Math.min(3, tier));
+  const count = end > 0 ? Math.min(upgradeTiers.length, Math.trunc(end)) : 0;
+  let bySource = resolvedCache.get(source);
+  if (!bySource) {
+    const deps = dependencies(source);
+    resolvedCache.set(source, (bySource = { deps, depsId: deps.join(","), plain: new Map(), upgraded: new WeakMap() }));
+  }
+  let cache = bySource.plain;
+  if (count > 0) {
+    let up = bySource.upgraded.get(upgradeTiers);
+    if (!up) bySource.upgraded.set(upgradeTiers, (up = new Map()));
+    let byCount = up.get(count);
+    if (!byCount) up.set(count, (byCount = new Map()));
+    cache = byCount;
+  }
+  const key = statsKey(stats, boons, bySource.deps, bySource.depsId);
+  const hit = cache.get(key);
+  if (hit) return hit;
+  const resolved = resolvePropertiesUncached(source, upgradeTiers.slice(0, count), stats, boons);
+  if (cache.size >= RESOLVED_CACHE_LIMIT) cache.clear();
+  cache.set(key, resolved);
+  return resolved;
+}
+
+function resolvePropertiesUncached(source: Record<string, Property>, applied: PropertyUpgrade[][], stats: HeroStats, boons: number): Record<string, ResolvedProperty> {
   const props: Record<string, Property> = {};
   const coefs: Record<string, number | null> = {};
   for (const [key, p] of Object.entries(source)) {
@@ -157,7 +242,7 @@ export function resolveProperties(
     coefs[key] = p.scale?.coef ?? null;
   }
 
-  for (const upgrades of upgradeTiers.slice(0, Math.max(0, Math.min(3, tier)))) {
+  for (const upgrades of applied) {
     for (const up of upgrades) {
       const prop = props[up.property];
       if (!prop) continue;

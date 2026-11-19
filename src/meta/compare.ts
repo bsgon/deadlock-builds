@@ -4,7 +4,7 @@
  */
 import type { GameData, Item } from "../data/types.ts";
 import { findHero } from "../engine/index.ts";
-import { optimize, type OptimizeInput, type OptimizeResult } from "../optimizer/optimize.ts";
+import { optimize, type EvaluationMemo, type OptimizeInput, type OptimizeResult } from "../optimizer/optimize.ts";
 import { heroMeta, pickRate, popularAtSouls, type PopularBuild } from "./stats.ts";
 
 export { popularAtSouls };
@@ -26,10 +26,12 @@ export function compareWithPopular(data: GameData, app: OptimizeResult, input: O
   const meta = heroMeta(data, hero.id);
   if (!meta) return [];
   const appClasses = new Set(app.items.map((i) => i.className));
+  // As builds publicadas são medidas no mesmo contexto: a build sem itens e os upgrades se repetem.
+  const memo: EvaluationMemo = new Map();
   return meta.builds.slice(0, top).flatMap((build) => {
     const items = popularAtSouls(data, build, input.souls, input.itemSlots ?? 9);
     if (items.length === 0) return [];
-    const result = optimize(data, { ...input, required: items.map((i) => i.className), banned: [], fixedItems: true });
+    const result = optimize(data, { ...input, required: items.map((i) => i.className), banned: [], fixedItems: true }, memo);
     const theirs = new Set(items.map((i) => i.className));
     return [
       {

@@ -9,6 +9,7 @@
 import type { Item } from "../data/types.ts";
 import { resolveProperties, type BuildResult, type ResolvedProperty } from "../engine/index.ts";
 import { itemUptime } from "../engine/conditional.ts";
+import { contextId, memoByObject } from "../engine/memo.ts";
 import { controlSources, type ControlSource } from "./control.ts";
 import { effectiveHealth } from "./defense.ts";
 import { antiHealDps } from "./antiheal.ts";
@@ -136,8 +137,18 @@ function damageParts(props: Record<string, ResolvedProperty>): DamageParts {
   return { burst, dotPerSecond, duration, cooldown: props.AbilityCooldown?.value ?? 0 };
 }
 
+// Contas por habilidade e por item que só dependem das propriedades resolvidas (objeto
+// de cache, imutável) e de poucos números da build, guardados no contexto.
+const abilityDamageMemo = memoByObject<Record<string, ResolvedProperty>, number>();
+const itemDamageMemo = memoByObject<Record<string, ResolvedProperty>, ItemDamage[]>();
+const itemHealMemo = memoByObject<Record<string, ResolvedProperty>, number>();
+
 /** Dano por segundo de uma habilidade numa luta que começa com ela pronta, usada sempre que volta. */
 function abilityDamagePerSecond(props: Record<string, ResolvedProperty>, uptime: number, fight: number): number {
+  return abilityDamageMemo(props, contextId([uptime, fight]), () => abilityDamagePerSecondUncached(props, uptime, fight));
+}
+
+function abilityDamagePerSecondUncached(props: Record<string, ResolvedProperty>, uptime: number, fight: number): number {
   const d = damageParts(props);
   if (d.cooldown <= 0) return d.dotPerSecond * uptime; // passiva: o dano contínuo vale parte do tempo
   return fightDamagePerSecond(d.burst, d.dotPerSecond, d.duration, d.cooldown, fight);
@@ -169,8 +180,14 @@ function bleedPerSecond(props: Record<string, ResolvedProperty>, item: Item, hit
   return perSecond * Math.min(1, duration / secondsToFill) * firing;
 }
 
-function itemDamagePerSecond(item: Item, build: BuildResult, hitsPerSecond: number, uptime: number, firing: number, targetHealth: number, fight: number): ItemDamage[] {
+/** Lista compartilhada (cache): não altere. `context` resume os números da build que a conta lê. */
+function itemDamagePerSecond(item: Item, build: BuildResult, hitsPerSecond: number, uptime: number, firing: number, targetHealth: number, fight: number, context: number): ItemDamage[] {
   const all = resolveProperties(item.properties, [], build.stats, build.progression.boons);
+  return itemDamageMemo(all, context, () => itemDamagePerSecondUncached(item, all, build, hitsPerSecond, uptime, firing, targetHealth, fight));
+}
+
+/** Lê da build só clipSize, bulletsPerShot, bulletDamage e meleeShare (que entram no contexto). */
+function itemDamagePerSecondUncached(item: Item, all: Record<string, ResolvedProperty>, build: BuildResult, hitsPerSecond: number, uptime: number, firing: number, targetHealth: number, fight: number): ItemDamage[] {
   const out: ItemDamage[] = [];
 
   for (const section of item.sections) {
@@ -310,9 +327,18 @@ function itemHealPerSecond(build: BuildResult, uptime: number, firing: number, s
     .filter((a) => a.slot <= build.progression.abilityUnlocks)
     .reduce((sum, a) => sum + ((a.properties.AbilityCooldown?.value ?? 0) > 0 ? 1 / Math.max(1, a.properties.AbilityCooldown!.value) : 0), 0);
   const healthMax = build.stats.health;
+  const context = contextId([healthMax, uptime, firing, casts, spiritDps > 0]);
   let total = 0;
   for (const item of build.items) {
     const p = resolveProperties(item.properties, [], build.stats, build.progression.boons);
+    total += itemHealMemo(p, context, () => itemHeal(item, p, healthMax, uptime, firing, spiritDps, casts));
+  }
+  return total;
+}
+
+/** Cura por segundo de um item (só das propriedades resolvidas e dos números passados). */
+function itemHeal(item: Item, p: Record<string, ResolvedProperty>, healthMax: number, uptime: number, firing: number, spiritDps: number, casts: number): number {
+  {
     const v = (key: string) => p[key]?.value ?? 0;
     const text = item.sections.map((s) => s.text).join(" ");
     const cooldown = Math.max(1, v("AbilityCooldown") || 30);
@@ -335,9 +361,8 @@ function itemHealPerSecond(build: BuildResult, uptime: number, firing: number, s
     heal += ((v("HealPerStack") * AVERAGE_STACKS) / cooldown) * uptime;
     // Cura ao abater sob o efeito (Healbane).
     heal += v("HealOnKill") * KILLS_PER_SECOND;
-    total += heal;
+    return heal;
   }
-  return total;
 }
 
 /** Fração do tempo que a arma consegue atirar sem parar para recarregar. */
@@ -366,8 +391,9 @@ export function computeMetrics(build: BuildResult, options: MetricOptions = DEFA
   const hitsPerSecond = stats.shotsPerSecond * stats.bulletsPerShot;
   let itemDps = 0;
   let bulletItemDps = 0;
+  const itemContext = contextId([hitsPerSecond, options.uptime, firing, options.targetHealth, fight, stats.clipSize, stats.bulletsPerShot, stats.bulletDamage, build.meleeShare]);
   for (const item of build.items) {
-    for (const dmg of itemDamagePerSecond(item, build, hitsPerSecond, options.uptime, firing, options.targetHealth, fight)) {
+    for (const dmg of itemDamagePerSecond(item, build, hitsPerSecond, options.uptime, firing, options.targetHealth, fight, itemContext)) {
       itemDps += dmg.perSecond * spiritMult;
       if (dmg.perBullet) bulletItemDps += dmg.perSecond * spiritMult;
     }

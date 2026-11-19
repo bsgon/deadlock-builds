@@ -10,6 +10,7 @@
  */
 import type { GameData, Item } from "../data/types.ts";
 import { evaluateBuild, resolveProperties, type BuildResult, type ResolvedProperty } from "../engine/index.ts";
+import { contextId, memoByObject } from "../engine/memo.ts";
 
 export type ControlKind = "stun" | "immobilize" | "sleep" | "silence" | "hex" | "disarm" | "tether" | "slow" | "fireRateSlow";
 
@@ -98,8 +99,21 @@ interface Effect {
   strength: number;
 }
 
-/** Efeitos de controle de um uso da habilidade ou do item, por tipo. */
+// Propriedades resolvidas vêm de um cache (mesmo objeto para a mesma fonte e os mesmos
+// stats) e não mudam: o que só depende delas e do texto é calculado uma vez.
+const effectsCache = new WeakMap<Record<string, ResolvedProperty>, Map<string, Map<ControlKind, Effect>>>();
+const areaCache = new WeakMap<Record<string, ResolvedProperty>, boolean>();
+
+/** Efeitos de controle de um uso da habilidade ou do item, por tipo (cópia: quem chama pode alterar o mapa). */
 function controlEffects(props: Record<string, ResolvedProperty>, text: string): Map<ControlKind, Effect> {
+  let byText = effectsCache.get(props);
+  if (!byText) effectsCache.set(props, (byText = new Map()));
+  let hit = byText.get(text);
+  if (!hit) byText.set(text, (hit = controlEffectsUncached(props, text)));
+  return new Map(hit);
+}
+
+function controlEffectsUncached(props: Record<string, ResolvedProperty>, text: string): Map<ControlKind, Effect> {
   const out = new Map<ControlKind, Effect>();
   const effect = EFFECT_DURATION.map((k) => val(props[k])).find((v) => v > 0) ?? 0;
   const slowDuration = maxOf(props, SLOW_DURATION) || effect || FALLBACK_DURATION;
@@ -123,7 +137,19 @@ function controlEffects(props: Record<string, ResolvedProperty>, text: string): 
   return out;
 }
 
-const hasArea = (props: Record<string, ResolvedProperty>) => Object.entries(props).some(([k, p]) => /Radius$/.test(k) && !/^Tech/.test(k) && (p.value ?? 0) > 0);
+const hasArea = (props: Record<string, ResolvedProperty>) => {
+  let hit = areaCache.get(props);
+  if (hit === undefined) areaCache.set(props, (hit = Object.entries(props).some(([k, p]) => /Radius$/.test(k) && !/^Tech/.test(k) && (p.value ?? 0) > 0)));
+  return hit;
+};
+
+/** Texto do item (todas as seções), montado uma vez por item. */
+const textCache = new WeakMap<Item, string>();
+const itemText = (item: Item) => {
+  let text = textCache.get(item);
+  if (text === undefined) textCache.set(item, (text = item.sections.map((s) => s.text).join(" ")));
+  return text;
+};
 
 /** Nenhum efeito conta como ativo em mais da metade do tempo: o inimigo sai do alcance, usa cura, tem imunidade. */
 const MAX_ACTIVE_SHARE = 0.5;
@@ -147,9 +173,35 @@ function perMinute(effects: Map<ControlKind, Effect>, active: (e: Effect) => num
 /** Efeito com cooldown: ativo por duração ÷ cooldown do tempo. */
 const everyCooldown = (cooldown: number) => (e: Effect) => e.duration / Math.max(MIN_COOLDOWN, cooldown);
 
-function itemControl(item: Item, build: BuildResult, uptime: number, firing: number): ByKind | null {
+// Controle por item e por habilidade: só depende das propriedades resolvidas (objeto de
+// cache, imutável) e dos números no contexto. Quem chama altera o mapa: sai uma cópia.
+const itemControlMemo = memoByObject<Record<string, ResolvedProperty>, ByKind | null>();
+const abilityControlMemo = memoByObject<Record<string, ResolvedProperty>, ByKind | null>();
+const ULTIMATE = /your ultimate/i;
+
+const ultimateItems = new WeakMap<Item, boolean>();
+const usesUltimate = (item: Item) => {
+  let hit = ultimateItems.get(item);
+  if (hit === undefined) ultimateItems.set(item, (hit = ULTIMATE.test(itemText(item))));
+  return hit;
+};
+
+/** `contexts`: [sem a ultimate, com a ultimate] — a ultimate só entra na conta de itens disparados por ela. */
+function itemControl(item: Item, build: BuildResult, uptime: number, firing: number, ultimate: number | null, contexts: [number, number]): ByKind | null {
   const props = resolveProperties(item.properties, [], build.stats, build.progression.boons);
-  const text = item.sections.map((s) => s.text).join(" ");
+  const context = contexts[usesUltimate(item) ? 1 : 0];
+  const hit = itemControlMemo(props, context, () => itemControlUncached(item, props, build, uptime, firing, ultimate));
+  return hit ? new Map(hit) : null;
+}
+
+/** Cooldown da ultimate desbloqueada (o que itemControl lê das habilidades), null sem ela. */
+function ultimateCooldown(build: BuildResult): number | null {
+  const ult = build.abilities.find((a) => a.slot === 4 && a.slot <= build.progression.abilityUnlocks);
+  return ult ? val(ult.properties.AbilityCooldown) || 120 : null;
+}
+
+function itemControlUncached(item: Item, props: Record<string, ResolvedProperty>, build: BuildResult, uptime: number, firing: number, ultimate: number | null): ByKind | null {
+  const text = itemText(item);
   const effects = controlEffects(props, text);
   // Item que tem campo de slow mas não fala em slow aplica o efeito em você, não no inimigo.
   if (!/slow|reduc/i.test(text)) {
@@ -162,10 +214,9 @@ function itemControl(item: Item, build: BuildResult, uptime: number, firing: num
   if (/melee/i.test(text)) share *= build.meleeShare;
   let cooldown = val(props.AbilityCooldown) || val(props.ProcCooldown);
   // Disparado pela ultimate (ex.: Lightning Scroll): uma vez por cooldown da ultimate.
-  if (/your ultimate/i.test(text)) {
-    const ult = build.abilities.find((a) => a.slot === 4 && a.slot <= build.progression.abilityUnlocks);
-    if (!ult) return null;
-    cooldown = val(ult.properties.AbilityCooldown) || 120;
+  if (ULTIMATE.test(text)) {
+    if (ultimate === null) return null;
+    cooldown = ultimate;
     share = 1;
   }
   // Acúmulo com imunidade depois (ex.: Silencer): no máximo um efeito por duração + imunidade.
@@ -186,14 +237,20 @@ export function controlSources(build: BuildResult, uptime: number, firing: numbe
   const raw: { name: string; from: ControlSource["from"]; byKind: ByKind }[] = [];
   for (const ability of build.abilities) {
     if (ability.slot > build.progression.abilityUnlocks) continue; // ainda não desbloqueada
-    const effects = controlEffects(ability.properties, ability.text);
-    if (effects.size === 0) continue;
-    const cooldown = val(ability.properties.AbilityCooldown);
-    // Sem cooldown (passiva ou aura): ativa pela fração do tempo em luta.
-    raw.push({ name: ability.name, from: "ability", byKind: perMinute(effects, cooldown > 0 ? everyCooldown(cooldown) : () => uptime, hasArea(ability.properties) ? AREA_BONUS : 1) });
+    const byKind = abilityControlMemo(ability.properties, contextId([uptime]), () => {
+      const effects = controlEffects(ability.properties, ability.text);
+      if (effects.size === 0) return null;
+      const cooldown = val(ability.properties.AbilityCooldown);
+      // Sem cooldown (passiva ou aura): ativa pela fração do tempo em luta.
+      return perMinute(effects, cooldown > 0 ? everyCooldown(cooldown) : () => uptime, hasArea(ability.properties) ? AREA_BONUS : 1);
+    });
+    if (!byKind) continue;
+    raw.push({ name: ability.name, from: "ability", byKind: new Map(byKind) });
   }
+  const ultimate = ultimateCooldown(build);
+  const contexts: [number, number] = [contextId([uptime, firing, build.meleeShare, "-"]), contextId([uptime, firing, build.meleeShare, String(ultimate)])];
   for (const item of build.items) {
-    const byKind = itemControl(item, build, uptime, firing);
+    const byKind = itemControl(item, build, uptime, firing, ultimate, contexts);
     if (byKind) raw.push({ name: item.name, from: "item", byKind });
   }
   for (const kind of ["slow", "fireRateSlow"] as const) {

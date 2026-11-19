@@ -11,6 +11,7 @@
 import type { GameData, Item } from "../data/types.ts";
 import type { BuildResult, ResolvedProperty } from "../engine/index.ts";
 import { resolveProperties } from "../engine/index.ts";
+import { contextId, memoByObject } from "../engine/memo.ts";
 import { applyReviews } from "./mechanics.ts";
 
 /** Mudança de estado no combate. */
@@ -260,13 +261,21 @@ export function itemSource(item: Item, props: Props = item.properties): EffectSo
  */
 export function buildEffects(build: BuildResult, patch: number): EffectDef[] {
   const out: EffectDef[] = [];
-  for (const a of build.abilities) if (a.slot <= build.progression.abilityUnlocks) out.push(...applyReviews(effectsFromSource(abilitySource(a), patch), a.className, scaleFor(build)));
+  const scale = scaleFor(build);
+  // Os efeitos de uma fonte só dependem das propriedades resolvidas (objeto de cache,
+  // imutável, ligado à fonte), do patch e da escala: a mesma lista serve a várias builds.
+  const context = contextId([patch, scale.range, scale.duration]);
+  for (const a of build.abilities)
+    if (a.slot <= build.progression.abilityUnlocks) out.push(...sourceEffects(a.properties, context, () => applyReviews(effectsFromSource(abilitySource(a), patch), a.className, scale)));
   for (const item of build.items) {
     const props = resolveProperties(item.properties, [], build.stats, build.progression.boons);
-    out.push(...applyReviews(effectsFromSource(itemSource(item, props), patch), item.className, scaleFor(build)));
+    out.push(...sourceEffects(props, context, () => applyReviews(effectsFromSource(itemSource(item, props), patch), item.className, scale)));
   }
   return out;
 }
+
+/** Efeitos já montados por propriedades resolvidas e contexto. Os objetos são compartilhados: não altere. */
+const sourceEffects = memoByObject<Props, EffectDef[]>();
 
 /** Multiplicadores de alcance e duração da build, para escalar valores revisados. */
 export interface Scale {

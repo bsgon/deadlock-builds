@@ -2,6 +2,7 @@ import type { GameData } from "../src/data/types.ts";
 import { withoutBrawlItems } from "../src/data/playable.ts";
 import { buildGraph, type Graph } from "../src/interactions/synergy.ts";
 import { applyFightProfile, type Objective } from "../src/optimizer/metrics.ts";
+import { BuildClient } from "./build-client.ts";
 import { renderBuildView } from "./build-view.ts";
 import { h } from "./dom.ts";
 import { renderSynergyView } from "./synergy-view.ts";
@@ -29,8 +30,12 @@ export interface App {
   data: GameData;
   graph: Graph;
   state: State;
+  /** Cálculo das builds fora da thread principal, com cache por configuração. */
+  builds: BuildClient;
   /** Atualiza o estado, salva e redesenha. */
   update(patch: Partial<State>): void;
+  /** Redesenha sem mudar o estado (quando chega um resultado do worker). */
+  refresh(): void;
 }
 
 const STORAGE_KEY = "deadlock-builds:state";
@@ -115,6 +120,7 @@ try {
     data,
     graph: buildGraph(data),
     state: loadState(data),
+    builds: new BuildClient(data),
     update(patch) {
       Object.assign(app.state, patch);
       try {
@@ -122,6 +128,9 @@ try {
       } catch {
         // Armazenamento indisponível: a sessão continua funcionando.
       }
+      render(app);
+    },
+    refresh() {
       render(app);
     },
   };

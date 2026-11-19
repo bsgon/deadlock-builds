@@ -200,6 +200,15 @@ export function bestSequence(actions: PlayAction[], scenario: Scenario, ehp: num
     return { steps: steps.map((s) => ({ source: s.a.source, name: s.a.name, at: s.at })), sim, value: executionValue(sim, plan.weights, steps.length), cycle: Math.max(...steps.map((s) => s.a.cooldown)) };
   };
   const solo = new Map<string, number>();
+  // Os intervalos de cada par só dependem das duas ações (a distância é a do cenário).
+  const offsetCache = new Map<PlayAction, Map<PlayAction, number[]>>();
+  const offsetsOf = (a: PlayAction, b: PlayAction) => {
+    let byB = offsetCache.get(a);
+    if (!byB) offsetCache.set(a, (byB = new Map()));
+    let list = byB.get(b);
+    if (!list) byB.set(b, (list = offsets(a, b, distance)));
+    return list;
+  };
   let beam: { steps: { a: PlayAction; at: number }[]; r: SequenceResult }[] = [];
   for (const a of actions) {
     const r = run([{ a, at: 0 }]);
@@ -215,7 +224,7 @@ export function bestSequence(actions: PlayAction[], scenario: Scenario, ehp: num
       const last = node.steps[node.steps.length - 1]!;
       for (const b of actions) {
         if (node.steps.some((s) => s.a.source === b.source)) continue;
-        for (const off of offsets(last.a, b, distance)) {
+        for (const off of offsetsOf(last.a, b)) {
           const steps = [...node.steps, { a: b, at: last.at + off }];
           next.push({ steps, r: run(steps) });
         }
