@@ -105,6 +105,16 @@ describe("winrate por janela de compra", () => {
     expect(mean(2)).toBeGreaterThan(mean(0) + 1);
   }, 120_000);
 
+  it("luta começa com tudo pronto: ultimate longa vale o dano dela na luta, não dividido pelo cooldown", async () => {
+    const { fightDamagePerSecond } = await import("../src/optimizer/metrics.ts");
+    // Rajada 150 + 180/s por 4 s, cooldown 150 s, luta de 10 s: (150 + 720) / 10.
+    expect(fightDamagePerSecond(150, 180, 4, 150, 10)).toBeCloseTo(87, 5);
+    // Cooldown curto: usos no começo, aos 4 e aos 8 s.
+    expect(fightDamagePerSecond(100, 0, 0, 4, 10)).toBeCloseTo(30, 5);
+    // Dano contínuo não passa da duração da luta.
+    expect(fightDamagePerSecond(0, 50, 30, 60, 10)).toBeCloseTo(50, 5);
+  });
+
   it("desempate: só troca compras quase empatadas e quando a diferença nas partidas passa do intervalo", () => {
     // Dados fictícios com amostra enorme e winrates bem separados: todo quase-empate vira desempate.
     const fake: PurchaseWindows = { fetchedAt: "", days: 30, windows: WINDOWS, heroes: {} };
@@ -113,7 +123,8 @@ describe("winrate por janela de compra", () => {
       for (const it of data.items) byItem[it.className] = WINDOWS.map(() => [Math.round(1_000_000 * (0.3 + ((it.id % 97) / 97) * 0.4)), 1_000_000] as [number, number]);
       fake.heroes[String(h.id)] = byItem;
     }
-    const steps = ["Haze", "Abrams", "Seven"].flatMap((hero) => optimize({ ...data, windows: fake }, { hero, objective: "dps", souls: 20000 }).order);
+    // Sem o peso das partidas: com dados fictícios tão separados, ele já desfaz os quase-empates.
+    const steps = ["Haze", "Abrams", "Seven"].flatMap((hero) => optimize({ ...data, windows: fake }, { hero, objective: "dps", souls: 20000, matchWeight: 0 }).order);
     const broken = steps.filter((s) => s.tieBreak);
     expect(broken.length).toBeGreaterThan(0);
     for (const s of broken) {

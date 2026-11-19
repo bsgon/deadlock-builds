@@ -2,8 +2,9 @@
  * Métricas de uma build por objetivo (dano, tank, sustain).
  *
  * São índices para comparar builds do MESMO herói, não previsões de combate:
- * dano de habilidade assume que cada habilidade é usada sempre que sai do
- * cooldown e acerta um alvo; dano de itens é estimado por frequência de proc.
+ * dano de habilidade é o de uma luta de `fightSeconds` que começa com tudo
+ * pronto, cada habilidade acertando o alvo; dano de itens é estimado por
+ * frequência de proc (ativos também pela luta).
  */
 import type { Item } from "../data/types.ts";
 import { resolveProperties, type BuildResult, type ResolvedProperty } from "../engine/index.ts";
@@ -61,6 +62,25 @@ export interface MetricOptions {
   plan?: PlanId;
   /** Tipos de luta considerados nas jogadas (padrão: a mistura do plano, cenário assumido). */
   fights?: ScenarioId[];
+  /**
+   * Duração da luta, em segundos, para habilidades e itens com cooldown. A luta começa
+   * com tudo pronto: uma ultimate de 150 s rende o dano dela nesses segundos, não
+   * dividido pelos 150 s (o que a deixava valendo quase nada perto da arma).
+   */
+  fightSeconds?: number;
+}
+
+/** Duração padrão da luta, em segundos. */
+export const FIGHT_SECONDS = 10;
+
+/**
+ * Dano por segundo, numa luta de `fight` segundos que começa com o efeito pronto,
+ * de algo com rajada `burst` e dano contínuo `dot` por `duration` segundos a cada uso.
+ */
+export function fightDamagePerSecond(burst: number, dot: number, duration: number, cooldown: number, fight = FIGHT_SECONDS): number {
+  const cd = Math.max(1, cooldown);
+  const uses = 1 + Math.floor(Math.max(0, fight - 1e-6) / cd);
+  return (uses * burst + dot * Math.min(fight, uses * Math.min(duration, cd))) / fight;
 }
 
 export const DEFAULT_METRIC_OPTIONS: MetricOptions = { uptime: 0.5, shooting: 0.5, targetBulletResist: 0, targetSpiritResist: 0, targetHealth: 2500 };
@@ -100,12 +120,11 @@ function damageParts(props: Record<string, ResolvedProperty>): DamageParts {
   return { burst, dotPerSecond, duration, cooldown: props.AbilityCooldown?.value ?? 0 };
 }
 
-/** Dano por segundo de uma habilidade usada sempre que disponível. */
-function abilityDamagePerSecond(props: Record<string, ResolvedProperty>, uptime: number): number {
+/** Dano por segundo de uma habilidade numa luta que começa com ela pronta, usada sempre que volta. */
+function abilityDamagePerSecond(props: Record<string, ResolvedProperty>, uptime: number, fight: number): number {
   const d = damageParts(props);
   if (d.cooldown <= 0) return d.dotPerSecond * uptime; // passiva: o dano contínuo vale parte do tempo
-  const cooldown = Math.max(1, d.cooldown);
-  return (d.burst + d.dotPerSecond * Math.min(d.duration, cooldown)) / cooldown;
+  return fightDamagePerSecond(d.burst, d.dotPerSecond, d.duration, d.cooldown, fight);
 }
 
 interface ItemDamage {
@@ -134,7 +153,7 @@ function bleedPerSecond(props: Record<string, ResolvedProperty>, item: Item, hit
   return perSecond * Math.min(1, duration / secondsToFill) * firing;
 }
 
-function itemDamagePerSecond(item: Item, build: BuildResult, hitsPerSecond: number, uptime: number, firing: number, targetHealth: number): ItemDamage[] {
+function itemDamagePerSecond(item: Item, build: BuildResult, hitsPerSecond: number, uptime: number, firing: number, targetHealth: number, fight: number): ItemDamage[] {
   const all = resolveProperties(item.properties, [], build.stats, build.progression.boons);
   const out: ItemDamage[] = [];
 
@@ -189,6 +208,11 @@ function itemDamagePerSecond(item: Item, build: BuildResult, hitsPerSecond: numb
       const perHit = item.properties[bulletKey]?.unit === "%" ? (raw / 100) * build.stats.bulletDamage : raw;
       const once = itemCooldown > 0 && d.burst > raw ? d.burst / itemCooldown : 0;
       out.push({ perSecond: (perHit * procsPerSecond + once) * opportunity, perBullet });
+      continue;
+    }
+    // Ativo e proc com cooldown que não depende de bala começam a luta prontos (como habilidades).
+    if (!perBullet && cooldown > 0) {
+      out.push({ perSecond: fightDamagePerSecond(d.burst, d.dotPerSecond, d.duration, cooldown, fight) * opportunity, perBullet });
       continue;
     }
     const perProc = d.burst + d.dotPerSecond * Math.min(d.duration, cooldown > 0 ? cooldown : d.duration);
@@ -316,17 +340,18 @@ export function computeMetrics(build: BuildResult, options: MetricOptions = DEFA
   const bulletMult = 1 - (options.targetBulletResist - conditional.bulletShredPct) / 100;
   const spiritMult = 1 - (options.targetSpiritResist - conditional.spiritShredPct) / 100;
   const firing = firingShare(build, options);
+  const fight = options.fightSeconds ?? FIGHT_SECONDS;
   const weaponDps = stats.burstDps * firing * bulletMult;
   // Só habilidades já desbloqueadas no nível (a ultimate chega por último).
   const abilityDps =
     build.abilities
       .filter((a) => a.slot <= build.progression.abilityUnlocks)
-      .reduce((sum, a) => sum + abilityDamagePerSecond(a.properties, options.uptime), 0) * spiritMult;
+      .reduce((sum, a) => sum + abilityDamagePerSecond(a.properties, options.uptime, fight), 0) * spiritMult;
   const hitsPerSecond = stats.shotsPerSecond * stats.bulletsPerShot;
   let itemDps = 0;
   let bulletItemDps = 0;
   for (const item of build.items) {
-    for (const dmg of itemDamagePerSecond(item, build, hitsPerSecond, options.uptime, firing, options.targetHealth)) {
+    for (const dmg of itemDamagePerSecond(item, build, hitsPerSecond, options.uptime, firing, options.targetHealth, fight)) {
       itemDps += dmg.perSecond * spiritMult;
       if (dmg.perBullet) bulletItemDps += dmg.perSecond * spiritMult;
     }
