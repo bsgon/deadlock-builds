@@ -1,0 +1,167 @@
+
+> deadlock-builds@0.1.0 build-for
+> node scripts/build.ts Paige control 30000 --fight dive
+
+=== Paige | objetivo control | 30000 souls (patch 6861) ===
+Gasto: 29361 souls em 9 itens | pontuação 2.82x a build sem itens
+
+Métrica          sem itens   com a build
+DPS de arma             50          50  (+0%)
+DPS habilidades         35          82  (+134%)
+DPS de itens             0           6  (n/d)
+DPS corpo a corpo         2           2  (+0%)
+DPS total               87         141  (+61%)
+  de quem atira         52          52  (+0%)
+  de spirit             35          89  (+152%)
+Vida efetiva          1579        6259  (+296%)
+  defesa além de vida e resistência: barreiras 2452 por luta, tempo protegido +0%, controle 0%, desvio 0% (Weapon Shielding, Spirit Shielding, Reactive Barrier, Diviner's Kevlar)
+Cura por segundo       2.0         2.0  (+0%)
+Controle (s/min)       8.5        19.0  (+122%)
+Jogadas (U/min)       67.0       152.2  (+127%)
+Efeitos de corpo a corpo valem 8% para Paige (itens de melee comprados em 2% das partidas)
+Fontes de controle: Captivating Read 12.5 (imobiliza, lentidão); Cold Front 3.4 (lentidão); Suppressor 2.5 (lentidão de tiro); Rallying Charge 0.4 (stun)
+Defesa mínima (vida efetiva das builds mais jogadas com esses souls, -10%): 3129
+
+Tiers liberados (souls ganhos em que o herói costuma comprar): T2 6047, T3 17944, T4 28561
+
+Ordem de compra (souls ganhos e minuto aproximado; no fim, quando os jogadores compram o item):
+  — início —
+ 1.    800 souls ~ 2 min  Rusted Barrel [spirit T1, paga 800] (vendido depois)  → 0.27x  (jogadores: ~14 min)
+      ΔU jogadas +0.0 (+0%) | alternativa: Grit +0.0 | mecanismo: sem ganho nas jogadas simuladas
+      métrica: valor por minuto 8.6 → 8.6 (defesa contra iniciação)
+      confiança: interação alta, melhor compra agora baixa (mecânica + partidas, 104997 partidas, winrate -4.7 pp vs média do herói)
+ 2.   1600 souls ~ 3 min  Grit [vitality T1, paga 800] (vira componente)  → 0.70x  (jogadores: ~6 min)
+      ΔU jogadas +0.0 (+0%) | alternativa: Extra Health +0.0 | mecanismo: sem ganho nas jogadas simuladas
+      métrica: valor por minuto 37.1 → 37.1 (defesa contra iniciação)
+      confiança: interação alta, melhor compra agora baixa (mecânica + partidas, 1120240 partidas, winrate +0.0 pp vs média do herói)
+ 3.   2400 souls ~ 4 min  Extra Health [vitality T1, paga 800] (vendido depois)  → 0.91x  (jogadores: ~11 min)
+      ΔU jogadas +0.0 (+0%) | alternativa: Rebuttal +0.0 | mecanismo: sem ganho nas jogadas simuladas
+      métrica: conclui a sequência vivo; valor por minuto 49.0 → 49.0 (defesa contra iniciação)
+      confiança: interação alta, melhor compra agora baixa (mecânica + partidas, 157111 partidas, winrate -2.0 pp vs média do herói)
+ 4.   6047 souls ~ 9 min  Cold Front [spirit T2, paga 1600]  → 1.14x  (jogadores: ~19 min)
+      ΔU jogadas +12.3 (+24%) | alternativa: Enchanter's Emblem +1.7 | mecanismo: atributos (vida, dano, alcance) sem interação própria
+      jogada: Ordem em defesa contra iniciação: Captivating Read → Bookwyrm 0,20 s depois → Cold Front 0,15 s depois.
+      métrica: alvos atingidos 2 → 3; dano na janela 230 → 812; valor por minuto 51.6 → 63.9 (defesa contra iniciação)
+      confiança: interação média, melhor compra agora média (mecânica + partidas, 5035 partidas, winrate -3.7 pp vs média do herói)
+ 5.   6847 souls ~10 min  Weapon Shielding [vitality T2, paga 800] (melhora Grit)  → 1.26x  (jogadores: ~18 min)
+      ΔU jogadas +0.9 (+1%) | alternativa: Spirit Shielding +0.9 | mecanismo: sobreviver para concluir a jogada
+      de onde vem: sobreviver à iniciação e concluir a jogada +0.9
+      jogada: A vida a mais deixa você sobreviver à iniciação e concluir a jogada. Ordem em defesa contra iniciação: Captivating Read → Bookwyrm 2,50 s depois → Cold Front 0,15 s depois.
+      métrica: dano na janela 820 → 901; conclui a sequência vivo; valor por minuto 64.6 → 65.5 (defesa contra iniciação)
+      confiança: interação média, melhor compra agora baixa (mecânica + partidas, 82028 partidas, winrate -3.2 pp vs média do herói)
+ 6.   8447 souls ~12 min  Spirit Shielding [vitality T2, paga 1600]  → 1.53x  (jogadores: ~17 min)
+      ΔU jogadas +0.0 (+0%) | alternativa: Reactive Barrier +0.0 | mecanismo: sem ganho nas jogadas simuladas
+      métrica: valor por minuto 73.6 → 73.6 (defesa contra iniciação)
+      confiança: interação média, melhor compra agora baixa (mecânica + partidas, 236099 partidas, winrate -1.8 pp vs média do herói)
+ 7.  10047 souls ~14 min  Enchanter's Emblem [vitality T2, paga 1600]  → 1.74x  (jogadores: ~16 min)
+      ΔU jogadas +3.1 (+4%) | alternativa: Reactive Barrier +0.0 | mecanismo: combo volta mais cedo
+      jogada: Ordem em defesa contra iniciação: Captivating Read → Bookwyrm 2,50 s depois → Cold Front 0,15 s depois.
+      métrica: dano na janela 1398 → 1461; valor por minuto 74.7 → 77.8 (defesa contra iniciação)
+      confiança: interação média, melhor compra agora alta (mecânica + partidas, 292939 partidas, winrate +0.4 pp vs média do herói)
+  — meio —
+ 8.  11647 souls ~15 min  Reactive Barrier [vitality T2, paga 1600]  → 1.88x  (jogadores: ~22 min)
+      ΔU jogadas +0.0 (+0%) | alternativa: Compress Cooldown +4.7 | mecanismo: sem ganho nas jogadas simuladas
+      jogada: Sem ganho nas jogadas; Compress Cooldown somaria 4.7. A compra vem de dano ou defesa fora das jogadas.
+      métrica: valor por minuto 79.1 → 79.1 (defesa contra iniciação)
+      confiança: interação média, melhor compra agora baixa (mecânica + partidas, 235383 partidas, winrate -0.8 pp vs média do herói)
+ 9.  13247 souls ~17 min  Compress Cooldown [spirit T2, paga 1600] (vira componente)  → 1.94x  (jogadores: ~17 min)
+      ΔU jogadas +4.7 (+6%) | alternativa: Extra Charge +1.5 | mecanismo: atributos (vida, dano, alcance) sem interação própria
+      jogada: Ordem em defesa contra iniciação: Captivating Read → Bookwyrm 2,50 s depois → Cold Front 0,15 s depois.
+      métrica: dano na janela 1498 → 1532; valor por minuto 80.4 → 85.2 (defesa contra iniciação)
+      confiança: interação média, melhor compra agora alta (mecânica + partidas, 1225021 partidas, winrate +0.8 pp vs média do herói)
+10.  14047 souls ~18 min  Extra Charge [spirit T1, paga 800] (vira componente)  → 1.92x  (jogadores: ~8 min)
+      ΔU jogadas +3.7 (+4%) | alternativa: Rapid Recharge +22.9 | mecanismo: atributos (vida, dano, alcance) sem interação própria
+      jogada: Ordem em defesa contra iniciação: Captivating Read → Bookwyrm 2,50 s depois → Cold Front 0,15 s depois. Rapid Recharge rende mais agora com o mesmo orçamento.
+      métrica: dano na janela 1541 → 1758; valor por minuto 85.8 → 89.5 (defesa contra iniciação)
+      confiança: interação média, melhor compra agora baixa (mecânica + partidas, 1546247 partidas, winrate +0.4 pp vs média do herói)
+11.  17944 souls ~21 min  Rapid Recharge [spirit T3, paga 2400] (melhora Extra Charge)  → 2.27x  (jogadores: ~22 min)
+      ΔU jogadas +19.8 (+21%) | alternativa: Battle Vest +0.0 | mecanismo: atributos (vida, dano, alcance) sem interação própria
+      jogada: Ordem em defesa contra iniciação: Captivating Read → Bookwyrm 2,50 s depois → Cold Front 0,15 s depois.
+      métrica: dano na janela 1786 → 1903; valor por minuto 92.6 → 112.3 (defesa contra iniciação)
+      confiança: interação média, melhor compra agora alta (mecânica + partidas, 1284452 partidas, winrate +0.8 pp vs média do herói)
+12.  19544 souls ~22 min  Superior Cooldown [spirit T3, paga 1600] (melhora Compress Cooldown)  → 2.41x  (jogadores: ~22 min)
+      ΔU jogadas +10.2 (+9%) | alternativa: Weighted Shots +0.0 | mecanismo: atributos (vida, dano, alcance) sem interação própria
+      jogada: Ordem em defesa contra iniciação: Captivating Read → Bookwyrm 2,50 s depois → Cold Front 0,15 s depois.
+      métrica: dano na janela 1912 → 1971; valor por minuto 113.8 → 124.0 (defesa contra iniciação)
+      confiança: interação média, melhor compra agora alta (mecânica + partidas, 1372930 partidas, winrate +1.0 pp vs média do herói)
+13.  20744 souls ~23 min  Battle Vest [vitality T2, paga 1200] (vende Extra Health; vendido depois)  → 2.57x  (jogadores: ~16 min)
+      ΔU jogadas +0.0 (+0%) | alternativa: Spirit Resilience +0.0 | mecanismo: sem ganho nas jogadas simuladas
+      métrica: valor por minuto 125.2 → 125.2 (defesa contra iniciação)
+      confiança: interação média, melhor compra agora baixa (mecânica + partidas, 19860 partidas, winrate -4.1 pp vs média do herói)
+14.  28561 souls ~29 min  Diviner's Kevlar [vitality T4, paga 6000] (vende Rusted Barrel)  → 2.85x  (jogadores: ~40 min)
+      ΔU jogadas +14.0 (+10%) | alternativa: Spiritual Overflow +12.7 | mecanismo: atributos (vida, dano, alcance) sem interação própria
+      jogada: Ordem em defesa contra iniciação: Captivating Read → Bookwyrm 2,50 s depois → Cold Front 0,15 s depois.
+      métrica: controle útil 3.3 → 3.7 s; dano na janela 2268 → 2534; valor por minuto 135.4 → 149.5 (defesa contra iniciação)
+      confiança: interação média, melhor compra agora média (mecânica + partidas, 35856 partidas, winrate +5.3 pp vs média do herói)
+15.  29361 souls ~30 min  Suppressor [spirit T2, paga 800] (vende Battle Vest)  → 2.82x  (jogadores: ~23 min)
+      ΔU jogadas +1.2 (+1%) | mecanismo: atributos (vida, dano, alcance) sem interação própria
+      jogada: Ordem em defesa contra iniciação: Captivating Read → Bookwyrm 2,50 s depois → Cold Front 0,15 s depois.
+      métrica: dano na janela 2534 → 2592; valor por minuto 150.2 → 151.4 (defesa contra iniciação)
+      confiança: interação média, melhor compra agora média (mecânica + partidas, 23436 partidas, winrate -3.6 pp vs média do herói)
+
+Build final (depois de vendas e upgrades): 9 de 9 slots, 1 de 4 ativos
+  [vitality T4] Diviner's Kevlar
+  [vitality T2] Weapon Shielding
+  [vitality T2] Spirit Shielding
+  [vitality T2] Enchanter's Emblem
+  [vitality T2] Reactive Barrier
+  [spirit T3] Rapid Recharge
+  [spirit T3] Superior Cooldown
+  [spirit T2] Cold Front (ativo)
+  [spirit T2] Suppressor
+
+Upgrades de habilidade (T por slot): 3 / 3 / 3 / 1
+Avaliações de build na busca: 2768
+
+Jogadas da build (plano Controle; lutas: dive):
+  defesa contra iniciação    Captivating Read → Bookwyrm +2.50s → Cold Front +0.15s  | atingidos 3, escaparam 0, controle útil 3.7 s, dano 2602
+
+Alternativas situacionais (troca na build final, pelo tipo de luta):
+  duelo                      Slowing Hex no lugar de Weapon Shielding: jogadas +18.6/min (prender o alvo até a detonação)
+  luta pequena (2)           Vortex Web no lugar de Weapon Shielding: jogadas +40.9/min (agrupar alvos para uma área)
+  teamfight (4 agrupados)    Vortex Web no lugar de Weapon Shielding: jogadas +38.1/min (agrupar alvos para uma área)
+  inimigos dispersos         Vortex Web no lugar de Weapon Shielding: jogadas +68.7/min (agrupar alvos para uma área)
+  perseguição                Slowing Hex no lugar de Weapon Shielding: jogadas +21.1/min (prender o alvo até a detonação)
+  defesa contra iniciação    Magic Carpet no lugar de Weapon Shielding: jogadas +15.6/min (atributos)
+
+Regras da loja na rota: ok (souls, upgrades, vendas, slots, ativos, pontos de habilidade)
+Mecânicas revisadas: 6 definições; todas conferem com o patch 6861
+
+Pico de vitality (4800 souls): acontece com 10047 souls gastos (~14 min). Prazo: 11619 souls (~15 min). dentro do prazo.
+Com 30000 souls, Paige costuma estar no minuto ~30 (média de 1903739 partidas).
+Winrate por duração da partida: 0-25 min: 58.3% | 25-35 min: 57.7% | 35-45 min: 55.0% | 45+ min: 54.0%
+
+Quanto os jogadores compram os itens desta build com Paige:
+  Cold Front                 0% das partidas
+  Weapon Shielding           4% das partidas
+  Spirit Shielding           12% das partidas
+  Enchanter's Emblem         15% das partidas
+  Reactive Barrier           12% das partidas
+  Rapid Recharge             67% das partidas
+  Superior Cooldown          72% das partidas
+  Diviner's Kevlar           2% das partidas
+  Suppressor                 1% das partidas
+
+Build publicada "BEST SUPPORT PAIGE BUILD - deadlocked.gg" (162871 partidas, 56.2% de vitória), cortada em 30000 souls:
+  Itens: High-Velocity Rounds, Trophy Collector, Rescue Beam, Improved Spirit, Rapid Recharge, Divine Barrier, Transcendent Cooldown, Greater Expansion, Superior Duration
+  Pontuação no motor: 1.88x (app: 2.82x) | DPS total 142 (app 141) | vida efetiva 3477 (app 6259)
+  Em comum: Rapid Recharge
+  Só no app: Cold Front, Weapon Shielding, Spirit Shielding, Enchanter's Emblem, Reactive Barrier, Superior Cooldown, Diviner's Kevlar, Suppressor
+  Só na publicada: High-Velocity Rounds, Trophy Collector, Rescue Beam, Improved Spirit, Divine Barrier, Transcendent Cooldown, Greater Expansion, Superior Duration
+  Pico de vitality: com 4800 souls (~8 min)
+
+Build publicada "PAIGE DRAGON SUPPORT [60% WR] [deadlocklabs.gg]" (79161 partidas, 58.3% de vitória), cortada em 30000 souls:
+  Itens: Opening Rounds, Guardian Ward, Extra Charge, Greater Expansion, Superior Duration, Transcendent Cooldown, Boundless Spirit, Refresher
+  Pontuação no motor: 1.47x (app: 2.82x) | DPS total 148 (app 141) | vida efetiva 2481 (app 6259)
+  Em comum: nenhum
+  Só no app: Cold Front, Weapon Shielding, Spirit Shielding, Enchanter's Emblem, Reactive Barrier, Rapid Recharge, Superior Cooldown, Diviner's Kevlar, Suppressor
+  Só na publicada: Opening Rounds, Guardian Ward, Extra Charge, Greater Expansion, Superior Duration, Transcendent Cooldown, Boundless Spirit, Refresher
+  Pico de vitality: não acontece
+
+Build publicada "Stephano Sinclair" (73885 partidas, 56.6% de vitória), cortada em 30000 souls:
+  Itens: Long Range, Cultist Sacrifice, Rapid Recharge, Enduring Speed, Fortitude, Majestic Leap, Stamina Mastery, Warp Stone, Boundless Spirit
+  Pontuação no motor: 2.00x (app: 2.82x) | DPS total 148 (app 141) | vida efetiva 3696 (app 6259)
+  Em comum: Rapid Recharge
+  Só no app: Cold Front, Weapon Shielding, Spirit Shielding, Enchanter's Emblem, Reactive Barrier, Superior Cooldown, Diviner's Kevlar, Suppressor
+  Só na publicada: Long Range, Cultist Sacrifice, Enduring Speed, Fortitude, Majestic Leap, Stamina Mastery, Warp Stone, Boundless Spirit
+  Pico de vitality: com 8000 souls (~12 min)

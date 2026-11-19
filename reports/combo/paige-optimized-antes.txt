@@ -1,0 +1,93 @@
+
+> deadlock-builds@0.1.0 build-for
+> node scripts/build.ts Paige optimized 30000
+
+=== Paige | objetivo optimized | 30000 souls (patch 6861) ===
+Gasto: 29361 souls em 9 itens | pontuação 4.19x a build sem itens
+
+Métrica          sem itens   com a build
+DPS de arma             50         249  (+401%)
+DPS habilidades         35          38  (+7%)
+DPS de itens             0           0  (n/d)
+DPS corpo a corpo         2           3  (+5%)
+DPS total               87         289  (+231%)
+  de quem atira         52         251  (+382%)
+  de spirit             35          38  (+7%)
+Vida efetiva          1579        5285  (+235%)
+  defesa além de vida e resistência: barreiras 890 por luta, tempo protegido +0%, controle 68%, desvio 0% (Weapon Shielding, Spirit Shielding, Resistência a status)
+Cura por segundo       2.0        26.9  (+1244%)
+Controle (s/min)       8.5        11.9  (+40%)
+Efeitos de corpo a corpo valem 8% para Paige (itens de melee comprados em 2% das partidas)
+Defesa mínima (vida efetiva das builds mais jogadas com esses souls, -10%): 3129
+
+Tiers liberados (souls ganhos em que o herói costuma comprar): T2 6047, T3 17944, T4 28561
+
+Ordem de compra (souls ganhos e minuto aproximado; no fim, quando os jogadores compram o item):
+ 1.    800 souls ~ 2 min  Grit [vitality T1, paga 800] (vira componente)  → 0.58x  (jogadores: ~6 min)
+ 2.   1600 souls ~ 3 min  Rapid Rounds [weapon T1, paga 800] (vira componente)  → 0.76x  (jogadores: ~9 min)
+ 3.   2400 souls ~ 4 min  Extra Health [vitality T1, paga 800] (vendido depois)  → 0.79x  (jogadores: ~11 min)
+ 4.   3200 souls ~ 6 min  Extended Magazine [weapon T1, paga 800] (vendido depois)  → 0.85x  (jogadores: ~9 min)
+ 5.   6047 souls ~ 9 min  Battle Vest [vitality T2, paga 1600]  → 1.04x  (jogadores: ~16 min)
+ 6.   6847 souls ~10 min  Weapon Shielding [vitality T2, paga 800] (melhora Grit)  → 1.31x  (jogadores: ~18 min)
+ 7.   8447 souls ~12 min  Spirit Shielding [vitality T2, paga 1600]  → 1.52x  (jogadores: ~17 min)
+ 8.  10047 souls ~14 min  Bullet Resist Shredder [spirit T2, paga 1600]  → 1.74x  (jogadores: ~21 min)
+ 9.  11647 souls ~15 min  Opening Rounds [weapon T2, paga 1600] (vendido depois)  → 2.03x  (jogadores: ~7 min)
+10.  13247 souls ~17 min  Slowing Bullets [weapon T2, paga 1600] (vira componente)  → 2.26x  (jogadores: ~16 min)
+11.  17944 souls ~21 min  Blood Tribute [weapon T3, paga 2800] (vende Extra Health)  → 2.67x  (jogadores: ~26 min)
+12.  19544 souls ~22 min  Weighted Shots [weapon T3, paga 1600] (melhora Slowing Bullets)  → 3.03x  (jogadores: ~25 min)
+13.  21944 souls ~24 min  Burst Fire [weapon T3, paga 2400] (melhora Rapid Rounds)  → 3.59x  (jogadores: ~23 min)
+14.  28561 souls ~29 min  Frenzy [weapon T4, paga 6000] (vende Extended Magazine)  → 4.17x  (jogadores: ~38 min)
+15.  29361 souls ~30 min  Swift Striker [weapon T2, paga 800] (vende Opening Rounds)  → 4.15x  (jogadores: ~13 min)
+
+Build final (depois de vendas e upgrades): 9 de 9 slots, 1 de 4 ativos
+  [weapon T4] Frenzy
+  [weapon T3] Blood Tribute (ativo)
+  [weapon T3] Weighted Shots
+  [weapon T3] Burst Fire
+  [weapon T2] Swift Striker
+  [vitality T2] Battle Vest
+  [vitality T2] Weapon Shielding
+  [vitality T2] Spirit Shielding
+  [spirit T2] Bullet Resist Shredder
+
+Upgrades de habilidade (T por slot): 3 / 3 / 3 / 1
+Avaliações de build na busca: 2594
+
+Pico de vitality (4800 souls): acontece com 8447 souls gastos (~12 min). Prazo: 11619 souls (~15 min). dentro do prazo.
+Com 30000 souls, Paige costuma estar no minuto ~30 (média de 1903739 partidas).
+Winrate por duração da partida: 0-25 min: 58.3% | 25-35 min: 57.7% | 35-45 min: 55.0% | 45+ min: 54.0%
+
+Quanto os jogadores compram os itens desta build com Paige:
+  Battle Vest                1% das partidas
+  Weapon Shielding           4% das partidas
+  Spirit Shielding           12% das partidas
+  Bullet Resist Shredder     1% das partidas
+  Blood Tribute              0% das partidas
+  Weighted Shots             1% das partidas
+  Burst Fire                 1% das partidas
+  Frenzy                     0% das partidas
+  Swift Striker              1% das partidas
+
+Build publicada "BEST SUPPORT PAIGE BUILD - deadlocked.gg" (162871 partidas, 56.2% de vitória), cortada em 30000 souls:
+  Itens: High-Velocity Rounds, Trophy Collector, Rescue Beam, Improved Spirit, Rapid Recharge, Divine Barrier, Transcendent Cooldown, Greater Expansion, Superior Duration
+  Pontuação no motor: 1.94x (app: 4.19x) | DPS total 142 (app 289) | vida efetiva 3477 (app 5285)
+  Em comum: nenhum
+  Só no app: Battle Vest, Weapon Shielding, Spirit Shielding, Bullet Resist Shredder, Blood Tribute, Weighted Shots, Burst Fire, Frenzy, Swift Striker
+  Só na publicada: High-Velocity Rounds, Trophy Collector, Rescue Beam, Improved Spirit, Rapid Recharge, Divine Barrier, Transcendent Cooldown, Greater Expansion, Superior Duration
+  Pico de vitality: com 4800 souls (~8 min)
+
+Build publicada "PAIGE DRAGON SUPPORT [60% WR] [deadlocklabs.gg]" (79161 partidas, 58.3% de vitória), cortada em 30000 souls:
+  Itens: Opening Rounds, Guardian Ward, Extra Charge, Greater Expansion, Superior Duration, Transcendent Cooldown, Boundless Spirit, Refresher
+  Pontuação no motor: 1.73x (app: 4.19x) | DPS total 148 (app 289) | vida efetiva 2481 (app 5285)
+  Em comum: nenhum
+  Só no app: Battle Vest, Weapon Shielding, Spirit Shielding, Bullet Resist Shredder, Blood Tribute, Weighted Shots, Burst Fire, Frenzy, Swift Striker
+  Só na publicada: Opening Rounds, Guardian Ward, Extra Charge, Greater Expansion, Superior Duration, Transcendent Cooldown, Boundless Spirit, Refresher
+  Pico de vitality: não acontece
+
+Build publicada "Stephano Sinclair" (73885 partidas, 56.6% de vitória), cortada em 30000 souls:
+  Itens: Long Range, Cultist Sacrifice, Rapid Recharge, Enduring Speed, Fortitude, Majestic Leap, Stamina Mastery, Warp Stone, Boundless Spirit
+  Pontuação no motor: 2.07x (app: 4.19x) | DPS total 148 (app 289) | vida efetiva 3696 (app 5285)
+  Em comum: nenhum
+  Só no app: Battle Vest, Weapon Shielding, Spirit Shielding, Bullet Resist Shredder, Blood Tribute, Weighted Shots, Burst Fire, Frenzy, Swift Striker
+  Só na publicada: Long Range, Cultist Sacrifice, Rapid Recharge, Enduring Speed, Fortitude, Majestic Leap, Stamina Mastery, Warp Stone, Boundless Spirit
+  Pico de vitality: com 5600 souls (~9 min)

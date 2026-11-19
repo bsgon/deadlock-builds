@@ -1,0 +1,11 @@
+{
+ "clientVersion": 6861,
+ "versionDate": "Nov 09 2026",
+ "fetchedAt": "2026-11-16T21:59:18.198Z",
+ "source": "https://api.deadlock-api.com",
+ "counts": {
+  "heroes": 44,
+  "abilities": 176,
+  "items": 173
+ }
+}

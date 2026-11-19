@@ -1,0 +1,21 @@
+{
+  "_sobre": "Revisão manual das interações extraídas da wiki. O merge (npm run knowledge -- merge) aplica isto depois de juntar os lotes. Chave: 'A + B' com os nomes como aparecem na extração (a ordem não importa).",
+  "remove": {
+    "Flying Cloak + Slowing Hex": "contra-jogo: o Slowing Hex vem do inimigo",
+    "Stalker's Mark + Slowing Hex": "contra-jogo: o Slowing Hex vem do inimigo",
+    "Return Fire + Plated Armor": "contra-jogo: o Plated Armor é do inimigo",
+    "Inhibitor + Ira Domini": "contra-jogo: o Inhibitor é aplicado pelo inimigo",
+    "Tankbuster + Silencer": "contra-jogo: o Silencer é aplicado pelo inimigo",
+    "Tankbuster + Fire Scarabs": "contra-jogo: os Fire Scarabs são da Nurse Harrow inimiga",
+    "Singularity + Indomitable": "contra-jogo, e só diz que não interagem",
+    "Deadman Danny + Ricochet": "não é interação: o item nem pode ser comprado pelo herói",
+    "Leech Therapy + Leech": "sem mecanismo entre os dois",
+    "Sand Blast + Mystic Burst": "disparar o Mystic Burst não atrapalha a build",
+    "Healing Tempo + Fire Scarabs": "sem mecanismo claro"
+  },
+  "change": {
+    "Heavy Barrage + Enduring Speed": { "relation": "synergy", "strength": 1, "mechanism": "Enduring Speed reduz a lentidão que o Heavy Barrage aplica no próprio McGinnis." },
+    "Heavy Barrage + Unstoppable": { "relation": "synergy", "strength": 1, "mechanism": "Unstoppable remove a lentidão que o Heavy Barrage aplica no próprio McGinnis enquanto dura." },
+    "Lightning Scroll + Close The Deal": { "relation": "anti", "strength": 1, "mechanism": "Close The Deal aplica o Lightning Scroll também no próprio Danny, que leva o stun." }
+  }
+}

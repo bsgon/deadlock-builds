@@ -1,0 +1,162 @@
+
+> deadlock-builds@0.1.0 build-for
+> node scripts/build.ts Paige control 30000 --fight spread
+
+=== Paige | objetivo control | 30000 souls (patch 6861) ===
+Gasto: 29361 souls em 9 itens | pontuação 4.40x a build sem itens
+
+Métrica          sem itens   com a build
+DPS de arma             50          57  (+15%)
+DPS habilidades         35          52  (+49%)
+DPS de itens             0           0  (n/d)
+DPS corpo a corpo         2           2  (+0%)
+DPS total               87         112  (+28%)
+  de quem atira         52          59  (+14%)
+  de spirit             35          52  (+49%)
+Vida efetiva          1579        8263  (+423%)
+  defesa além de vida e resistência: barreiras 1389 por luta, tempo protegido +14%, controle 0%, desvio 0% (Weapon Shielding, Spirit Shielding, Metal Skin, Reactive Barrier)
+Cura por segundo       2.0         2.0  (+0%)
+Controle (s/min)       8.5        13.5  (+59%)
+Jogadas (U/min)       22.0        94.4  (+329%)
+Efeitos de corpo a corpo valem 8% para Paige (itens de melee comprados em 2% das partidas)
+Fontes de controle: Captivating Read 9.1 (imobiliza, lentidão); Suppressor 2.5 (lentidão de tiro); Vortex Web 1.6 (prende, lentidão); Rallying Charge 0.3 (stun)
+Defesa mínima (vida efetiva das builds mais jogadas com esses souls, -10%): 3129
+
+Tiers liberados (souls ganhos em que o herói costuma comprar): T2 6047, T3 17944, T4 28561
+
+Ordem de compra (souls ganhos e minuto aproximado; no fim, quando os jogadores compram o item):
+  — início —
+ 1.    800 souls ~ 2 min  Grit [vitality T1, paga 800] (vira componente)  → 0.46x  (jogadores: ~6 min)
+      ΔU jogadas +0.0 (+0%) | alternativa: Rusted Barrel +0.2 | mecanismo: sem ganho nas jogadas simuladas
+      métrica: valor por minuto 11.0 → 11.0 (inimigos dispersos)
+      confiança: interação alta, melhor compra agora média (mecânica + partidas, 989089 partidas compradas aos 0–10 min: -0.7 ± 0.1 pp vs compras da mesma janela; vs Rusted Barrel +2.3 ± 0.5 pp)
+ 2.   1600 souls ~ 3 min  Rusted Barrel [spirit T1, paga 800] (vendido depois)  → 0.78x  (jogadores: ~14 min)
+      ΔU jogadas +0.2 (+2%) | alternativa: Extra Health +0.0 | mecanismo: atributos (vida, dano, alcance) sem interação própria
+      métrica: dano na janela 178 → 195; valor por minuto 14.9 → 15.2 (inimigos dispersos)
+      confiança: interação média, melhor compra agora baixa (mecânica + partidas, 44279 partidas compradas aos 0–10 min: -3.0 ± 0.5 pp vs compras da mesma janela; vs Extra Health -1.0 ± 0.6 pp; MODELO E PARTIDAS DIVERGEM)
+ 3.   2400 souls ~ 4 min  Extra Health [vitality T1, paga 800] (vendido depois)  → 0.86x  (jogadores: ~11 min)
+      ΔU jogadas +0.0 (+0%) | alternativa: Rebuttal +0.0 | mecanismo: sem ganho nas jogadas simuladas
+      métrica: valor por minuto 14.2 → 14.2 (inimigos dispersos)
+      confiança: interação média, melhor compra agora média (mecânica + partidas, 100892 partidas compradas aos 0–10 min: -2.0 ± 0.3 pp vs compras da mesma janela; vs Rebuttal -0.1 ± 0.6 pp)
+ 4.   6047 souls ~ 9 min  Slowing Hex [spirit T2, paga 1600] (vira componente)  → 1.17x  (jogadores: ~16 min)
+      ΔU jogadas +6.9 (+42%) | alternativa: Cold Front +5.4 | mecanismo: prender o alvo até a detonação
+      de onde vem: silêncio de movimento (sem dash) +3.4
+      jogada: Use Slowing Hex para prender os alvos antes de Captivating Read detonar. Ordem em inimigos dispersos: Bookwyrm → Slowing Hex 0,15 s depois → Captivating Read 0,15 s depois.
+      métrica: alvos atingidos 0 → 1; controle útil 0.2 → 0.9 s; dano na janela 288 → 313; valor por minuto 16.5 → 23.4 (inimigos dispersos)
+      confiança: interação média, melhor compra agora alta (mecânica + partidas, 102995 partidas compradas aos 0–10 min: -0.1 ± 0.3 pp vs compras da mesma janela; vs Cold Front +3.7 ± 3.3 pp)
+ 5.   6847 souls ~10 min  Weapon Shielding [vitality T2, paga 800] (melhora Grit)  → 1.28x  (jogadores: ~18 min)
+      ΔU jogadas +0.0 (+0%) | alternativa: Spirit Shielding +0.0 | mecanismo: sem ganho nas jogadas simuladas
+      métrica: valor por minuto 23.5 → 23.5 (inimigos dispersos)
+      confiança: interação média, melhor compra agora baixa (mecânica + partidas, 43122 partidas compradas aos 10–20 min: -2.2 ± 0.5 pp vs compras da mesma janela; vs Spirit Shielding -0.6 ± 0.5 pp; MODELO E PARTIDAS DIVERGEM)
+ 6.   8447 souls ~12 min  Spirit Shielding [vitality T2, paga 1600]  → 1.59x  (jogadores: ~17 min)
+      ΔU jogadas +0.0 (+0%) | alternativa: Battle Vest +0.0 | mecanismo: sem ganho nas jogadas simuladas
+      métrica: valor por minuto 27.5 → 27.5 (inimigos dispersos)
+      confiança: interação média, melhor compra agora média (mecânica + partidas, 142843 partidas compradas aos 10–20 min: -1.6 ± 0.3 pp vs compras da mesma janela; vs Battle Vest +3.6 ± 1.2 pp)
+ 7.  10047 souls ~14 min  Battle Vest [vitality T2, paga 1600]  → 1.76x  (jogadores: ~16 min)
+      ΔU jogadas +0.0 (+0%) | alternativa: Suppressor +0.4 | mecanismo: sem ganho nas jogadas simuladas
+      métrica: valor por minuto 27.5 → 27.5 (inimigos dispersos)
+      confiança: interação média, melhor compra agora baixa (mecânica + partidas, 7215 partidas compradas aos 10–20 min: -5.2 ± 1.2 pp vs compras da mesma janela; vs Suppressor -2.7 ± 1.6 pp; MODELO E PARTIDAS DIVERGEM)
+  — meio —
+ 8.  11647 souls ~15 min  Suppressor [spirit T2, paga 1600]  → 1.89x  (jogadores: ~23 min)
+      ΔU jogadas +0.4 (+2%) | alternativa: Enchanter's Emblem +1.1 | mecanismo: atributos (vida, dano, alcance) sem interação própria
+      jogada: Sem ganho nas jogadas; Enchanter's Emblem somaria 1.1. A compra vem de dano ou defesa fora das jogadas.
+      métrica: dano na janela 603 → 634; valor por minuto 27.6 → 28.0 (inimigos dispersos)
+      confiança: interação média, melhor compra agora baixa (mecânica + partidas, 7342 partidas compradas aos 10–20 min: -2.5 ± 1.1 pp vs compras da mesma janela; vs Enchanter's Emblem -2.3 ± 1.2 pp; MODELO E PARTIDAS DIVERGEM)
+ 9.  13247 souls ~17 min  Cold Front [spirit T2, paga 1600] (vendido depois)  → 2.07x  (jogadores: ~19 min)
+      ΔU jogadas +0.8 (+3%) | alternativa: Mystic Slow +0.8 | mecanismo: reduzir resistência antes do dano
+      jogada: Ordem em inimigos dispersos: Bookwyrm → Slowing Hex 0,15 s depois → Captivating Read 0,15 s depois.
+      métrica: dano na janela 640 → 697; valor por minuto 29.2 → 30.0 (inimigos dispersos)
+      confiança: interação média, melhor compra agora baixa (mecânica + partidas, 2487 partidas compradas aos 10–20 min: -3.1 ± 2.0 pp vs compras da mesma janela; vs Mystic Slow -3.6 ± 2.0 pp; MODELO E PARTIDAS DIVERGEM)
+10.  17944 souls ~21 min  Bullet Resilience [vitality T3, paga 3200]  → 2.24x  (jogadores: ~31 min)
+      ΔU jogadas +0.0 (+0%) | alternativa: Enchanter's Emblem +1.2 | mecanismo: sem ganho nas jogadas simuladas
+      jogada: Sem ganho nas jogadas; Enchanter's Emblem somaria 1.2. A compra vem de dano ou defesa fora das jogadas.
+      métrica: valor por minuto 30.2 → 30.2 (inimigos dispersos)
+      confiança: interação média, melhor compra agora baixa (mecânica + partidas, 14814 partidas compradas aos 20–30 min: -5.9 ± 0.8 pp vs compras da mesma janela)
+11.  20744 souls ~23 min  Metal Skin [vitality T3, paga 2800] (vende Rusted Barrel)  → 2.43x  (jogadores: ~32 min)
+      ΔU jogadas +0.0 (+0%) | alternativa: Superior Duration +1.8 | mecanismo: sem ganho nas jogadas simuladas
+      jogada: Sem ganho nas jogadas; Superior Duration somaria 1.8. A compra vem de dano ou defesa fora das jogadas.
+      métrica: valor por minuto 30.3 → 30.3 (inimigos dispersos)
+      confiança: interação média, melhor compra agora baixa (mecânica + partidas, 11342 partidas compradas aos 20–30 min: -11.8 ± 0.9 pp vs compras da mesma janela; vs Superior Duration -12.7 ± 0.9 pp; MODELO E PARTIDAS DIVERGEM)
+12.  23544 souls ~25 min  Superior Duration [spirit T3, paga 2800] (vende Extra Health)  → 2.35x  (jogadores: ~26 min)
+      ΔU jogadas +1.8 (+6%) | alternativa: Diviner's Kevlar +2.1 | mecanismo: atributos (vida, dano, alcance) sem interação própria
+      jogada: Ordem em inimigos dispersos: Bookwyrm → Slowing Hex 0,15 s depois → Captivating Read 0,15 s depois. Diviner's Kevlar rende mais agora com o mesmo orçamento.
+      métrica: controle útil 1.1 → 1.2 s; dano na janela 721 → 814; valor por minuto 30.4 → 32.2 (inimigos dispersos)
+      confiança: interação média, melhor compra agora média (mecânica + partidas, 544236 partidas compradas aos 20–30 min: +0.9 ± 0.1 pp vs compras da mesma janela)
+13.  28561 souls ~29 min  Vortex Web [spirit T4, paga 4800] (melhora Slowing Hex)  → 4.31x  (jogadores: ~28 min)
+      ΔU jogadas +60.8 (+188%) | alternativa: Diviner's Kevlar +0.1 | mecanismo: agrupar alvos para uma área
+      de onde vem: puxão (reposicionar os alvos) +35.8; silêncio de movimento (sem dash) +10.3
+      jogada: Use Vortex Web para puxar os inimigos para a área antes de Captivating Read detonar. Ordem em inimigos dispersos: Captivating Read → Vortex Web 0,20 s depois → Bookwyrm 1,50 s depois.
+      métrica: alvos atingidos 1 → 6; controle útil 1.2 → 7.2 s; dano na janela 821 → 3710; escapam da detonação 2 → 0; valor por minuto 32.3 → 93.1 (inimigos dispersos)
+      confiança: interação média, melhor compra agora baixa (mecânica + partidas, 147971 partidas compradas aos 20–30 min: +0.8 ± 0.3 pp vs compras da mesma janela; vs Diviner's Kevlar -11.4 ± 1.6 pp; MODELO E PARTIDAS DIVERGEM)
+14.  29361 souls ~30 min  Reactive Barrier [vitality T2, paga 800] (vende Cold Front)  → 4.39x  (jogadores: ~22 min)
+      ΔU jogadas +0.4 (+0%) | alternativa: Enchanter's Emblem +2.3 | mecanismo: atributos (vida, dano, alcance) sem interação própria
+      jogada: Sem ganho nas jogadas; Enchanter's Emblem somaria 2.3. A compra vem de dano ou defesa fora das jogadas.
+      métrica: controle útil 7.2 → 7.3 s; dano na janela 3710 → 3724; valor por minuto 93.5 → 93.9 (inimigos dispersos)
+      confiança: interação média, melhor compra agora média (mecânica + partidas, 70433 partidas compradas aos 20–30 min: -2.4 ± 0.4 pp vs compras da mesma janela; vs Enchanter's Emblem +0.3 ± 0.6 pp)
+
+Build final (depois de vendas e upgrades): 9 de 9 slots, 2 de 4 ativos
+  [vitality T3] Bullet Resilience
+  [vitality T3] Metal Skin (ativo)
+  [vitality T2] Weapon Shielding
+  [vitality T2] Spirit Shielding
+  [vitality T2] Battle Vest
+  [vitality T2] Reactive Barrier
+  [spirit T4] Vortex Web (ativo)
+  [spirit T3] Superior Duration
+  [spirit T2] Suppressor
+
+Upgrades de habilidade (T por slot): 3 / 3 / 3 / 1
+Avaliações de build na busca: 2601
+
+Jogadas da build (plano Controle; lutas: spread):
+  inimigos dispersos         Vortex Web → Captivating Read +0.25s → Bookwyrm +1.25s  | atingidos 6, escaparam 0, controle útil 7.3 s, dano 3741
+
+Alternativas situacionais (troca na build final, pelo tipo de luta):
+  duelo                      Healing Nova no lugar de Weapon Shielding: jogadas +19.3/min (atributos)
+  luta pequena (2)           Magic Carpet no lugar de Weapon Shielding: jogadas +8.1/min (atributos)
+  teamfight (4 agrupados)    Magic Carpet no lugar de Weapon Shielding: jogadas +21.9/min (atributos)
+  inimigos dispersos         Magic Carpet no lugar de Weapon Shielding: jogadas +10.0/min (atributos)
+  perseguição                Magic Carpet no lugar de Weapon Shielding: jogadas +3.2/min (atributos)
+  defesa contra iniciação    Arctic Blast no lugar de Weapon Shielding: jogadas +18.4/min (prender o alvo até a detonação)
+
+Regras da loja na rota: ok (souls, upgrades, vendas, slots, ativos, pontos de habilidade)
+Mecânicas revisadas: 6 definições; todas conferem com o patch 6861
+
+Pico de vitality (4800 souls): acontece com 10047 souls gastos (~14 min). Prazo: 11619 souls (~15 min). dentro do prazo.
+Com 30000 souls, Paige costuma estar no minuto ~30 (média de 1903739 partidas).
+Winrate por duração da partida: 0-25 min: 58.3% | 25-35 min: 57.7% | 35-45 min: 55.0% | 45+ min: 54.0%
+
+Quanto os jogadores compram os itens desta build com Paige:
+  Weapon Shielding           4% das partidas
+  Spirit Shielding           12% das partidas
+  Battle Vest                1% das partidas
+  Suppressor                 1% das partidas
+  Bullet Resilience          2% das partidas
+  Metal Skin                 2% das partidas
+  Superior Duration          55% das partidas
+  Vortex Web                 16% das partidas
+  Reactive Barrier           12% das partidas
+
+Build publicada "BEST SUPPORT PAIGE BUILD - deadlocked.gg" (162871 partidas, 56.2% de vitória), cortada em 30000 souls:
+  Itens: High-Velocity Rounds, Trophy Collector, Rescue Beam, Improved Spirit, Rapid Recharge, Divine Barrier, Transcendent Cooldown, Greater Expansion, Superior Duration
+  Pontuação no motor: 2.03x (app: 4.40x) | DPS total 142 (app 112) | vida efetiva 3477 (app 8263)
+  Em comum: Superior Duration
+  Só no app: Weapon Shielding, Spirit Shielding, Battle Vest, Suppressor, Bullet Resilience, Metal Skin, Vortex Web, Reactive Barrier
+  Só na publicada: High-Velocity Rounds, Trophy Collector, Rescue Beam, Improved Spirit, Rapid Recharge, Divine Barrier, Transcendent Cooldown, Greater Expansion
+  Pico de vitality: com 4800 souls (~8 min)
+
+Build publicada "PAIGE DRAGON SUPPORT [60% WR] [deadlocklabs.gg]" (79161 partidas, 58.3% de vitória), cortada em 30000 souls:
+  Itens: Opening Rounds, Guardian Ward, Extra Charge, Greater Expansion, Superior Duration, Transcendent Cooldown, Boundless Spirit, Refresher
+  Pontuação no motor: 1.62x (app: 4.40x) | DPS total 148 (app 112) | vida efetiva 2481 (app 8263)
+  Em comum: Superior Duration
+  Só no app: Weapon Shielding, Spirit Shielding, Battle Vest, Suppressor, Bullet Resilience, Metal Skin, Vortex Web, Reactive Barrier
+  Só na publicada: Opening Rounds, Guardian Ward, Extra Charge, Greater Expansion, Transcendent Cooldown, Boundless Spirit, Refresher
+  Pico de vitality: não acontece
+
+Build publicada "Stephano Sinclair" (73885 partidas, 56.6% de vitória), cortada em 30000 souls:
+  Itens: Long Range, Cultist Sacrifice, Rapid Recharge, Enduring Speed, Fortitude, Majestic Leap, Stamina Mastery, Warp Stone, Boundless Spirit
+  Pontuação no motor: 2.00x (app: 4.40x) | DPS total 148 (app 112) | vida efetiva 3696 (app 8263)
+  Em comum: nenhum
+  Só no app: Weapon Shielding, Spirit Shielding, Battle Vest, Suppressor, Bullet Resilience, Metal Skin, Superior Duration, Vortex Web, Reactive Barrier
+  Só na publicada: Long Range, Cultist Sacrifice, Rapid Recharge, Enduring Speed, Fortitude, Majestic Leap, Stamina Mastery, Warp Stone, Boundless Spirit
+  Pico de vitality: com 8000 souls (~12 min)

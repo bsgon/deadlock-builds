@@ -1,0 +1,40 @@
+{
+  "name": "deadlock-builds",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Construtor de builds de Deadlock: snapshot de dados do deadlock-api.com e motor de cálculo.",
+  "engines": {
+    "node": ">=22.18"
+  },
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "artifact": "node scripts/artifact.ts",
+    "update": "node scripts/update.ts && npm run check",
+    "update:check": "node scripts/update.ts --dry",
+    "snapshot": "node scripts/snapshot.ts",
+    "snapshot:offline": "node scripts/snapshot.ts --offline",
+    "report": "node scripts/report.ts",
+    "audit": "node scripts/audit.ts",
+    "tags": "node scripts/tags.ts",
+    "synergy": "node scripts/synergy.ts",
+    "build-for": "node scripts/build.ts",
+    "validate": "node scripts/validate.ts",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "check": "npm run typecheck && npm run test",
+    "stats": "node scripts/stats.ts",
+    "wiki": "node scripts/wiki.ts",
+    "knowledge": "node scripts/knowledge.ts",
+    "theory": "node scripts/theory.ts",
+    "windows": "node scripts/windows.ts"
+  },
+  "devDependencies": {
+    "@types/node": "^24.0.0",
+    "typescript": "^5.9.0",
+    "vite": "^7.3.8",
+    "vitest": "^3.2.0"
+  }
+}

@@ -1,0 +1,94 @@
+
+> deadlock-builds@0.1.0 build-for
+> node scripts/build.ts Paige control 30000
+
+=== Paige | objetivo control | 30000 souls (patch 6861) ===
+Gasto: 29761 souls em 9 itens | pontuação 3.47x a build sem itens
+
+Métrica          sem itens   com a build
+DPS de arma             50          85  (+70%)
+DPS habilidades         35          56  (+58%)
+DPS de itens             0           0  (n/d)
+DPS corpo a corpo         2           2  (+3%)
+DPS total               87         143  (+64%)
+  de quem atira         52          87  (+67%)
+  de spirit             35          56  (+58%)
+Vida efetiva          1579        6874  (+335%)
+  defesa além de vida e resistência: barreiras 1445 por luta, tempo protegido +0%, controle 22%, desvio 0% (Weapon Shielding, Diviner's Kevlar, Resistência a status)
+Cura por segundo       2.0         2.0  (+0%)
+Controle (s/min)       8.5        23.7  (+178%)
+Efeitos de corpo a corpo valem 8% para Paige (itens de melee comprados em 2% das partidas)
+Fontes de controle: Captivating Read 9.0 (imobiliza, lentidão); Disarming Hex 3.8 (desarme); Weighted Shots 3.6 (lentidão); Slowing Hex 2.6 (silêncio, lentidão); Suppressor 2.5 (lentidão de tiro); Mystic Slow 1.8 (lentidão); Rallying Charge 0.3 (stun)
+Defesa mínima (vida efetiva das builds mais jogadas com esses souls, -10%): 3129
+
+Tiers liberados (souls ganhos em que o herói costuma comprar): T2 6047, T3 17944, T4 28561
+
+Ordem de compra (souls ganhos e minuto aproximado; no fim, quando os jogadores compram o item):
+ 1.    800 souls ~ 2 min  Rusted Barrel [spirit T1, paga 800] (vira componente)  → 0.31x  (jogadores: ~14 min)
+ 2.   1600 souls ~ 3 min  Grit [vitality T1, paga 800] (vira componente)  → 0.79x  (jogadores: ~6 min)
+ 3.   2400 souls ~ 4 min  Extra Health [vitality T1, paga 800] (vendido depois)  → 1.17x  (jogadores: ~11 min)
+ 4.   6047 souls ~ 9 min  Slowing Bullets [weapon T2, paga 1600] (vira componente)  → 1.50x  (jogadores: ~16 min)
+ 5.   7647 souls ~11 min  Slowing Hex [spirit T2, paga 1600]  → 1.75x  (jogadores: ~16 min)
+ 6.   8447 souls ~12 min  Weapon Shielding [vitality T2, paga 800] (melhora Grit)  → 1.93x  (jogadores: ~18 min)
+ 7.  10047 souls ~14 min  Battle Vest [vitality T2, paga 1600]  → 2.09x  (jogadores: ~16 min)
+ 8.  10847 souls ~14 min  Rebuttal [vitality T1, paga 800] (vendido depois)  → 2.22x  (jogadores: ~11 min)
+ 9.  12447 souls ~16 min  Suppressor [spirit T2, paga 1600]  → 2.42x  (jogadores: ~23 min)
+10.  14047 souls ~18 min  Cold Front [spirit T2, paga 1600] (vendido depois)  → 2.49x  (jogadores: ~19 min)
+11.  17944 souls ~21 min  Disarming Hex [spirit T3, paga 2400] (melhora Rusted Barrel)  → 2.78x  (jogadores: ~24 min)
+12.  19544 souls ~22 min  Weighted Shots [weapon T3, paga 1600] (melhora Slowing Bullets)  → 2.91x  (jogadores: ~25 min)
+13.  21944 souls ~24 min  Bullet Resilience [vitality T3, paga 2400] (vende Cold Front)  → 3.20x  (jogadores: ~31 min)
+14.  28561 souls ~29 min  Diviner's Kevlar [vitality T4, paga 6000] (vende Rebuttal)  → 3.40x  (jogadores: ~40 min)
+15.  29761 souls ~30 min  Mystic Slow [spirit T2, paga 1200] (vende Extra Health)  → 3.47x  (jogadores: ~23 min)
+
+Build final (depois de vendas e upgrades): 9 de 9 slots, 2 de 4 ativos
+  [weapon T3] Weighted Shots
+  [vitality T4] Diviner's Kevlar
+  [vitality T3] Bullet Resilience
+  [vitality T2] Weapon Shielding
+  [vitality T2] Battle Vest
+  [spirit T3] Disarming Hex (ativo)
+  [spirit T2] Slowing Hex (ativo)
+  [spirit T2] Suppressor
+  [spirit T2] Mystic Slow
+
+Upgrades de habilidade (T por slot): 3 / 3 / 3 / 1
+Avaliações de build na busca: 2469
+
+Pico de vitality (4800 souls): acontece com 10847 souls gastos (~14 min). Prazo: 11619 souls (~15 min). dentro do prazo.
+Com 30000 souls, Paige costuma estar no minuto ~30 (média de 1903739 partidas).
+Winrate por duração da partida: 0-25 min: 58.3% | 25-35 min: 57.7% | 35-45 min: 55.0% | 45+ min: 54.0%
+
+Quanto os jogadores compram os itens desta build com Paige:
+  Slowing Hex                26% das partidas
+  Weapon Shielding           4% das partidas
+  Battle Vest                1% das partidas
+  Suppressor                 1% das partidas
+  Disarming Hex              6% das partidas
+  Weighted Shots             1% das partidas
+  Bullet Resilience          2% das partidas
+  Diviner's Kevlar           2% das partidas
+  Mystic Slow                9% das partidas
+
+Build publicada "BEST SUPPORT PAIGE BUILD - deadlocked.gg" (162871 partidas, 56.2% de vitória), cortada em 30000 souls:
+  Itens: High-Velocity Rounds, Trophy Collector, Rescue Beam, Improved Spirit, Rapid Recharge, Divine Barrier, Transcendent Cooldown, Greater Expansion, Superior Duration
+  Pontuação no motor: 1.87x (app: 3.47x) | DPS total 142 (app 143) | vida efetiva 3477 (app 6874)
+  Em comum: nenhum
+  Só no app: Slowing Hex, Weapon Shielding, Battle Vest, Suppressor, Disarming Hex, Weighted Shots, Bullet Resilience, Diviner's Kevlar, Mystic Slow
+  Só na publicada: High-Velocity Rounds, Trophy Collector, Rescue Beam, Improved Spirit, Rapid Recharge, Divine Barrier, Transcendent Cooldown, Greater Expansion, Superior Duration
+  Pico de vitality: com 4800 souls (~8 min)
+
+Build publicada "PAIGE DRAGON SUPPORT [60% WR] [deadlocklabs.gg]" (79161 partidas, 58.3% de vitória), cortada em 30000 souls:
+  Itens: Opening Rounds, Guardian Ward, Extra Charge, Greater Expansion, Superior Duration, Transcendent Cooldown, Boundless Spirit, Refresher
+  Pontuação no motor: 1.45x (app: 3.47x) | DPS total 148 (app 143) | vida efetiva 2481 (app 6874)
+  Em comum: nenhum
+  Só no app: Slowing Hex, Weapon Shielding, Battle Vest, Suppressor, Disarming Hex, Weighted Shots, Bullet Resilience, Diviner's Kevlar, Mystic Slow
+  Só na publicada: Opening Rounds, Guardian Ward, Extra Charge, Greater Expansion, Superior Duration, Transcendent Cooldown, Boundless Spirit, Refresher
+  Pico de vitality: não acontece
+
+Build publicada "Stephano Sinclair" (73885 partidas, 56.6% de vitória), cortada em 30000 souls:
+  Itens: Long Range, Cultist Sacrifice, Rapid Recharge, Enduring Speed, Fortitude, Majestic Leap, Stamina Mastery, Warp Stone, Boundless Spirit
+  Pontuação no motor: 1.62x (app: 3.47x) | DPS total 148 (app 143) | vida efetiva 3696 (app 6874)
+  Em comum: nenhum
+  Só no app: Slowing Hex, Weapon Shielding, Battle Vest, Suppressor, Disarming Hex, Weighted Shots, Bullet Resilience, Diviner's Kevlar, Mystic Slow
+  Só na publicada: Long Range, Cultist Sacrifice, Rapid Recharge, Enduring Speed, Fortitude, Majestic Leap, Stamina Mastery, Warp Stone, Boundless Spirit
+  Pico de vitality: com 4800 souls (~8 min)
