@@ -1,6 +1,7 @@
 /** Formato normalizado do snapshot (data/snapshot/*.json). */
 import type { MetaStats } from "../meta/stats.ts";
 import type { PurchaseWindows } from "../meta/windows.ts";
+import type { FightProfile } from "../meta/fights.ts";
 import type { Interaction } from "../knowledge/interactions.ts";
 import type { Theory } from "../knowledge/theories.ts";
 
@@ -165,4 +166,6 @@ export interface GameData {
   theories?: Theory[];
   /** Winrate por janela de compra (data/snapshot/windows.json, `npm run windows`), se existir. */
   windows?: PurchaseWindows;
+  /** Perfil das lutas medido nas partidas (data/snapshot/fights.json, `npm run fights`), se existir. */
+  fights?: FightProfile;
 }

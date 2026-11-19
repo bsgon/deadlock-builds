@@ -40,7 +40,17 @@ export interface Plan {
   scenarios: Record<ScenarioId, number>;
 }
 
-const MIX: Record<ScenarioId, number> = { duel: 0.15, skirmish: 0.2, teamfight: 0.3, spread: 0.1, chase: 0.1, dive: 0.15 };
+/** Mistura escolhida à mão, usada só sem `fights.json` (perfil medido nas partidas). */
+export const FALLBACK_MIX: Record<ScenarioId, number> = { duel: 0.15, skirmish: 0.2, teamfight: 0.3, spread: 0.1, chase: 0.1, dive: 0.15 };
+const MIX: Record<ScenarioId, number> = { ...FALLBACK_MIX };
+/** Mistura de tipos de luta em uso pelos planos. */
+export const scenarioMix = (): Readonly<Record<ScenarioId, number>> => MIX;
+
+/** Troca a mistura de tipos de luta de todos os planos (perfil medido nas partidas). */
+export function setScenarioMix(mix: Record<ScenarioId, number> | undefined): void {
+  Object.assign(MIX, mix ?? FALLBACK_MIX);
+  cache.clear();
+}
 
 export const PLANS: Record<PlanId, Plan> = {
   control: { id: "control", label: "Controle", weights: { hits: 1, control: 1.5, allyDamage: 1, damage: 0.5, survival: 3 }, scenarios: MIX },

@@ -54,9 +54,11 @@ describe("efeitos condicionais", () => {
 });
 
 describe("métricas", () => {
-  it("total é a soma de arma, habilidades, itens e corpo a corpo", () => {
+  it("total é a soma de arma, habilidades, itens, corpo a corpo e vulnerabilidade", () => {
     const m = metricsOf("Infernus", ["Tesla Bullets", "Extra Spirit"]);
-    expect(m.totalDps).toBeCloseTo(m.weaponDps + m.abilityDps + m.itemDps + m.meleeDps);
+    // Napalm deixa o alvo vulnerável: o dano a mais entra como ampDps.
+    expect(m.ampDps).toBeGreaterThan(0);
+    expect(m.totalDps).toBeCloseTo(m.weaponDps + m.abilityDps + m.itemDps + m.meleeDps + m.ampDps + m.antiHealDps);
     expect(m.gunDps).toBeGreaterThan(m.weaponDps);
     // Dano de item disparado por bala conta para quem atira, não para o objetivo de spirit.
     expect(m.gunDps + m.spiritDps).toBeCloseTo(m.totalDps);

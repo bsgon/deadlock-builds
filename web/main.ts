@@ -1,8 +1,7 @@
 import type { GameData } from "../src/data/types.ts";
 import { withoutBrawlItems } from "../src/data/playable.ts";
 import { buildGraph, type Graph } from "../src/interactions/synergy.ts";
-import type { Objective } from "../src/optimizer/metrics.ts";
-import type { ScenarioId } from "../src/combat/value.ts";
+import { applyFightProfile, type Objective } from "../src/optimizer/metrics.ts";
 import { renderBuildView } from "./build-view.ts";
 import { h } from "./dom.ts";
 import { renderSynergyView } from "./synergy-view.ts";
@@ -24,7 +23,6 @@ export interface State {
   /** Item em foco no explorador de sinergias. */
   item: string;
   /** Tipo de luta esperado nas jogadas simuladas ("mix" = não sei, cenário assumido). */
-  fight: ScenarioId | "mix";
 }
 
 export interface App {
@@ -36,7 +34,7 @@ export interface App {
 }
 
 const STORAGE_KEY = "deadlock-builds:state";
-const DEFAULTS: State = { tab: "build", hero: "Infernus", objective: "optimized", souls: 15_000, slots: 9, uptime: 0.5, vitalitySpike: true, progressive: true, required: [], banned: [], item: "Mystic Vulnerability", fight: "mix" };
+const DEFAULTS: State = { tab: "build", hero: "Infernus", objective: "optimized", souls: 15_000, slots: 9, uptime: 0.5, vitalitySpike: true, progressive: true, required: [], banned: [], item: "Mystic Vulnerability" };
 
 function loadState(data: GameData): State {
   let saved: Partial<State> = {};
@@ -78,7 +76,10 @@ async function loadData(): Promise<GameData> {
   const windows = await fetch("./windows.json")
     .then((res) => (res.ok ? res.json() : undefined))
     .catch(() => undefined);
-  return withoutBrawlItems({ meta, shared, heroes, abilities, items, ...(stats ? { stats } : {}), ...(knowledge ? { knowledge } : {}), ...(theories ? { theories } : {}), ...(windows ? { windows } : {}) });
+  const fights = await fetch("./fights.json")
+    .then((res) => (res.ok ? res.json() : undefined))
+    .catch(() => undefined);
+  return withoutBrawlItems({ meta, shared, heroes, abilities, items, ...(stats ? { stats } : {}), ...(knowledge ? { knowledge } : {}), ...(theories ? { theories } : {}), ...(windows ? { windows } : {}), ...(fights ? { fights } : {}) });
 }
 
 const root = document.getElementById("app")!;
@@ -108,6 +109,8 @@ function render(app: App): void {
 
 try {
   const data = await loadData();
+  // Duração e tipos de luta medidos nas partidas valem para todo o cálculo.
+  applyFightProfile(data.fights);
   const app: App = {
     data,
     graph: buildGraph(data),

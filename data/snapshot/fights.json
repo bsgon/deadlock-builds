@@ -1,0 +1,29 @@
+{
+ "fetchedAt": "2026-11-19T16:48:34.356Z",
+ "matches": 2000,
+ "deaths": 161101,
+ "fights": 104613,
+ "timeToKill": {
+  "p25": 8.7,
+  "median": 13.3,
+  "p75": 19.9
+ },
+ "sizes": {
+  "duel": 0.45299999999999996,
+  "skirmish": 0.35600000000000004,
+  "teamfight": 0.191
+ },
+ "spreadShare": 0.456,
+ "mix": {
+  "duel": 0.339,
+  "skirmish": 0.145,
+  "teamfight": 0.078,
+  "spread": 0.187,
+  "chase": 0.1,
+  "dive": 0.15
+ },
+ "assumed": [
+  "chase",
+  "dive"
+ ]
+}

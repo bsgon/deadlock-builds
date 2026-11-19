@@ -29,7 +29,8 @@
     "wiki": "node scripts/wiki.ts",
     "knowledge": "node scripts/knowledge.ts",
     "theory": "node scripts/theory.ts",
-    "windows": "node scripts/windows.ts"
+    "windows": "node scripts/windows.ts",
+    "fights": "node scripts/fights.ts"
   },
   "devDependencies": {
     "@types/node": "^24.0.0",

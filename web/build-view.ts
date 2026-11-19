@@ -12,7 +12,7 @@ import { controlBreakdown, DEFAULT_METRIC_OPTIONS } from "../src/optimizer/metri
 import { delta, fmt, fmt1, h, icon } from "./dom.ts";
 import type { App } from "./main.ts";
 import { buildPlay, situationalOptions, type Recommendation } from "../src/combat/explain.ts";
-import { SCENARIO_LABEL, type PlanId, type ScenarioId } from "../src/combat/value.ts";
+import { SCENARIO_LABEL, scenarioMix, type PlanId, type ScenarioId } from "../src/combat/value.ts";
 import { phaseOf, validateRoute } from "../src/optimizer/route.ts";
 
 const OBJECTIVE_LABEL: Record<Objective, { name: string; hint: string }> = {
@@ -135,12 +135,17 @@ function controls(app: App): HTMLElement {
     " Chegar a 4.800 souls em vitality antes do mid game",
   );
 
-  const fightOptions: (ScenarioId | "mix")[] = ["mix", "duel", "skirmish", "teamfight", "spread", "chase", "dive"];
-  const fight = h(
-    "select",
-    { id: "fight", onchange: (ev) => app.update({ fight: (ev.target as HTMLSelectElement).value as ScenarioId | "mix" }) },
-    fightOptions.map((id) => h("option", { value: id, selected: id === (state.fight ?? "mix") }, id === "mix" ? "Não sei (mistura de lutas)" : SCENARIO_LABEL[id])),
-  );
+  const fp = app.data.fights;
+  const pct = (x: number) => `${Math.round(x * 100)}%`;
+  const fightInfo = fp
+    ? h(
+        "p",
+        { class: "hint" },
+        `Medido em ${fp.matches.toLocaleString("pt-BR")} partidas: o alvo morre em ${fp.timeToKill.median.toLocaleString("pt-BR")} s (mediana) depois do primeiro dano. `,
+        `Das mortes, ${pct(fp.sizes.duel)} são em lutas de 2 heróis, ${pct(fp.sizes.skirmish)} de 3 a 5 e ${pct(fp.sizes.teamfight)} de 6 ou mais. `,
+        `Perseguição e iniciação inimiga não aparecem nos dados e têm peso fixo.`,
+      )
+    : h("p", { class: "hint" }, "Sem dados de lutas das partidas: usa uma luta de 10 s e uma mistura de tipos de luta escolhida pelo projeto.");
 
   const progressive = h(
     "label",
@@ -156,13 +161,7 @@ function controls(app: App): HTMLElement {
     h("section", {}, h("h2", {}, "Objetivo"), objectives),
     h("section", {}, h("h2", {}, h("label", { for: "souls" }, "Souls na partida")), souls, soulsOut),
     h("section", {}, h("h2", {}, h("label", { for: "slots" }, "Slots de item")), slots),
-    h(
-      "section",
-      {},
-      h("h2", {}, h("label", { for: "fight" }, "Tipo de luta")),
-      fight,
-      h("p", { class: "hint" }, "Muda o valor das jogadas: puxar inimigos rende pouco se eles já estão agrupados e muito se estão espalhados."),
-    ),
+    h("section", {}, h("h2", {}, "Lutas"), fightInfo),
     h(
       "section",
       {},
@@ -556,7 +555,15 @@ function playPanel(app: App, result: OptimizeResult, input: OptimizeInput, plan:
     "section",
     { class: "plays" },
     h("h2", {}, "Jogadas da build"),
-    h("p", { class: "hint" }, input.fights ? `Luta escolhida: ${input.fights.map((f) => SCENARIO_LABEL[f]).join(", ")}.` : "Cenário assumido: mistura de duelo, lutas pequenas, teamfight, inimigos dispersos, perseguição e iniciação inimiga."),
+    h(
+      "p",
+      { class: "hint" },
+      input.fights
+        ? `Luta escolhida: ${input.fights.map((f) => SCENARIO_LABEL[f]).join(", ")}.`
+        : app.data.fights
+          ? `Mistura de lutas medida nas partidas: ${(Object.entries(scenarioMix()) as [ScenarioId, number][]).filter(([, w]) => w > 0).map(([id, w]) => `${SCENARIO_LABEL[id].toLowerCase()} ${Math.round(w * 100)}%`).join(", ")} (perseguição e iniciação com peso fixo).`
+          : "Cenário assumido: mistura de duelo, lutas pequenas, teamfight, inimigos dispersos, perseguição e iniciação inimiga.",
+    ),
     h(
       "ul",
       {},
@@ -776,7 +783,6 @@ export function renderBuildView(app: App): HTMLElement {
     metric: { uptime: state.uptime },
     ...(state.vitalitySpike ? {} : { vitalitySpike: false as const }),
     mode: state.progressive === false ? "final" : "progressive",
-    ...(state.fight && state.fight !== "mix" ? { fights: [state.fight] } : {}),
     explain: true,
   };
   const result = optimize(data, input);

@@ -89,7 +89,7 @@ describe("objetivo Otimizada", () => {
   });
 
   it("vida abaixo do piso derruba a pontuação; acima ainda soma, com retorno menor que dano", () => {
-    const base = { weaponDps: 1, abilityDps: 1, itemDps: 0, gunDps: 1, spiritDps: 1, totalDps: 100, ehp: 1000, sustain: 1, control: 0, meleeDps: 0, antiHealDps: 0, play: 0 };
+    const base = { weaponDps: 1, abilityDps: 1, itemDps: 0, gunDps: 1, spiritDps: 1, totalDps: 100, ehp: 1000, sustain: 1, control: 0, meleeDps: 0, antiHealDps: 0, ampDps: 0, play: 0 };
     const w = { totalDps: 1, ehpFloor: 2 };
     const at = (ehp: number, dps = 300) => score({ ...base, totalDps: dps, ehp }, base, w);
     expect(at(2000)).toBeCloseTo(3);

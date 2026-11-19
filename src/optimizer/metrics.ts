@@ -12,7 +12,9 @@ import { itemUptime } from "../engine/conditional.ts";
 import { controlSources, type ControlSource } from "./control.ts";
 import { effectiveHealth } from "./defense.ts";
 import { antiHealDps } from "./antiheal.ts";
-import { playUtility, type PlanId, type ScenarioId } from "../combat/value.ts";
+import { amplification } from "./amplify.ts";
+import { playUtility, setScenarioMix, type PlanId, type ScenarioId } from "../combat/value.ts";
+import type { FightProfile } from "../meta/fights.ts";
 
 export interface Metrics {
   /** DPS de arma pelo tempo atirando (limitado pela recarga), já com a redução de resistência do alvo. */
@@ -25,6 +27,8 @@ export interface Metrics {
   meleeDps: number;
   /** Cura que o inimigo deixa de receber (anti-cura), contada como dano equivalente. */
   antiHealDps: number;
+  /** Dano a mais por vulnerabilidade no alvo (Malice, Napalm, Escalating Exposure...), já somado ao resto. */
+  ampDps: number;
   /** Dano físico: arma + efeitos de item disparados por bala + corpo a corpo. */
   gunDps: number;
   /** Dano de quem joga por habilidades: habilidades + efeitos de item que não dependem de atirar. */
@@ -70,14 +74,26 @@ export interface MetricOptions {
   fightSeconds?: number;
 }
 
-/** Duração padrão da luta, em segundos. */
-export const FIGHT_SECONDS = 10;
+/** Duração da luta sem dados de partidas, em segundos. */
+export const FALLBACK_FIGHT_SECONDS = 10;
+let defaultFightSeconds = FALLBACK_FIGHT_SECONDS;
+/** Duração da luta em uso: a mediana medida nas partidas, quando o snapshot tem `fights.json`. */
+export const fightSeconds = () => defaultFightSeconds;
+
+/**
+ * Aplica o perfil de lutas medido nas partidas a todo o cálculo: duração da luta
+ * (mediana do tempo até a morte) e mistura de tipos de luta das jogadas.
+ */
+export function applyFightProfile(profile: FightProfile | undefined): void {
+  defaultFightSeconds = profile?.timeToKill.median || FALLBACK_FIGHT_SECONDS;
+  setScenarioMix(profile?.mix);
+}
 
 /**
  * Dano por segundo, numa luta de `fight` segundos que começa com o efeito pronto,
  * de algo com rajada `burst` e dano contínuo `dot` por `duration` segundos a cada uso.
  */
-export function fightDamagePerSecond(burst: number, dot: number, duration: number, cooldown: number, fight = FIGHT_SECONDS): number {
+export function fightDamagePerSecond(burst: number, dot: number, duration: number, cooldown: number, fight = fightSeconds()): number {
   const cd = Math.max(1, cooldown);
   const uses = 1 + Math.floor(Math.max(0, fight - 1e-6) / cd);
   return (uses * burst + dot * Math.min(fight, uses * Math.min(duration, cd))) / fight;
@@ -340,7 +356,7 @@ export function computeMetrics(build: BuildResult, options: MetricOptions = DEFA
   const bulletMult = 1 - (options.targetBulletResist - conditional.bulletShredPct) / 100;
   const spiritMult = 1 - (options.targetSpiritResist - conditional.spiritShredPct) / 100;
   const firing = firingShare(build, options);
-  const fight = options.fightSeconds ?? FIGHT_SECONDS;
+  const fight = options.fightSeconds ?? fightSeconds();
   const weaponDps = stats.burstDps * firing * bulletMult;
   // Só habilidades já desbloqueadas no nível (a ultimate chega por último).
   const abilityDps =
@@ -359,9 +375,14 @@ export function computeMetrics(build: BuildResult, options: MetricOptions = DEFA
 
   const melee = meleeParts(build);
   const meleeDps = melee.dps * bulletMult;
-  const dealt = weaponDps + abilityDps + itemDps + meleeDps;
-  const gun = weaponDps + bulletItemDps + meleeDps;
-  const spirit = abilityDps + itemDps - bulletItemDps;
+  // Vulnerabilidade no alvo: multiplica o seu dano de bala e de spirit (média na luta).
+  const amp = amplification(build, fight, options.uptime);
+  const gunBase = weaponDps + bulletItemDps + meleeDps;
+  const spiritBase = abilityDps + itemDps - bulletItemDps;
+  const gun = gunBase * amp.bullet;
+  const spirit = spiritBase * amp.spirit;
+  const ampDps = gun + spirit - gunBase - spiritBase;
+  const dealt = gun + spirit;
   const antiHeal = antiHealDps(build, dealt, options.uptime, firing, spirit);
   const antiHealShare = dealt > 0 ? antiHeal / dealt : 0;
 
@@ -378,6 +399,7 @@ export function computeMetrics(build: BuildResult, options: MetricOptions = DEFA
     itemDps,
     meleeDps,
     antiHealDps: antiHeal,
+    ampDps,
     // A cura negada se divide entre bala e spirit na proporção do dano que a causa.
     gunDps: gun * (1 + antiHealShare),
     spiritDps: spirit * (1 + antiHealShare),

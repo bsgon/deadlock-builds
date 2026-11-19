@@ -174,7 +174,7 @@ console.log(`Avaliações de build na busca: ${result.evaluations}`);
   const plan = input.plan ?? (result.weights.play ? "control" : "damage");
   const ctx = { hero: result.hero, souls: result.souls, abilityTiers: result.abilityTiers, itemSlots: input.itemSlots, uptime: input.metric?.uptime, plan, ...(input.fights ? { fights: input.fights } : {}) } as const;
   const { report } = buildPlay(data, ctx, result.items.map((i) => i.className));
-  console.log(`\nJogadas da build (plano ${PLANS[plan].label}; ${input.fights ? `lutas: ${input.fights.join(", ")}` : "cenário assumido: mistura de tipos de luta"}):`);
+  console.log(`\nJogadas da build (plano ${PLANS[plan].label}; ${input.fights ? `lutas: ${input.fights.join(", ")}` : data.fights ? `mistura medida em ${data.fights.matches} partidas, luta de ${data.fights.timeToKill.median} s` : "cenário assumido: mistura de tipos de luta"}):`);
   for (const s of report.scenarios) {
     const seq = s.best?.steps.map((x, i) => (i === 0 ? x.name : `${x.name} +${f(x.at - s.best!.steps[i - 1]!.at, 2)}s`)).join(" → ") ?? "nenhuma";
     const sim = s.best?.sim;
