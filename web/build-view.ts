@@ -1,7 +1,9 @@
 import type { Item } from "../src/data/types.ts";
 import { componentTree, heroAbilities, findHero, progressionFromSouls, MAX_ACTIVE_ITEMS } from "../src/engine/index.ts";
 import { heroItemFit, itemPairLinks, topLinks, type Link } from "../src/interactions/synergy.ts";
-import type { Metrics, Objective } from "../src/optimizer/metrics.ts";
+import type { Metrics } from "../src/optimizer/metrics.ts";
+import { archetypeWeights } from "../src/optimizer/archetype.ts";
+import type { UiObjective } from "./main.ts";
 import type { BuildComparison } from "../src/meta/compare.ts";
 import { buyMinute, heroMeta, meleePickRate, pickRate, powerWindows, vitalitySpikeOf } from "../src/meta/stats.ts";
 import { VITALITY_SPIKE_SOULS } from "../src/engine/rules.ts";
@@ -14,25 +16,25 @@ import { delta, fmt, fmt1, h, icon } from "./dom.ts";
 import type { App } from "./main.ts";
 import type { Recommendation } from "../src/combat/explain.ts";
 import { SCENARIO_LABEL, scenarioMix, type ScenarioId } from "../src/combat/value.ts";
-import { phaseOf } from "../src/optimizer/route.ts";
+import { phaseLabel, phaseOf } from "../src/optimizer/route.ts";
 import { inputKey } from "./build-client.ts";
 import type { BuildPayload } from "./compute.ts";
+import { tr, trData, locale } from "../src/i18n.ts";
 
-const OBJECTIVE_LABEL: Record<Objective, { name: string; hint: string }> = {
-  optimized: { name: "Otimizada", hint: "dano máximo, com a defesa das builds mais jogadas" },
-  dps: { name: "Dano total", hint: "arma, habilidades e efeitos de itens" },
-  weapon: { name: "Arma", hint: "tiros e efeitos disparados por bala" },
-  spirit: { name: "Spirit", hint: "habilidades e dano de spirit de itens" },
-  tank: { name: "Tanque", hint: "vida efetiva contra bala e spirit" },
-  sustain: { name: "Sustentação", hint: "cura por segundo, com um pouco de vida" },
-  bruiser: { name: "Híbrido", hint: "metade dano, metade vida efetiva" },
-  control: { name: "Controle", hint: "stun, silêncio e lentidão, com dano e a defesa da Otimizada" },
-};
+/** Nome e dica de cada objetivo, no idioma em uso (função: o idioma é definido depois do carregamento do módulo). */
+const objectiveLabel = (): Record<UiObjective, { name: string; hint: string }> => ({
+  optimized: { name: tr("Otimizada", "Optimized"), hint: tr("dano máximo somando arma e spirit, com sobrevivência das builds mais jogadas", "max damage from weapon plus spirit, with the survival of the most played builds") },
+  weapon: { name: tr("Arma", "Weapon"), hint: tr("tiros e efeitos disparados por bala", "shots and on-bullet effects") },
+  spirit: { name: "Spirit", hint: tr("habilidades e dano de spirit de itens", "abilities and spirit damage from items") },
+  survival: { name: tr("Tanque/Sustain", "Tank/Sustain"), hint: tr("vida efetiva mais a cura ao longo de uma luta", "effective HP plus healing over a fight") },
+  control: { name: tr("Controle", "Control"), hint: tr("stun, silêncio e lentidão, com dano e a defesa da Otimizada", "stun, silence and slow, with the damage and defense of Optimized") },
+  archetype: { name: tr("Padrão do arquétipo", "Archetype default"), hint: tr("mantém a natureza do arquétipo escolhido: arma, spirit e vida no peso que os itens dele dão ao herói", "keeps the nature of the chosen archetype: weapon, spirit and HP weighted as its items boost the hero") },
+});
 
-/** Objetivos oferecidos no seletor ("Dano total" fica só no motor). */
-const SHOWN_OBJECTIVES: Objective[] = ["optimized", "weapon", "spirit", "tank", "sustain", "bruiser", "control"];
+/** Objetivos oferecidos no seletor, na ordem. */
+const SHOWN_OBJECTIVES: UiObjective[] = ["optimized", "weapon", "spirit", "survival", "control", "archetype"];
 
-const SLOT_LABEL = { weapon: "Arma", vitality: "Vitalidade", spirit: "Spirit" } as const;
+const slotLabel = () => ({ weapon: tr("Arma", "Weapon"), vitality: tr("Vitalidade", "Vitality"), spirit: "Spirit" }) as const;
 /** A build é sempre a de fim de partida: souls e slots fixos. */
 const SOULS = 50_000;
 const SLOTS = 12;
@@ -52,20 +54,34 @@ function reasonsFor(app: App, item: Item, heroId: number, others: Item[]): Link[
 /** Um motivo na lista; quando vem da wiki, com o link da página. */
 export function reasonItem(link: Link | string): HTMLElement {
   if (typeof link === "string") return h("li", {}, link);
-  return h("li", {}, link.reason, link.source ? [" ", h("a", { href: link.source, target: "_blank", rel: "noopener" }, "fonte")] : null);
+  return h("li", {}, link.reason, link.source ? [" ", h("a", { href: link.source, target: "_blank", rel: "noopener" }, tr("fonte", "source"))] : null);
 }
 
-/** Objetivo em uso: "Controle" volta para "Otimizada" em herói quase sem controle no kit. */
-function objectiveFor(app: App): Objective {
-  const { state, data } = app;
-  return state.objective === "control" && heroControl(data, state.hero) < CONTROL_MIN_PER_MINUTE ? "optimized" : state.objective;
+/** Arquétipo escolhido para o herói atual, se houver. */
+function selectedArchetype(app: App): Theory | null {
+  const heroId = findHero(app.data, app.state.hero).id;
+  return heroArchetypes(app, heroId).find((a) => a.theory.title === app.state.archetype)?.theory ?? null;
 }
+
+/**
+ * Objetivo em uso: "Controle" volta para "Otimizada" em herói quase sem controle no kit,
+ * e "Padrão do arquétipo" sem arquétipo escolhido também.
+ */
+function objectiveFor(app: App): UiObjective {
+  const { state, data } = app;
+  if (state.objective === "control" && heroControl(data, state.hero) < CONTROL_MIN_PER_MINUTE) return "optimized";
+  if (state.objective === "archetype" && !selectedArchetype(app)) return "optimized";
+  return state.objective;
+}
+
+/** Objetivo de um pedido ao otimizador, de volta ao id da tela (pesos próprios = arquétipo). */
+const objectiveOf = (input: OptimizeInput): UiObjective => (typeof input.objective === "string" ? (input.objective as UiObjective) : "archetype");
 
 function controls(app: App): HTMLElement {
   const { state, data } = app;
   const heroes = h(
     "div",
-    { class: "hero-grid", role: "radiogroup", "aria-label": "Herói" },
+    { class: "hero-grid", role: "radiogroup", "aria-label": tr("Herói", "Hero") },
     data.heroes.map((hero) =>
       h(
         "button",
@@ -84,21 +100,35 @@ function controls(app: App): HTMLElement {
 
   const objectives = h(
     "div",
-    { class: "objectives", role: "radiogroup", "aria-label": "Objetivo" },
+    { class: "objectives", role: "radiogroup", "aria-label": tr("Objetivo", "Goal") },
     SHOWN_OBJECTIVES.map((id) => {
       const kit = id === "control" ? heroControl(data, state.hero) : Infinity;
-      const off = kit < CONTROL_MIN_PER_MINUTE;
+      const noKit = kit < CONTROL_MIN_PER_MINUTE;
+      const noArchetype = id === "archetype" && !selectedArchetype(app);
+      const off = noKit || noArchetype;
+      const why = noKit
+        ? tr(`${state.hero} tem pouco controle no kit (${fmt1(kit)} s/min)`, `${state.hero} has little control in the kit (${fmt1(kit)} s/min)`)
+        : tr("Escolha um arquétipo acima", "Pick an archetype above");
+      const label = objectiveLabel()[id];
       return h(
         "button",
         {
           class: "objective",
           role: "radio",
           "aria-checked": String(id === objectiveFor(app)),
-          ...(off ? { disabled: true, title: `${state.hero} tem pouco controle no kit (${fmt1(kit)} s/min)` } : {}),
+          ...(off ? { disabled: true, title: why } : {}),
           onclick: () => app.update({ objective: id }),
         },
-        h("strong", {}, OBJECTIVE_LABEL[id].name),
-        h("span", {}, off ? `${state.hero} quase não tem controle no kit` : OBJECTIVE_LABEL[id].hint),
+        h("strong", {}, label.name),
+        h(
+          "span",
+          {},
+          noKit
+            ? tr(`${state.hero} quase não tem controle no kit`, `${state.hero} has almost no control in the kit`)
+            : noArchetype
+              ? tr("escolha um arquétipo acima", "pick an archetype above")
+              : label.hint,
+        ),
       );
     }),
   );
@@ -109,14 +139,27 @@ function controls(app: App): HTMLElement {
   const match = h(
     "ul",
     { class: "fixed" },
-    h("li", {}, `${fmt(SOULS)} souls (nível ${level}) e ${SLOTS} slots de item: a build de fim de partida.`),
-    h("li", {}, `Efeitos condicionais: ativos e procs valem pela duração ÷ cooldown do item; condições sem esses números (como “acima de 65% de vida”) valem ${Math.round(UPTIME * 100)}% do tempo.`),
+    h("li", {}, tr(`${fmt(SOULS)} souls (nível ${level}) e ${SLOTS} slots de item: a build de fim de partida.`, `${fmt(SOULS)} souls (level ${level}) and ${SLOTS} item slots: the late-game build.`)),
+    h(
+      "li",
+      {},
+      tr(
+        `Efeitos condicionais: ativos e procs valem pela duração ÷ cooldown do item; condições sem esses números (como “acima de 65% de vida”) valem ${Math.round(UPTIME * 100)}% do tempo.`,
+        `Conditional effects: actives and procs count by the item's duration ÷ cooldown; conditions without those numbers (like “above 65% health”) count ${Math.round(UPTIME * 100)}% of the time.`,
+      ),
+    ),
     h(
       "li",
       {},
       spike
-        ? `Pico de vitality (${fmt(VITALITY_SPIKE_SOULS)} souls em vitality) até ${fmt(spike.souls)} souls, por volta do minuto ${Math.round(spike.minute)}: a média dos jogadores de ${state.hero}.`
-        : `Pico de vitality sem prazo: na média, os jogadores de ${state.hero} não chegam a ${fmt(VITALITY_SPIKE_SOULS)} souls em vitality.`,
+        ? tr(
+            `Pico de vitality (${fmt(VITALITY_SPIKE_SOULS)} souls em vitality) até ${fmt(spike.souls)} souls, por volta do minuto ${Math.round(spike.minute)}: a média dos jogadores de ${state.hero}.`,
+            `Vitality spike (${fmt(VITALITY_SPIKE_SOULS)} souls in vitality) by ${fmt(spike.souls)} souls, around minute ${Math.round(spike.minute)}: the average for ${state.hero} players.`,
+          )
+        : tr(
+            `Pico de vitality sem prazo: na média, os jogadores de ${state.hero} não chegam a ${fmt(VITALITY_SPIKE_SOULS)} souls em vitality.`,
+            `Vitality spike with no deadline: on average, ${state.hero} players don't reach ${fmt(VITALITY_SPIKE_SOULS)} souls in vitality.`,
+          ),
     ),
   );
 
@@ -126,36 +169,52 @@ function controls(app: App): HTMLElement {
     ? h(
         "p",
         { class: "hint" },
-        `Medido em ${fp.matches.toLocaleString("pt-BR")} partidas: o alvo morre em ${fp.timeToKill.median.toLocaleString("pt-BR")} s (mediana) depois do primeiro dano. `,
-        `Das mortes, ${pct(fp.sizes.duel)} são em lutas de 2 heróis, ${pct(fp.sizes.skirmish)} de 3 a 5 e ${pct(fp.sizes.teamfight)} de 6 ou mais. `,
-        `Perseguição e iniciação inimiga não aparecem nos dados e têm peso fixo.`,
+        tr(
+          `Medido em ${fp.matches.toLocaleString(locale())} partidas: o alvo morre em ${fp.timeToKill.median.toLocaleString(locale())} s (mediana) depois do primeiro dano. `,
+          `Measured in ${fp.matches.toLocaleString(locale())} matches: the target dies ${fp.timeToKill.median.toLocaleString(locale())} s (median) after the first damage. `,
+        ),
+        tr(
+          `Das mortes, ${pct(fp.sizes.duel)} são em lutas de 2 heróis, ${pct(fp.sizes.skirmish)} de 3 a 5 e ${pct(fp.sizes.teamfight)} de 6 ou mais. `,
+          `Of the deaths, ${pct(fp.sizes.duel)} are in fights of 2 heroes, ${pct(fp.sizes.skirmish)} of 3 to 5 and ${pct(fp.sizes.teamfight)} of 6 or more. `,
+        ),
+        tr(`Perseguição e iniciação inimiga não aparecem nos dados e têm peso fixo.`, `Chases and enemy engages don't show up in the data and have a fixed weight.`),
       )
-    : h("p", { class: "hint" }, "Sem dados de lutas das partidas: usa uma luta de 10 s e uma mistura de tipos de luta escolhida pelo projeto.");
+    : h(
+        "p",
+        { class: "hint" },
+        tr(
+          "Sem dados de lutas das partidas: usa uma luta de 10 s e uma mistura de tipos de luta escolhida pelo projeto.",
+          "No fight data from matches: uses a 10 s fight and a mix of fight types chosen by the project.",
+        ),
+      );
 
   const progressive = h(
     "label",
     { class: "check" },
     h("input", { type: "checkbox", checked: state.progressive, onchange: (ev) => app.update({ progressive: (ev.target as HTMLInputElement).checked }) }),
-    " Montar compra a compra, como na partida",
+    tr(" Montar compra a compra, como na partida", " Build purchase by purchase, like in a match"),
   );
 
   return h(
     "aside",
-    { class: "controls", "aria-label": "Configuração da build" },
-    h("section", {}, h("h2", {}, "Herói"), heroes),
+    { class: "controls", "aria-label": tr("Configuração da build", "Build settings") },
+    h("section", {}, h("h2", {}, tr("Herói", "Hero")), heroes),
     archetypeSection(app, heroId),
-    h("section", {}, h("h2", {}, "Objetivo"), objectives),
-    h("section", {}, h("h2", {}, "Partida"), match),
-    h("section", {}, h("h2", {}, "Lutas"), fightInfo),
+    h("section", {}, h("h2", {}, tr("Objetivo", "Goal")), objectives),
+    h("section", {}, h("h2", {}, tr("Partida", "Match")), match),
+    h("section", {}, h("h2", {}, tr("Lutas", "Fights")), fightInfo),
     h(
       "section",
       {},
-      h("h2", {}, "Ordem de compra"),
+      h("h2", {}, tr("Ordem de compra", "Purchase order")),
       progressive,
       h(
         "p",
         { class: "hint" },
-        "Cada compra é a de maior ganho entre as que o herói já consegue pagar. Itens de 1.600, 3.200 e 6.400 só entram a partir dos souls em que os jogadores desse herói costumam comprá-los. Desmarcado, mostra a build mais forte para os souls finais, que nem sempre dá para montar na partida.",
+        tr(
+          "Cada compra é a de maior ganho entre as que o herói já consegue pagar. Itens de 1.600, 3.200 e 6.400 só entram a partir dos souls em que os jogadores desse herói costumam comprá-los. Desmarcado, mostra a build mais forte para os souls finais, que nem sempre dá para montar na partida.",
+          "Each purchase is the biggest gain among those the hero can already afford. 1,600, 3,200 and 6,400 items only come in from the souls at which this hero's players usually buy them. Unchecked, it shows the strongest build for the final souls, which can't always be assembled in a match.",
+        ),
       ),
     ),
   );
@@ -185,18 +244,18 @@ function archetypeSection(app: App, heroId: number): HTMLElement | null {
   return h(
     "section",
     {},
-    h("h2", {}, "Arquétipo"),
+    h("h2", {}, tr("Arquétipo", "Archetype")),
     h(
       "div",
-      { class: "objectives", role: "radiogroup", "aria-label": "Arquétipo" },
-      option("Livre", "o otimizador escolhe todos os itens", current === null, () => app.update({ archetype: "", required: [] })),
+      { class: "objectives", role: "radiogroup", "aria-label": tr("Arquétipo", "Archetype") },
+      option(tr("Livre", "Free"), tr("o otimizador escolhe todos os itens", "the optimizer picks every item"), current === null, () => app.update({ archetype: "", required: [] })),
       list.map(({ theory, share }) =>
         option(
-          theory.title,
-          share === null ? "sem partidas medidas" : `${Math.round(share * 100)}% de popularidade`,
+          trData(theory.title),
+          share === null ? tr("sem partidas medidas", "no measured matches") : tr(`${Math.round(share * 100)}% de popularidade`, `${Math.round(share * 100)}% popularity`),
           theory === current,
           () => app.update({ archetype: theory.title, required: archetypeCore(app, theory) }),
-          theory.claim,
+          trData(theory.claim),
         ),
       ),
     ),
@@ -204,8 +263,11 @@ function archetypeSection(app: App, heroId: number): HTMLElement | null {
       "p",
       { class: "hint" },
       current
-        ? `${current.claim} Fixa ${archetypeCore(app, current).join(", ")}.`
-        : "Popularidade: partidas do herói com todos os itens do arquétipo, como fatia da soma entre os arquétipos (uma partida pode entrar em mais de um).",
+        ? tr(`${current.claim} Fixa ${archetypeCore(app, current).join(", ")}.`, `${trData(current.claim)} Locks ${archetypeCore(app, current).join(", ")}.`)
+        : tr(
+            "Popularidade: partidas do herói com todos os itens do arquétipo, como fatia da soma entre os arquétipos (uma partida pode entrar em mais de um).",
+            "Popularity: the hero's matches with every item of the archetype, as a share of the total across archetypes (a match can count in more than one).",
+          ),
     ),
   );
 }
@@ -219,14 +281,14 @@ function soulTrack(result: OptimizeResult): HTMLElement {
       {
         class: `seg seg-${step.item.slot}`,
         style: `flex-grow:${step.cost}`,
-        title: `${i + 1}. ${step.item.name}: ${fmt(step.cost)} souls (acumulado ${fmt(step.spent)})`,
+        title: tr(`${i + 1}. ${step.item.name}: ${fmt(step.cost)} souls (acumulado ${fmt(step.spent)})`, `${i + 1}. ${step.item.name}: ${fmt(step.cost)} souls (total ${fmt(step.spent)})`),
         "data-step": i,
       },
       icon(step.item.image, step.item.name, "seg-icon"),
     ),
   );
   const left = result.souls - result.spent;
-  if (left > 0) segments.push(h("li", { class: "seg seg-left", style: `flex-grow:${left}`, title: `${fmt(left)} souls sem uso` }));
+  if (left > 0) segments.push(h("li", { class: "seg seg-left", style: `flex-grow:${left}`, title: tr(`${fmt(left)} souls sem uso`, `${fmt(left)} souls unused`) }));
 
   const ticks = [];
   for (let s = 5000; s < total; s += 5000) ticks.push(h("span", { class: "tick", style: `left:${(s / total) * 100}%` }, `${s / 1000}k`));
@@ -239,21 +301,33 @@ function soulTrack(result: OptimizeResult): HTMLElement {
     const pos = (at / total) * 100;
     return h("span", { class: `mark mark-${kind}${pos > 50 ? " mark-end" : ""}`, style: `left:${pos}%` }, label);
   };
-  if (v && v.reachedAt !== null) marks.push(mark("spike", v.reachedAt, "4,8k vitality"));
-  if (v && v.deadline < total) marks.push(mark("deadline", v.deadline, `média do herói, ~${Math.round(v.deadlineMinute)} min`));
+  if (v && v.reachedAt !== null) marks.push(mark("spike", v.reachedAt, tr("4,8k vitality", "4.8k vitality")));
+  if (v && v.deadline < total) marks.push(mark("deadline", v.deadline, tr(`média do herói, ~${Math.round(v.deadlineMinute)} min`, `hero average, ~${Math.round(v.deadlineMinute)} min`)));
   let spikeText = "";
   if (v) {
-    if (v.reachedAt !== null) spikeText = ` O pico de vitality vem com ${fmt(v.reachedAt)} souls gastos, por volta do minuto ${Math.round(v.reachedMinute ?? 0)}${v.enforced && !v.ok ? ", depois do prazo" : ""}.`;
-    else if (!v.enforced) spikeText = ` Vitality: ${fmt(v.invested)} de 4.800 souls; o prazo do pico é ${fmt(v.deadline)} souls.`;
-    else spikeText = " A build não chega ao pico de vitality: os itens fixados ou os slots não deixam.";
+    if (v.reachedAt !== null)
+      spikeText = tr(
+        ` O pico de vitality vem com ${fmt(v.reachedAt)} souls gastos, por volta do minuto ${Math.round(v.reachedMinute ?? 0)}${v.enforced && !v.ok ? ", depois do prazo" : ""}.`,
+        ` The vitality spike comes at ${fmt(v.reachedAt)} souls spent, around minute ${Math.round(v.reachedMinute ?? 0)}${v.enforced && !v.ok ? ", after the deadline" : ""}.`,
+      );
+    else if (!v.enforced)
+      spikeText = tr(` Vitality: ${fmt(v.invested)} de 4.800 souls; o prazo do pico é ${fmt(v.deadline)} souls.`, ` Vitality: ${fmt(v.invested)} of 4,800 souls; the spike deadline is ${fmt(v.deadline)} souls.`);
+    else spikeText = tr(" A build não chega ao pico de vitality: os itens fixados ou os slots não deixam.", " The build doesn't reach the vitality spike: the locked items or the slots don't allow it.");
   }
 
   return h(
     "figure",
     { class: "track" },
-    h("ol", { class: "track-bar", "aria-label": "Compras na ordem, proporcionais ao custo" }, segments),
+    h("ol", { class: "track-bar", "aria-label": tr("Compras na ordem, proporcionais ao custo", "Purchases in order, proportional to cost") }, segments),
     h("div", { class: "track-ticks", "aria-hidden": "true" }, ticks, marks),
-    h("figcaption", {}, `${fmt(result.spent)} de ${fmt(result.souls)} souls gastos. A largura de cada fatia é o preço da compra.${spikeText}`),
+    h(
+      "figcaption",
+      {},
+      tr(
+        `${fmt(result.spent)} de ${fmt(result.souls)} souls gastos. A largura de cada fatia é o preço da compra.${spikeText}`,
+        `${fmt(result.spent)} of ${fmt(result.souls)} souls spent. Each slice's width is the purchase price.${spikeText}`,
+      ),
+    ),
   );
 }
 
@@ -263,13 +337,18 @@ const SLOT_ORDER = { weapon: 0, vitality: 1, spirit: 2 } as const;
  * Inventário no fim da partida: o que sobra depois das vendas e com os componentes
  * já absorvidos pelos upgrades. Mostra todos os slots liberados, inclusive os vazios.
  */
-const THEORY_GROUPS: { kind: TheoryKind; title: string; hint: string }[] = [
-  { kind: "combo", title: "Combos", hint: "Itens que os autores juntam, e por quê." },
-  { kind: "timing", title: "Prioridades", hint: "O que comprar cedo ou tarde." },
-  { kind: "late-swap", title: "Trocas de fim de jogo", hint: "O que vender, e o que entra no lugar." },
-  { kind: "situational", title: "Situacionais", hint: "Respostas a situações da partida." },
+const theoryGroups = (): { kind: TheoryKind; title: string; hint: string }[] => [
+  { kind: "combo", title: "Combos", hint: tr("Itens que os autores juntam, e por quê.", "Items the authors pair, and why.") },
+  { kind: "timing", title: tr("Prioridades", "Priorities"), hint: tr("O que comprar cedo ou tarde.", "What to buy early or late.") },
+  { kind: "late-swap", title: tr("Trocas de fim de jogo", "Late-game swaps"), hint: tr("O que vender, e o que entra no lugar.", "What to sell, and what replaces it.") },
+  { kind: "situational", title: tr("Situacionais", "Situational"), hint: tr("Respostas a situações da partida.", "Answers to match situations.") },
 ];
-const VERDICT_LABEL = { supported: "confirmada pelos dados", unclear: "sem conclusão nos dados", contradicted: "os dados discordam" } as const;
+const verdictLabel = () =>
+  ({
+    supported: tr("confirmada pelos dados", "supported by the data"),
+    unclear: tr("sem conclusão nos dados", "inconclusive in the data"),
+    contradicted: tr("os dados discordam", "the data disagrees"),
+  }) as const;
 /** Teorias mostradas por grupo (as com mais builds primeiro). */
 const THEORIES_PER_GROUP = 5;
 
@@ -292,26 +371,35 @@ function theoriesSection(app: App, heroId: number): HTMLElement | null {
     h(
       "li",
       { class: "theory" },
-      h("h4", {}, t.title),
-      h("p", {}, t.claim, t.condition ? ` Quando: ${t.condition}.` : ""),
+      h("h4", {}, trData(t.title)),
+      h("p", {}, trData(t.claim), t.condition ? tr(` Quando: ${t.condition}.`, ` When: ${trData(t.condition)}.`) : ""),
       h(
         "ul",
-        { class: "compare-items", "aria-label": "Itens da teoria" },
+        { class: "compare-items", "aria-label": tr("Itens da teoria", "Theory items") },
         t.items.map((c) => byClass.get(c)).filter((i) => i !== undefined).map((i) => h("li", { title: i.name }, icon(i.image, i.name, `item-icon small buy-${i.slot}`))),
       ),
       h(
         "p",
         { class: "buy-meta" },
-        `${t.builds.length} ${t.builds.length === 1 ? "build publicada" : "builds publicadas"}` +
-          (t.evidence ? `, ${VERDICT_LABEL[t.evidence.verdict]}${t.evidence.matches ? ` (${t.evidence.lift >= 0 ? "+" : ""}${fmt1(t.evidence.lift)} pp em ${fmt(t.evidence.matches)} partidas)` : ""}` : ""),
+        `${t.builds.length} ${t.builds.length === 1 ? tr("build publicada", "published build") : tr("builds publicadas", "published builds")}` +
+          (t.evidence
+            ? `, ${verdictLabel()[t.evidence.verdict]}${t.evidence.matches ? ` (${t.evidence.lift >= 0 ? "+" : ""}${fmt1(t.evidence.lift)} pp ${tr("em", "in")} ${fmt(t.evidence.matches)} ${tr("partidas", "matches")})` : ""}`
+            : ""),
       ),
     );
   return h(
     "section",
     { class: "theories" },
-    h("h2", {}, "Teorias da comunidade"),
-    h("p", { class: "hint" }, "Ideias tiradas das builds mais favoritadas do patch atual no navegador de builds do jogo. Combos são conferidos contra partidas reais: juntos, os itens ganham mais que o melhor deles sozinho?"),
-    THEORY_GROUPS.map((g) => {
+    h("h2", {}, tr("Teorias da comunidade", "Community theories")),
+    h(
+      "p",
+      { class: "hint" },
+      tr(
+        "Ideias tiradas das builds mais favoritadas do patch atual no navegador de builds do jogo. Combos são conferidos contra partidas reais: juntos, os itens ganham mais que o melhor deles sozinho?",
+        "Ideas taken from the most favorited builds of the current patch in the game's build browser. Combos are checked against real matches: together, do the items win more than the best of them alone?",
+      ),
+    ),
+    theoryGroups().map((g) => {
       const list = mine
         .filter((t) => t.kind === g.kind && t.evidence?.verdict !== "contradicted")
         .sort((a, b) => b.builds.length - a.builds.length || b.favorites - a.favorites)
@@ -325,16 +413,19 @@ function theoriesSection(app: App, heroId: number): HTMLElement | null {
 function defenseLine(result: OptimizeResult): HTMLElement {
   const d = defenseOf(result.build);
   const parts = [
-    d.barrier > 0 ? `barreiras somam ${fmt(d.barrier)} de vida por luta` : "",
-    d.time > 0 ? `invulnerabilidade e imunidades estendem a luta em ${Math.round(d.time * 100)}%` : "",
-    d.cc > 0 ? `proteção contra controle de ${Math.round(d.cc * 100)}%` : "",
-    d.deflect > 0 ? `${Math.round(d.deflect * 100)}% das balas desviadas` : "",
+    d.barrier > 0 ? tr(`barreiras somam ${fmt(d.barrier)} de vida por luta`, `barriers add ${fmt(d.barrier)} HP per fight`) : "",
+    d.time > 0 ? tr(`invulnerabilidade e imunidades estendem a luta em ${Math.round(d.time * 100)}%`, `invulnerability and immunities extend the fight by ${Math.round(d.time * 100)}%`) : "",
+    d.cc > 0 ? tr(`proteção contra controle de ${Math.round(d.cc * 100)}%`, `${Math.round(d.cc * 100)}% protection against control`) : "",
+    d.deflect > 0 ? tr(`${Math.round(d.deflect * 100)}% das balas desviadas`, `${Math.round(d.deflect * 100)}% of bullets deflected`) : "",
   ].filter(Boolean);
   const where = d.sources.length ? ` (${[...new Set(d.sources.map((s) => s.name))].join(", ")})` : "";
   return h(
     "p",
     { class: "hint" },
-    `Vida efetiva no fim: ${fmt(result.metrics.ehp)}.` + (parts.length ? ` Além de vida e resistência, ${parts.join(", ")}${where}.` : " Só vida e resistência: nenhum item de barreira, imunidade ou proteção contra controle."),
+    tr(`Vida efetiva no fim: ${fmt(result.metrics.ehp)}.`, `Final effective HP: ${fmt(result.metrics.ehp)}.`) +
+      (parts.length
+        ? tr(` Além de vida e resistência, ${parts.join(", ")}${where}.`, ` Besides health and resistance, ${parts.join(", ")}${where}.`)
+        : tr(" Só vida e resistência: nenhum item de barreira, imunidade ou proteção contra controle.", " Only health and resistance: no barrier, immunity or control-protection items.")),
   );
 }
 
@@ -345,12 +436,19 @@ function swapList(result: OptimizeResult): HTMLElement | null {
   return h(
     "details",
     { class: "swaps" },
-    h("summary", {}, `${swaps.length} ${swaps.length === 1 ? "troca" : "trocas"} até a build final`),
+    h("summary", {}, tr(`${swaps.length} ${swaps.length === 1 ? "troca" : "trocas"} até a build final`, `${swaps.length} ${swaps.length === 1 ? "swap" : "swaps"} up to the final build`)),
     h(
       "ul",
       {},
       swaps.map((s) =>
-        h("li", {}, `Por volta do minuto ${Math.round(s.minute)}: vende ${s.sold!.name} (T${s.sold!.tier}) e compra ${s.item.name} (T${s.item.tier})${s.gain > 0 ? `, +${fmt1(s.gain * 100)} pts` : ""}${s.community ? `, como em ${s.community.builds} ${s.community.builds === 1 ? "build publicada" : "builds publicadas"}` : ""}.`),
+        h(
+          "li",
+          {},
+          tr(
+            `Por volta do minuto ${Math.round(s.minute)}: vende ${s.sold!.name} (T${s.sold!.tier}) e compra ${s.item.name} (T${s.item.tier})${s.gain > 0 ? `, +${fmt1(s.gain * 100)} pts` : ""}${s.community ? `, como em ${s.community.builds} ${s.community.builds === 1 ? "build publicada" : "builds publicadas"}` : ""}.`,
+            `Around minute ${Math.round(s.minute)}: sells ${s.sold!.name} (T${s.sold!.tier}) and buys ${s.item.name} (T${s.item.tier})${s.gain > 0 ? `, +${fmt1(s.gain * 100)} pts` : ""}${s.community ? `, as in ${s.community.builds} ${s.community.builds === 1 ? "published build" : "published builds"}` : ""}.`,
+          ),
+        ),
       ),
     ),
   );
@@ -365,33 +463,39 @@ function finalBuild(result: OptimizeResult, slots: number): HTMLElement {
   const bySlot = (slot: Item["slot"]) => items.filter((i) => i.slot === slot).reduce((sum, i) => sum + i.cost, 0);
   const history = [
     upgrades ? `${upgrades} ${upgrades === 1 ? "upgrade" : "upgrades"}` : "",
-    sales ? `${sales} ${sales === 1 ? "venda" : "vendas"}` : "",
+    sales ? `${sales} ${sales === 1 ? tr("venda", "sale") : tr("vendas", "sales")}` : "",
   ].filter(Boolean);
+  const active = tr(", ativo", ", active");
+  const free = tr("Slot livre", "Empty slot");
 
   const cells = [
     ...items.map((item) =>
       h(
         "li",
-        { class: `final-item buy-${item.slot}`, title: `${item.name}: ${SLOT_LABEL[item.slot]}, tier ${item.tier}, ${fmt(item.cost)} souls${item.isActive ? ", ativo" : ""}` },
+        { class: `final-item buy-${item.slot}`, title: `${item.name}: ${slotLabel()[item.slot]}, tier ${item.tier}, ${fmt(item.cost)} souls${item.isActive ? active : ""}` },
         icon(item.image, item.name, `item-icon buy-${item.slot}`),
         h("span", { class: "final-name" }, item.name),
-        h("span", { class: "final-meta" }, `T${item.tier}${item.isActive ? ", ativo" : ""}`),
+        h("span", { class: "final-meta" }, `T${item.tier}${item.isActive ? active : ""}`),
       ),
     ),
-    ...Array.from({ length: Math.max(0, slots - items.length) }, () => h("li", { class: "final-item final-empty", "aria-label": "Slot livre" }, h("span", { class: "final-slot" }), h("span", { class: "final-name" }, "Slot livre"))),
+    ...Array.from({ length: Math.max(0, slots - items.length) }, () => h("li", { class: "final-item final-empty", "aria-label": free }, h("span", { class: "final-slot" }), h("span", { class: "final-name" }, free))),
   ];
 
   return h(
     "section",
     { class: "final-build" },
-    h("h2", {}, "Build final"),
+    h("h2", {}, tr("Build final", "Final build")),
     h(
       "p",
       { class: "hint" },
-      `${items.length} de ${slots} slots ocupados e ${actives} de ${MAX_ACTIVE_ITEMS} itens ativos${history.length ? `, depois de ${history.join(" e ")}` : ""}. ` +
-        `Valor dos itens: ${fmt(value)} souls (arma ${fmt(bySlot("weapon"))}, vitalidade ${fmt(bySlot("vitality"))}, spirit ${fmt(bySlot("spirit"))}).`,
+      tr(
+        `${items.length} de ${slots} slots ocupados e ${actives} de ${MAX_ACTIVE_ITEMS} itens ativos${history.length ? `, depois de ${history.join(" e ")}` : ""}. ` +
+          `Valor dos itens: ${fmt(value)} souls (arma ${fmt(bySlot("weapon"))}, vitalidade ${fmt(bySlot("vitality"))}, spirit ${fmt(bySlot("spirit"))}).`,
+        `${items.length} of ${slots} slots filled and ${actives} of ${MAX_ACTIVE_ITEMS} active items${history.length ? `, after ${history.join(" and ")}` : ""}. ` +
+          `Item value: ${fmt(value)} souls (weapon ${fmt(bySlot("weapon"))}, vitality ${fmt(bySlot("vitality"))}, spirit ${fmt(bySlot("spirit"))}).`,
+      ),
     ),
-    h("ul", { class: "final-grid", "aria-label": `Itens no fim: ${items.length} de ${slots} slots` }, cells),
+    h("ul", { class: "final-grid", "aria-label": tr(`Itens no fim: ${items.length} de ${slots} slots`, `Final items: ${items.length} of ${slots} slots`) }, cells),
     defenseLine(result),
     swapList(result),
   );
@@ -403,15 +507,19 @@ function purchaseList(app: App, result: OptimizeResult, heroId: number): HTMLEle
   const usage = (item: Item) => {
     if (!meta) return "";
     const rate = pickRate(meta, item);
-    return rate === null ? " Quase ninguém compra com este herói." : ` Comprado em ${fmt(rate * 100)}% das partidas do herói.`;
+    return rate === null
+      ? tr(" Quase ninguém compra com este herói.", " Almost nobody buys it on this hero.")
+      : tr(` Comprado em ${fmt(rate * 100)}% das partidas do herói.`, ` Bought in ${fmt(rate * 100)}% of the hero's matches.`);
   };
   if (result.order.length === 0) {
-    return h("p", { class: "empty" }, "Nenhum item cabe nesse orçamento. Aumente os souls para ver a primeira compra.");
+    return h("p", { class: "empty" }, tr("Nenhum item cabe nesse orçamento. Aumente os souls para ver a primeira compra.", "No item fits this budget. Raise the souls to see the first purchase."));
   }
   let lastPhase = "";
   const rows = result.order.flatMap((step) => {
     const phase = phaseOf(step.minute);
-    const header = phase !== lastPhase ? h("li", { class: "phase", "aria-hidden": "true" }, `${phase[0]!.toUpperCase()}${phase.slice(1)} da partida`) : null;
+    const label = phaseLabel(step.minute);
+    const title = `${label[0]!.toUpperCase()}${label.slice(1)}`;
+    const header = phase !== lastPhase ? h("li", { class: "phase", "aria-hidden": "true" }, tr(`${title} da partida`, `${title} game`)) : null;
     lastPhase = phase;
     return header ? [header, buyRow(step)] : [buyRow(step)];
   });
@@ -423,14 +531,21 @@ function purchaseList(app: App, result: OptimizeResult, heroId: number): HTMLEle
     const upgrade = result.order.find((later) => later.upgradeFrom === step.item);
     const sale = result.order.find((later) => later.sold === step.item);
     const notes = [
-      step.upgradeFrom ? `Melhora ${step.upgradeFrom.name}, já pago em parte.` : "",
-      step.sold ? `Vende ${step.sold.name} para abrir o slot.` : "",
-      upgrade ? `Rende enquanto junta souls e depois vira ${upgrade.item.name}.` : step.isComponent ? "Rende enquanto junta souls e depois vira componente de um upgrade." : "",
-      sale ? `Vendido depois, para dar lugar a ${sale.item.name}.` : "",
+      step.upgradeFrom ? tr(`Melhora ${step.upgradeFrom.name}, já pago em parte.`, `Upgrades ${step.upgradeFrom.name}, already partly paid for.`) : "",
+      step.sold ? tr(`Vende ${step.sold.name} para abrir o slot.`, `Sells ${step.sold.name} to free the slot.`) : "",
+      upgrade
+        ? tr(`Rende enquanto junta souls e depois vira ${upgrade.item.name}.`, `Pays off while saving souls, then becomes ${upgrade.item.name}.`)
+        : step.isComponent
+          ? tr("Rende enquanto junta souls e depois vira componente de um upgrade.", "Pays off while saving souls, then becomes a component of an upgrade.")
+          : "",
+      sale ? tr(`Vendido depois, para dar lugar a ${sale.item.name}.`, `Sold later, to make room for ${sale.item.name}.`) : "",
     ].filter(Boolean);
     const reasons = [...notes, ...(step.isComponent || sale ? [] : reasonsFor(app, step.item, heroId, result.items.filter((i) => i !== step.item)))].slice(0, 3);
     const real = buyMinute(app.data, heroId, step.item);
-    const when = `Paga ${fmt(step.cost)} com ${fmt(step.earned)} souls ganhos, por volta do minuto ${Math.round(step.minute)}${real === null ? "" : ` (jogadores: minuto ${Math.round(real)})`}.`;
+    const when = tr(
+      `Paga ${fmt(step.cost)} com ${fmt(step.earned)} souls ganhos, por volta do minuto ${Math.round(step.minute)}${real === null ? "" : ` (jogadores: minuto ${Math.round(real)})`}.`,
+      `Pays ${fmt(step.cost)} with ${fmt(step.earned)} souls earned, around minute ${Math.round(step.minute)}${real === null ? "" : ` (players: minute ${Math.round(real)})`}.`,
+    );
     return h(
       "li",
       { class: `buy buy-${step.item.slot}` },
@@ -443,19 +558,25 @@ function purchaseList(app: App, result: OptimizeResult, heroId: number): HTMLEle
           {},
           h("span", {}, step.item.name),
           " ",
-          step.item.isActive ? h("span", { class: "chip" }, "ativo") : null,
+          step.item.isActive ? h("span", { class: "chip" }, tr("ativo", "active")) : null,
           " ",
-          step.isComponent ? h("span", { class: "chip" }, "componente") : null,
+          step.isComponent ? h("span", { class: "chip" }, tr("componente", "component")) : null,
           " ",
-          sale ? h("span", { class: "chip" }, "vendido depois") : null,
+          sale ? h("span", { class: "chip" }, tr("vendido depois", "sold later")) : null,
           " ",
-          step.opensCombo ? h("span", { class: "chip chip-combo" }, `abre jogada com ${step.opensCombo.join(", ")}`) : null,
+          step.opensCombo ? h("span", { class: "chip chip-combo" }, tr(`abre jogada com ${step.opensCombo.join(", ")}`, `opens a play with ${step.opensCombo.join(", ")}`)) : null,
           " ",
           step.tieBreak
             ? h(
                 "span",
-                { class: "chip chip-combo", title: `Ganho por soul quase igual ao de ${step.tieBreak.over.name}; quando comprado aos ${step.tieBreak.window}, vence ${fmt1(step.tieBreak.diff)} pp mais (± ${fmt1(step.tieBreak.margin)}).` },
-                `desempate pelas partidas: no lugar de ${step.tieBreak.over.name}`,
+                {
+                  class: "chip chip-combo",
+                  title: tr(
+                    `Ganho por soul quase igual ao de ${step.tieBreak.over.name}; quando comprado aos ${step.tieBreak.window}, vence ${fmt1(step.tieBreak.diff)} pp mais (± ${fmt1(step.tieBreak.margin)}).`,
+                    `Gain per soul almost equal to ${step.tieBreak.over.name}'s; when bought at ${step.tieBreak.window}, wins ${fmt1(step.tieBreak.diff)} pp more (± ${fmt1(step.tieBreak.margin)}).`,
+                  ),
+                },
+                tr(`desempate pelas partidas: no lugar de ${step.tieBreak.over.name}`, `tiebreak by matches: instead of ${step.tieBreak.over.name}`),
               )
             : null,
           " ",
@@ -464,13 +585,16 @@ function purchaseList(app: App, result: OptimizeResult, heroId: number): HTMLEle
                 "span",
                 {
                   class: `chip ${step.matchPrior.factor > 1 ? "chip-combo" : "chip-warn"}`,
-                  title: `Comprado aos ${step.matchPrior.window}, vence ${fmt1(step.matchPrior.delta)} pp contra os outros itens do mesmo tier (± ${fmt1(step.matchPrior.margin)}, ${step.matchPrior.matches} partidas). O ganho por soul do modelo foi multiplicado por ${step.matchPrior.factor.toFixed(2)}.`,
+                  title: tr(
+                    `Comprado aos ${step.matchPrior.window}, vence ${fmt1(step.matchPrior.delta)} pp contra os outros itens do mesmo tier (± ${fmt1(step.matchPrior.margin)}, ${step.matchPrior.matches} partidas). O ganho por soul do modelo foi multiplicado por ${step.matchPrior.factor.toFixed(2)}.`,
+                    `Bought at ${step.matchPrior.window}, wins ${fmt1(step.matchPrior.delta)} pp against the other items of the same tier (± ${fmt1(step.matchPrior.margin)}, ${step.matchPrior.matches} matches). The model's gain per soul was multiplied by ${step.matchPrior.factor.toFixed(2)}.`,
+                  ),
                 },
-                `partidas ×${step.matchPrior.factor.toFixed(2)}`,
+                tr(`partidas ×${step.matchPrior.factor.toFixed(2)}`, `matches ×${step.matchPrior.factor.toFixed(2)}`),
               )
             : null,
         ),
-        h("p", { class: "buy-meta" }, `${SLOT_LABEL[step.item.slot]}, tier ${step.item.tier}. ${when}${step.isComponent || sale ? "" : usage(step.item)}`),
+        h("p", { class: "buy-meta" }, `${slotLabel()[step.item.slot]}, tier ${step.item.tier}. ${when}${step.isComponent || sale ? "" : usage(step.item)}`),
         step.why ? whyBlock(step.why) : null,
         reasons.length ? h("ul", { class: "reasons" }, reasons.map(reasonItem)) : null,
         step.isComponent
@@ -485,7 +609,7 @@ function purchaseList(app: App, result: OptimizeResult, heroId: number): HTMLEle
                   "aria-pressed": String(pinned),
                   onclick: () => app.update({ required: pinned ? state.required.filter((n) => n !== step.item.name) : [...state.required, step.item.name] }),
                 },
-                pinned ? "Soltar" : "Fixar",
+                pinned ? tr("Soltar", "Unlock") : tr("Fixar", "Lock"),
               ),
               h(
                 "button",
@@ -493,19 +617,28 @@ function purchaseList(app: App, result: OptimizeResult, heroId: number): HTMLEle
                   class: "link",
                   onclick: () => app.update({ banned: [...state.banned, step.item.name], required: state.required.filter((n) => n !== step.item.name) }),
                 },
-                "Tirar da build",
+                tr("Tirar da build", "Remove from build"),
               ),
             ),
       ),
-      h("div", { class: "buy-side" }, h("span", { class: "gain", title: "Ganho na pontuação do objetivo com esta compra" }, `${gain >= 0 ? "+" : "−"}${fmt(Math.abs(gain) * 100)} pts`)),
+      h("div", { class: "buy-side" }, h("span", { class: "gain", title: tr("Ganho na pontuação do objetivo com esta compra", "Gain in the goal score from this purchase") }, `${gain >= 0 ? "+" : "−"}${fmt(Math.abs(gain) * 100)} pts`)),
     );
   }
 }
 
-const CONFIDENCE_HINT = {
-  works: "Confiança de que a interação funciona como modelada (fontes das mecânicas, campos desconhecidos, patch).",
-  best: "Confiança de que esta é a melhor compra agora (distância para a alternativa, dados de partidas).",
-};
+const confidenceHint = () => ({
+  works: tr(
+    "Confiança de que a interação funciona como modelada (fontes das mecânicas, campos desconhecidos, patch).",
+    "Confidence that the interaction works as modeled (mechanic sources, unknown fields, patch).",
+  ),
+  best: tr(
+    "Confiança de que esta é a melhor compra agora (distância para a alternativa, dados de partidas).",
+    "Confidence that this is the best purchase now (gap to the alternative, match data).",
+  ),
+});
+
+/** Nível de confiança para exibir (o valor interno fica em português: é também classe CSS). */
+const confidenceText = (c: string) => tr(c, ({ alta: "high", média: "medium", baixa: "low" } as Record<string, string>)[c] ?? c);
 
 /** Por que comprar agora: jogada, condição, métrica, alternativa e incerteza, calculados pelo motor. */
 function whyBlock(why: Recommendation): HTMLElement | null {
@@ -520,25 +653,47 @@ function whyBlock(why: Recommendation): HTMLElement | null {
           "p",
           { class: "why-facts" },
           `${why.mechanism[0]!.toUpperCase()}${why.mechanism.slice(1)}. ${why.metric}.`,
-          why.condition ? ` Condição: ${why.condition}.` : "",
+          why.condition ? tr(` Condição: ${why.condition}.`, ` Condition: ${why.condition}.`) : "",
         )
       : null,
     h(
       "p",
       { class: "why-meta" },
-      h("span", { class: `conf conf-${why.confidenceWorks}`, title: CONFIDENCE_HINT.works }, `interação: confiança ${why.confidenceWorks}`),
+      h("span", { class: `conf conf-${why.confidenceWorks}`, title: confidenceHint().works }, tr(`interação: confiança ${why.confidenceWorks}`, `interaction: ${confidenceText(why.confidenceWorks)} confidence`)),
       " ",
-      h("span", { class: `conf conf-${why.confidenceBest}`, title: CONFIDENCE_HINT.best }, `melhor agora: confiança ${why.confidenceBest}`),
+      h("span", { class: `conf conf-${why.confidenceBest}`, title: confidenceHint().best }, tr(`melhor agora: confiança ${why.confidenceBest}`, `best now: ${confidenceText(why.confidenceBest)} confidence`)),
       " ",
-      h("span", { class: "hint" }, why.kind === "mecânica" ? "só mecânica (sem dados de partidas)" : `mecânica + ${fmt(why.observed!.matches)} partidas`),
+      h(
+        "span",
+        { class: "hint" },
+        why.kind === "mecânica"
+          ? tr("só mecânica (sem dados de partidas)", "mechanics only (no match data)")
+          : tr(`mecânica + ${fmt(why.observed!.matches)} partidas`, `mechanics + ${fmt(why.observed!.matches)} matches`),
+      ),
     ),
     why.observed ? observedLine(why.observed) : null,
     h(
       "details",
       { class: "why-details" },
-      h("summary", {}, "Fontes, alternativa e incertezas"),
-      why.alternative ? h("p", {}, `Alternativa com o mesmo orçamento: ${why.alternative.name} (jogadas ${why.alternative.deltaU >= 0 ? "+" : "−"}${fmt1(Math.abs(why.alternative.deltaU))} contra ${why.deltaU >= 0 ? "+" : "−"}${fmt1(Math.abs(why.deltaU))}).`) : null,
-      why.parts.length ? h("p", {}, `De onde vem o ganho (repetindo a jogada sem cada efeito): ${why.parts.map((p) => `${p.label} ${p.value >= 0 ? "+" : "−"}${fmt1(Math.abs(p.value))}`).join("; ")}.`) : null,
+      h("summary", {}, tr("Fontes, alternativa e incertezas", "Sources, alternative and uncertainties")),
+      why.alternative
+        ? h(
+            "p",
+            {},
+            tr(
+              `Alternativa com o mesmo orçamento: ${why.alternative.name} (jogadas ${why.alternative.deltaU >= 0 ? "+" : "−"}${fmt1(Math.abs(why.alternative.deltaU))} contra ${why.deltaU >= 0 ? "+" : "−"}${fmt1(Math.abs(why.deltaU))}).`,
+              `Alternative with the same budget: ${why.alternative.name} (plays ${why.alternative.deltaU >= 0 ? "+" : "−"}${fmt1(Math.abs(why.alternative.deltaU))} vs ${why.deltaU >= 0 ? "+" : "−"}${fmt1(Math.abs(why.deltaU))}).`,
+            ),
+          )
+        : null,
+      why.parts.length
+        ? h(
+            "p",
+            {},
+            tr(`De onde vem o ganho (repetindo a jogada sem cada efeito): `, `Where the gain comes from (replaying without each effect): `) +
+              `${why.parts.map((p) => `${p.label} ${p.value >= 0 ? "+" : "−"}${fmt1(Math.abs(p.value))}`).join("; ")}.`,
+          )
+        : null,
       h("ul", {}, why.sources.map((s) => h("li", {}, s))),
       h("ul", { class: "uncertain" }, why.uncertainty.map((u) => h("li", {}, u))),
     ),
@@ -549,14 +704,30 @@ const signedPp = (x: number) => `${x >= 0 ? "+" : "−"}${fmt1(Math.abs(x))} pp`
 
 /** O que as partidas dizem, no mesmo momento da compra (ou a média do herói, sem janela). */
 function observedLine(o: NonNullable<Recommendation["observed"]>): HTMLElement {
-  if (!o.window) return h("p", { class: "why-facts" }, `Partidas: ${signedPp(o.winrateDelta)} contra a média do herói, sem controlar o momento da compra.`);
+  if (!o.window)
+    return h(
+      "p",
+      { class: "why-facts" },
+      tr(
+        `Partidas: ${signedPp(o.winrateDelta)} contra a média do herói, sem controlar o momento da compra.`,
+        `Matches: ${signedPp(o.winrateDelta)} vs the hero average, without controlling for purchase timing.`,
+      ),
+    );
   const vs = o.versusAlternative;
   return h(
     "p",
     { class: `why-facts${o.diverges ? " diverges" : ""}` },
-    `Partidas, comprado aos ${o.window.window}: ${signedPp(o.window.delta)} ± ${fmt1(o.window.margin)} contra o que o herói compra nessa janela (${fmt(o.window.matches)} partidas).`,
-    vs ? ` Contra ${vs.name}: ${signedPp(vs.diff)} ± ${fmt1(vs.margin)}${vs.significant ? "" : ", sem diferença clara"}.` : "",
-    o.diverges ? " O modelo e as partidas apontam para lados opostos." : "",
+    tr(
+      `Partidas, comprado aos ${o.window.window}: ${signedPp(o.window.delta)} ± ${fmt1(o.window.margin)} contra o que o herói compra nessa janela (${fmt(o.window.matches)} partidas).`,
+      `Matches, bought at ${o.window.window}: ${signedPp(o.window.delta)} ± ${fmt1(o.window.margin)} vs what the hero buys in that window (${fmt(o.window.matches)} matches).`,
+    ),
+    vs
+      ? tr(
+          ` Contra ${vs.name}: ${signedPp(vs.diff)} ± ${fmt1(vs.margin)}${vs.significant ? "" : ", sem diferença clara"}.`,
+          ` Vs ${vs.name}: ${signedPp(vs.diff)} ± ${fmt1(vs.margin)}${vs.significant ? "" : ", no clear difference"}.`,
+        )
+      : "",
+    o.diverges ? tr(" O modelo e as partidas apontam para lados opostos.", " The model and the matches point in opposite directions.") : "",
   );
 }
 
@@ -567,15 +738,20 @@ function playPanel(app: App, payload: BuildPayload, input: OptimizeInput): HTMLE
   return h(
     "section",
     { class: "plays" },
-    h("h2", {}, "Jogadas da build"),
+    h("h2", {}, tr("Jogadas da build", "Build plays")),
     h(
       "p",
       { class: "hint" },
       input.fights
-        ? `Luta escolhida: ${input.fights.map((f) => SCENARIO_LABEL[f]).join(", ")}.`
+        ? tr(`Luta escolhida: ${input.fights.map((f) => SCENARIO_LABEL[f]).join(", ")}.`, `Chosen fight: ${input.fights.map((f) => SCENARIO_LABEL[f]).join(", ")}.`)
         : app.data.fights
-          ? `Mistura de lutas medida nas partidas: ${(Object.entries(scenarioMix()) as [ScenarioId, number][]).filter(([, w]) => w > 0).map(([id, w]) => `${SCENARIO_LABEL[id].toLowerCase()} ${Math.round(w * 100)}%`).join(", ")} (perseguição e iniciação com peso fixo).`
-          : "Cenário assumido: mistura de duelo, lutas pequenas, teamfight, inimigos dispersos, perseguição e iniciação inimiga.",
+          ? tr(`Mistura de lutas medida nas partidas: `, `Fight mix measured in matches: `) +
+            `${(Object.entries(scenarioMix()) as [ScenarioId, number][]).filter(([, w]) => w > 0).map(([id, w]) => `${SCENARIO_LABEL[id].toLowerCase()} ${Math.round(w * 100)}%`).join(", ")}` +
+            tr(` (perseguição e iniciação com peso fixo).`, ` (chase and enemy engage with fixed weight).`)
+          : tr(
+              "Cenário assumido: mistura de duelo, lutas pequenas, teamfight, inimigos dispersos, perseguição e iniciação inimiga.",
+              "Assumed scenario: a mix of duel, small fights, teamfight, spread-out enemies, chase and enemy engage.",
+            ),
     ),
     h(
       "ul",
@@ -588,8 +764,17 @@ function playPanel(app: App, payload: BuildPayload, input: OptimizeInput): HTMLE
           "li",
           {},
           h("span", { class: "ability-name" }, s.label),
-          h("span", {}, s.best ? s.best.steps.map((x, i) => (i === 0 ? x.name : `${x.name} (+${fmt1(x.at - s.best!.steps[i - 1]!.at)} s)`)).join(" → ") : "nenhuma jogada"),
-          sim ? h("span", { class: "hint" }, `${hits} atingidos${esc ? `, ${esc} escapam` : ""}, ${fmt1(sim.control)} s de controle útil${sim.casterAlive ? "" : ", morre antes de concluir"}`) : null,
+          h("span", {}, s.best ? s.best.steps.map((x, i) => (i === 0 ? x.name : `${x.name} (+${fmt1(x.at - s.best!.steps[i - 1]!.at)} s)`)).join(" → ") : tr("nenhuma jogada", "no play")),
+          sim
+            ? h(
+                "span",
+                { class: "hint" },
+                tr(
+                  `${hits} atingidos${esc ? `, ${esc} escapam` : ""}, ${fmt1(sim.control)} s de controle útil${sim.casterAlive ? "" : ", morre antes de concluir"}`,
+                  `${hits} hit${esc ? `, ${esc} escape` : ""}, ${fmt1(sim.control)} s of useful control${sim.casterAlive ? "" : ", dies before finishing"}`,
+                ),
+              )
+            : null,
         );
       }),
     ),
@@ -597,11 +782,32 @@ function playPanel(app: App, payload: BuildPayload, input: OptimizeInput): HTMLE
       ? h(
           "div",
           {},
-          h("h3", {}, "Trocas por tipo de luta"),
-          h("ul", {}, situ.map((s) => h("li", {}, h("span", { class: "ability-name" }, s.label), h("span", {}, `${s.item.name}${s.replaces ? ` no lugar de ${s.replaces.item.name}` : ""}`), h("span", { class: "hint" }, `+${fmt1(s.gain)} nas jogadas por minuto (${s.mechanism})`)))),
+          h("h3", {}, tr("Trocas por tipo de luta", "Swaps by fight type")),
+          h(
+            "ul",
+            {},
+            situ.map((s) =>
+              h(
+                "li",
+                {},
+                h("span", { class: "ability-name" }, s.label),
+                h("span", {}, `${s.item.name}${s.replaces ? tr(` no lugar de ${s.replaces.item.name}`, ` instead of ${s.replaces.item.name}`) : ""}`),
+                h("span", { class: "hint" }, tr(`+${fmt1(s.gain)} nas jogadas por minuto (${s.mechanism})`, `+${fmt1(s.gain)} in plays per minute (${s.mechanism})`)),
+              ),
+            ),
+          ),
         )
       : null,
-    h("p", { class: "hint" }, issues.length ? `Atenção, a rota quebra regras da loja: ${issues.map((x) => `${x.item}: ${x.problem}`).join("; ")}.` : "Cada compra cabe nos souls, nos slots e no limite de ativos do momento; upgrades consomem o componente."),
+    h(
+      "p",
+      { class: "hint" },
+      issues.length
+        ? tr(`Atenção, a rota quebra regras da loja: `, `Warning, the route breaks shop rules: `) + `${issues.map((x) => `${x.item}: ${x.problem}`).join("; ")}.`
+        : tr(
+            "Cada compra cabe nos souls, nos slots e no limite de ativos do momento; upgrades consomem o componente.",
+            "Each purchase fits the souls, the slots and the active-item limit at that moment; upgrades consume the component.",
+          ),
+    ),
   );
 }
 
@@ -611,9 +817,9 @@ function bannedBar(app: App): HTMLElement | null {
   return h(
     "p",
     { class: "banned" },
-    "Fora desta build: ",
+    tr("Fora desta build: ", "Out of this build: "),
     state.banned.map((name) =>
-      h("button", { class: "chip chip-button", title: "Permitir de novo", onclick: () => app.update({ banned: state.banned.filter((n) => n !== name) }) }, `${name} ×`),
+      h("button", { class: "chip chip-button", title: tr("Permitir de novo", "Allow again"), onclick: () => app.update({ banned: state.banned.filter((n) => n !== name) }) }, `${name} ×`),
     ),
   );
 }
@@ -627,32 +833,43 @@ function metricsTable(m: Metrics, b: Metrics): HTMLElement {
       h("th", { scope: "row" }, label),
       h("td", {}, one ? fmt1(base) : fmt(base)),
       h("td", {}, one ? fmt1(now) : fmt(now)),
-      h("td", { class: d.startsWith("+") || d === "novo" ? "up" : d.startsWith("−") ? "down" : "" }, d),
+      h("td", { class: d.startsWith("+") || d === tr("novo", "new") ? "up" : d.startsWith("−") ? "down" : "" }, d),
     );
   };
   return h(
     "table",
     { class: "metrics" },
-    h("caption", {}, "O que a build muda"),
-    h("thead", {}, h("tr", {}, h("th", { scope: "col" }, "Por segundo"), h("th", { scope: "col" }, "Sem itens"), h("th", { scope: "col" }, "Com a build"), h("th", { scope: "col" }, "Variação"))),
+    h("caption", {}, tr("O que a build muda", "What the build changes")),
     h(
-      "tbody",
+      "thead",
       {},
-      row("Dano total", b.totalDps, m.totalDps),
-      row("Arma", b.weaponDps, m.weaponDps, false, true),
-      row("Habilidades", b.abilityDps, m.abilityDps, false, true),
-      row("Efeitos de itens", b.itemDps, m.itemDps, false, true),
-      row("Corpo a corpo", b.meleeDps, m.meleeDps, false, true),
-      ...(m.antiHealDps > 0 ? [row("Cura negada ao inimigo", b.antiHealDps, m.antiHealDps, false, true)] : []),
-      row("Cura", b.sustain, m.sustain, true),
+      h(
+        "tr",
+        {},
+        h("th", { scope: "col" }, tr("Por segundo", "Per second")),
+        h("th", { scope: "col" }, tr("Sem itens", "No items")),
+        h("th", { scope: "col" }, tr("Com a build", "With build")),
+        h("th", { scope: "col" }, tr("Variação", "Change")),
+      ),
     ),
     h(
       "tbody",
       {},
-      h("tr", { class: "gap" }, h("th", { scope: "col", colspan: 4 }, "Por minuto")),
-      row("Controle (s)", b.control, m.control, true),
+      row(tr("Dano total", "Total damage"), b.totalDps, m.totalDps),
+      row(tr("Arma", "Weapon"), b.weaponDps, m.weaponDps, false, true),
+      row(tr("Habilidades", "Abilities"), b.abilityDps, m.abilityDps, false, true),
+      row(tr("Efeitos de itens", "Item effects"), b.itemDps, m.itemDps, false, true),
+      row(tr("Corpo a corpo", "Melee"), b.meleeDps, m.meleeDps, false, true),
+      ...(m.antiHealDps > 0 ? [row(tr("Cura negada ao inimigo", "Healing denied to enemy"), b.antiHealDps, m.antiHealDps, false, true)] : []),
+      row(tr("Cura", "Healing"), b.sustain, m.sustain, true),
     ),
-    h("tbody", {}, h("tr", { class: "gap" }, h("th", { scope: "col", colspan: 4 }, "No total")), row("Vida efetiva", b.ehp, m.ehp)),
+    h(
+      "tbody",
+      {},
+      h("tr", { class: "gap" }, h("th", { scope: "col", colspan: 4 }, tr("Por minuto", "Per minute"))),
+      row(tr("Controle (s)", "Control (s)"), b.control, m.control, true),
+    ),
+    h("tbody", {}, h("tr", { class: "gap" }, h("th", { scope: "col", colspan: 4 }, tr("No total", "Total"))), row(tr("Vida efetiva", "Effective HP"), b.ehp, m.ehp)),
   );
 }
 
@@ -662,7 +879,7 @@ function abilityPlan(app: App, result: OptimizeResult): HTMLElement {
   return h(
     "section",
     { class: "abilities" },
-    h("h2", {}, "Upgrades de habilidade"),
+    h("h2", {}, tr("Upgrades de habilidade", "Ability upgrades")),
     h(
       "ul",
       {},
@@ -675,7 +892,7 @@ function abilityPlan(app: App, result: OptimizeResult): HTMLElement {
           h("span", { class: "ability-name" }, a.name),
           h(
             "span",
-            { class: "pips", role: "img", "aria-label": `${tier} de 3 upgrades` },
+            { class: "pips", role: "img", "aria-label": tr(`${tier} de 3 upgrades`, `${tier} of 3 upgrades`) },
             [1, 2, 3].map((t) => h("i", { class: t <= tier ? "pip on" : "pip" })),
           ),
         );
@@ -690,26 +907,45 @@ function comparisonCard(c: BuildComparison, app: OptimizeResult): HTMLElement {
   const am = app.metrics;
   const cell = (label: string, theirs: number, ours: number) => h("tr", {}, h("th", { scope: "row" }, label), h("td", {}, fmt(theirs)), h("td", {}, fmt(ours)));
   const v = c.result.vitality;
-  const spikeNote = v?.reachedAt != null ? ` Pico de vitality por volta do minuto ${Math.round(v.reachedMinute ?? 0)}.` : " Não chega ao pico de vitality com esses souls.";
+  const spikeNote =
+    v?.reachedAt != null
+      ? tr(` Pico de vitality por volta do minuto ${Math.round(v.reachedMinute ?? 0)}.`, ` Vitality spike around minute ${Math.round(v.reachedMinute ?? 0)}.`)
+      : tr(" Não chega ao pico de vitality com esses souls.", " Doesn't reach the vitality spike with these souls.");
   return h(
     "li",
     { class: "compare-card" },
-    h("h3", {}, c.build.name || "Build sem nome"),
-    h("p", { class: "buy-meta" }, `${fmt(c.build.matches)} partidas, ${fmt1(c.winrate * 100)}% de vitória.${spikeNote}`),
+    h("h3", {}, c.build.name || tr("Build sem nome", "Unnamed build")),
+    h("p", { class: "buy-meta" }, tr(`${fmt(c.build.matches)} partidas, ${fmt1(c.winrate * 100)}% de vitória.${spikeNote}`, `${fmt(c.build.matches)} matches, ${fmt1(c.winrate * 100)}% win rate.${spikeNote}`)),
     h(
       "ul",
-      { class: "compare-items", "aria-label": "Itens da build publicada até esses souls" },
+      { class: "compare-items", "aria-label": tr("Itens da build publicada até esses souls", "Items of the published build up to these souls") },
       c.items.map((i) =>
-        h("li", { class: shared.has(i.className) ? "in-both" : "", title: `${i.name}${shared.has(i.className) ? " (também na build do app)" : ""}` }, icon(i.image, i.name, `item-icon small buy-${i.slot}`)),
+        h(
+          "li",
+          { class: shared.has(i.className) ? "in-both" : "", title: `${i.name}${shared.has(i.className) ? tr(" (também na build do app)", " (also in the app's build)") : ""}` },
+          icon(i.image, i.name, `item-icon small buy-${i.slot}`),
+        ),
       ),
     ),
     h(
       "table",
       { class: "metrics compact" },
-      h("thead", {}, h("tr", {}, h("th", { scope: "col" }, "Pelo motor"), h("th", { scope: "col" }, "Publicada"), h("th", { scope: "col" }, "App"))),
-      h("tbody", {}, cell("Dano total/s", cm.totalDps, am.totalDps), cell("Vida efetiva", cm.ehp, am.ehp), cell("Pontos", c.result.score * 100, app.score * 100)),
+      h("thead", {}, h("tr", {}, h("th", { scope: "col" }, tr("Pelo motor", "By the engine")), h("th", { scope: "col" }, tr("Publicada", "Published")), h("th", { scope: "col" }, "App"))),
+      h(
+        "tbody",
+        {},
+        cell(tr("Dano total/s", "Total damage/s"), cm.totalDps, am.totalDps),
+        cell(tr("Vida efetiva", "Effective HP"), cm.ehp, am.ehp),
+        cell(tr("Pontos", "Points"), c.result.score * 100, app.score * 100),
+      ),
     ),
-    h("p", { class: "hint" }, c.onlyApp.length ? `Só no app: ${c.onlyApp.map((i) => i.name).join(", ")}.` : "Todos os itens do app estão nesta build."),
+    h(
+      "p",
+      { class: "hint" },
+      c.onlyApp.length
+        ? tr(`Só no app: ${c.onlyApp.map((i) => i.name).join(", ")}.`, `Only in the app: ${c.onlyApp.map((i) => i.name).join(", ")}.`)
+        : tr("Todos os itens do app estão nesta build.", "Every app item is in this build."),
+    ),
   );
 }
 
@@ -719,17 +955,27 @@ function comparison(app: App, payload: BuildPayload, input: OptimizeInput): HTML
   if (!meta || !cards) return null;
   const result = payload.result;
   const best = [...powerWindows(meta)].sort((a, b) => b.winrate - a.winrate)[0];
-  const window = best ? ` ${input.hero} vence mais em partidas de ${best.bucket.fromMin}${best.bucket.toMin ? ` a ${best.bucket.toMin}` : "+"} minutos (${fmt1(best.winrate * 100)}% de vitória).` : "";
+  const window = best
+    ? tr(
+        ` ${input.hero} vence mais em partidas de ${best.bucket.fromMin}${best.bucket.toMin ? ` a ${best.bucket.toMin}` : "+"} minutos (${fmt1(best.winrate * 100)}% de vitória).`,
+        ` ${input.hero} wins most in matches of ${best.bucket.fromMin}${best.bucket.toMin ? ` to ${best.bucket.toMin}` : "+"} minutes (${fmt1(best.winrate * 100)}% win rate).`,
+      )
+    : "";
   return h(
     "section",
     { class: "compare" },
-    h("h2", {}, "Comparado com as builds mais jogadas"),
+    h("h2", {}, tr("Comparado com as builds mais jogadas", "Compared with the most played builds")),
     h(
       "p",
       { class: "hint" },
-      `Builds publicadas no jogo com mais partidas nos últimos ${app.data.stats!.days} dias, cortadas nos mesmos souls e medidas pelo mesmo motor. Ícones com borda clara também estão na build do app.${window}`,
+      tr(
+        `Builds publicadas no jogo com mais partidas nos últimos ${app.data.stats!.days} dias, cortadas nos mesmos souls e medidas pelo mesmo motor. Ícones com borda clara também estão na build do app.${window}`,
+        `Builds published in the game with the most matches in the last ${app.data.stats!.days} days, cut at the same souls and measured by the same engine. Icons with a light border are also in the app's build.${window}`,
+      ),
     ),
-    cards.length ? h("ol", { class: "compare-list" }, cards.map((c) => comparisonCard(c, result))) : h("p", { class: "empty" }, "Nenhuma build publicada tem itens que caibam nesses souls."),
+    cards.length
+      ? h("ol", { class: "compare-list" }, cards.map((c) => comparisonCard(c, result)))
+      : h("p", { class: "empty" }, tr("Nenhuma build publicada tem itens que caibam nesses souls.", "No published build has items that fit these souls.")),
   );
 }
 
@@ -739,7 +985,10 @@ function defenseNote(result: OptimizeResult): string {
   if (!floor) return "";
   const target = floor * result.baseline.ehp;
   const ok = result.metrics.ehp >= target * 0.99;
-  return ` Defesa mínima: ${fmt(target)} de vida efetiva, a das builds mais jogadas com esses souls${ok ? "" : `; esta build fica em ${fmt(result.metrics.ehp)}`}.`;
+  return tr(
+    ` Defesa mínima: ${fmt(target)} de vida efetiva, a das builds mais jogadas com esses souls${ok ? "" : `; esta build fica em ${fmt(result.metrics.ehp)}`}.`,
+    ` Minimum defense: ${fmt(target)} effective HP, that of the most played builds at these souls${ok ? "" : `; this build has ${fmt(result.metrics.ehp)}`}.`,
+  );
 }
 
 /** Explica quanto os efeitos "ao acertar melee" valem para este herói, e de onde vem o número. */
@@ -748,9 +997,12 @@ function meleeNote(app: App, result: OptimizeResult, heroId: number): string {
   const rate = meleePickRate(app.data, heroId);
   const source =
     rate === null
-      ? "Sem estatísticas do herói, o motor assume 50%."
-      : `Vem das partidas: os jogadores de ${result.hero} compram itens de melee (Spirit Snatch, Lifestrike, Melee Charge...) em ${Math.round(rate * 100)}% das partidas, em média.`;
-  return `Efeitos de corpo a corpo valem ${share}% para ${result.hero}. ${source}`;
+      ? tr("Sem estatísticas do herói, o motor assume 50%.", "Without hero stats, the engine assumes 50%.")
+      : tr(
+          `Vem das partidas: os jogadores de ${result.hero} compram itens de melee (Spirit Snatch, Lifestrike, Melee Charge...) em ${Math.round(rate * 100)}% das partidas, em média.`,
+          `From matches: ${result.hero} players buy melee items (Spirit Snatch, Lifestrike, Melee Charge...) in ${Math.round(rate * 100)}% of matches, on average.`,
+        );
+  return tr(`Efeitos de corpo a corpo valem ${share}% para ${result.hero}. ${source}`, `Melee effects count ${share}% for ${result.hero}. ${source}`);
 }
 
 /** De onde vem o controle da build, em segundos por minuto. */
@@ -759,7 +1011,7 @@ function controlPanel(result: OptimizeResult, uptime: number): HTMLElement {
   return h(
     "section",
     { class: "control-sources" },
-    h("h2", {}, "De onde vem o controle"),
+    h("h2", {}, tr("De onde vem o controle", "Where the control comes from")),
     sources.length
       ? h(
           "ul",
@@ -774,11 +1026,14 @@ function controlPanel(result: OptimizeResult, uptime: number): HTMLElement {
             ),
           ),
         )
-      : h("p", { class: "empty" }, "Nenhuma habilidade ou item desta build aplica controle."),
+      : h("p", { class: "empty" }, tr("Nenhuma habilidade ou item desta build aplica controle.", "No ability or item in this build applies control.")),
     h(
       "p",
       { class: "hint" },
-      "Um segundo de stun vale 1; imobilizar e sono, 0,8; silêncio e hex, 0,6; desarme, 0,5; prender, 0,4; lentidão vale pela força (30% de slow conta 0,15). Assume que a habilidade acerta a cada cooldown.",
+      tr(
+        "Um segundo de stun vale 1; imobilizar e sono, 0,8; silêncio e hex, 0,6; desarme, 0,5; prender, 0,4; lentidão vale pela força (30% de slow conta 0,15). Assume que a habilidade acerta a cada cooldown.",
+        "One second of stun counts 1; immobilize and sleep, 0.8; silence and hex, 0.6; disarm, 0.5; tether, 0.4; slow counts by strength (30% slow counts 0.15). Assumes the ability hits on every cooldown.",
+      ),
     ),
   );
 }
@@ -788,9 +1043,17 @@ function controlPanel(result: OptimizeResult, uptime: number): HTMLElement {
 function inputFor(app: App): OptimizeInput {
   const { state, data } = app;
   const spike = vitalitySpikeOf(data, findHero(data, state.hero).id, VITALITY_SPIKE_SOULS);
+  const objective = objectiveFor(app);
+  const archetype = selectedArchetype(app);
+  const byClass = new Map(data.items.map((i) => [i.className, i]));
   return {
     hero: state.hero,
-    objective: objectiveFor(app),
+    objective:
+      objective === "archetype" && archetype
+        ? archetypeWeights(data, state.hero, archetype.items.map((c) => byClass.get(c)).filter((i) => i !== undefined), SOULS)
+        : objective === "archetype"
+          ? "optimized"
+          : objective,
     souls: SOULS,
     itemSlots: SLOTS,
     required: state.required,
@@ -807,7 +1070,7 @@ let shown: { payload: BuildPayload; input: OptimizeInput } | null = null;
 
 function resultHead(app: App, input: OptimizeInput, summary: string | HTMLElement): HTMLElement {
   const hero = findHero(app.data, input.hero);
-  const objective = input.objective as Objective;
+  const objective = objectiveOf(input);
   return h(
     "header",
     { class: "result-head" },
@@ -815,7 +1078,13 @@ function resultHead(app: App, input: OptimizeInput, summary: string | HTMLElemen
     h(
       "div",
       {},
-      h("h1", {}, objective === "optimized" ? `${hero.name}, build otimizada` : `${hero.name}, build de ${OBJECTIVE_LABEL[objective].name.toLowerCase()}`),
+      h(
+        "h1",
+        {},
+        objective === "optimized"
+          ? tr(`${hero.name}, build otimizada`, `${hero.name}, optimized build`)
+          : tr(`${hero.name}, build de ${objectiveLabel()[objective].name.toLowerCase()}`, `${hero.name}, ${objectiveLabel()[objective].name.toLowerCase()} build`),
+      ),
       typeof summary === "string" ? h("p", {}, summary) : summary,
     ),
   );
@@ -827,7 +1096,7 @@ function calculating(input: OptimizeInput): HTMLElement {
     "p",
     { class: "calculating", role: "status" },
     h("span", { class: "spinner", "aria-hidden": "true" }),
-    `Calculando a build para ${fmt(input.souls)} souls…`,
+    tr(`Calculando a build para ${fmt(input.souls)} souls…`, `Calculating the build for ${fmt(input.souls)} souls…`),
   );
 }
 
@@ -835,7 +1104,7 @@ function calculating(input: OptimizeInput): HTMLElement {
 function resultView(app: App, payload: BuildPayload, input: OptimizeInput, status: HTMLElement | null = null): HTMLElement {
   const { result } = payload;
   const hero = findHero(app.data, input.hero);
-  const objective = input.objective as Objective;
+  const objective = objectiveOf(input);
   const slots = input.itemSlots ?? 9;
   const progression = progressionFromSouls(app.data.shared, input.souls);
   return h(
@@ -845,14 +1114,17 @@ function resultView(app: App, payload: BuildPayload, input: OptimizeInput, statu
     resultHead(
       app,
       input,
-      `Nível ${progression.level} com ${fmt(input.souls)} souls. ${result.items.length} ${result.items.length === 1 ? "item" : "itens"} em ${slots} slots, ${fmt1(result.score)}× a pontuação do herói sem itens.${defenseNote(result)}`,
+      tr(
+        `Nível ${progression.level} com ${fmt(input.souls)} souls. ${result.items.length} ${result.items.length === 1 ? "item" : "itens"} em ${slots} slots, ${fmt1(result.score)}× a pontuação do herói sem itens.${defenseNote(result)}`,
+        `Level ${progression.level} with ${fmt(input.souls)} souls. ${result.items.length} ${result.items.length === 1 ? "item" : "items"} in ${slots} slots, ${fmt1(result.score)}× the hero's score with no items.${defenseNote(result)}`,
+      ),
     ),
     soulTrack(result),
     finalBuild(result, slots),
     h(
       "div",
       { class: "columns" },
-      h("section", { class: "order" }, h("h2", {}, "Ordem de compra"), bannedBar(app), purchaseList(app, result, hero.id)),
+      h("section", { class: "order" }, h("h2", {}, tr("Ordem de compra", "Purchase order")), bannedBar(app), purchaseList(app, result, hero.id)),
       h(
         "div",
         { class: "side" },
@@ -864,7 +1136,10 @@ function resultView(app: App, payload: BuildPayload, input: OptimizeInput, statu
         h(
           "p",
           { class: "caveat" },
-          "Os números são estimativas para comparar builds do mesmo herói. Dano de habilidade assume uso a cada cooldown; dano de efeitos de itens é o menos preciso. Confira no sandbox antes de confiar.",
+          tr(
+            "Os números são estimativas para comparar builds do mesmo herói. Dano de habilidade assume uso a cada cooldown; dano de efeitos de itens é o menos preciso. Confira no sandbox antes de confiar.",
+            "The numbers are estimates for comparing builds of the same hero. Ability damage assumes use on every cooldown; item effect damage is the least precise. Check in the sandbox before trusting it.",
+          ),
         ),
       ),
     ),
@@ -881,7 +1156,7 @@ function pendingView(app: App, input: OptimizeInput): HTMLElement {
   return h(
     "main",
     { class: "result", "aria-busy": "true" },
-    resultHead(app, input, `Nível ${progression.level} com ${fmt(input.souls)} souls, ${input.itemSlots ?? 9} slots.`),
+    resultHead(app, input, tr(`Nível ${progression.level} com ${fmt(input.souls)} souls, ${input.itemSlots ?? 9} slots.`, `Level ${progression.level} with ${fmt(input.souls)} souls, ${input.itemSlots ?? 9} slots.`)),
     calculating(input),
     theoriesSection(app, hero.id),
   );
@@ -892,7 +1167,7 @@ function failureView(app: App, input: OptimizeInput, message: string): HTMLEleme
     "main",
     { class: "result" },
     resultHead(app, input, `${fmt(input.souls)} souls, ${input.itemSlots ?? 9} slots.`),
-    h("p", { class: "empty" }, `Não deu para montar a build com essa configuração: ${message}`),
+    h("p", { class: "empty" }, tr(`Não deu para montar a build com essa configuração: ${message}`, `Couldn't build with these settings: ${message}`)),
     bannedBar(app),
   );
 }

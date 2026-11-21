@@ -1,5 +1,6 @@
 import type { InvestmentStep, Item, Shared, Slot } from "../data/types.ts";
 import { ABILITY_UPGRADE_COST } from "./rules.ts";
+import { tr } from "../i18n.ts";
 
 export interface Progression {
   level: number;
@@ -35,7 +36,7 @@ export function progressionFromSouls(shared: Shared, souls: number): Progression
 /** Souls acumulados necessários para um nível. */
 export function soulsForLevel(shared: Shared, level: number): number {
   const info = shared.levels.find((l) => l.level === level);
-  if (!info) throw new Error(`Nível ${level} não existe na tabela.`);
+  if (!info) throw new Error(tr(`Nível ${level} não existe na tabela.`, `Level ${level} is not in the table.`));
   return info.souls;
 }
 

@@ -8,6 +8,7 @@
  * menor até alguém revisar de novo.
  */
 import type { GameData } from "../data/types.ts";
+import { tr } from "../i18n.ts";
 import type { EffectDef, EffectState, Scale } from "./effects.ts";
 
 type Patch = {
@@ -150,6 +151,14 @@ function merge(e: EffectDef, patch: Patch): EffectDef {
   };
 }
 
+/** Campos ainda sem fonte (`stillUnknown`) em inglês; aparecem nas incertezas da recomendação. */
+const UNKNOWN_EN: Record<string, string> = {
+  "rules.stacking (lentidão renovada dentro da área)": "rules.stacking (slow refreshed while inside the area)",
+  "rules.pullTo (raio final do agrupamento: 'small area')": "rules.pullTo (final grouping radius: 'small area')",
+  "geometry.width (rastro um pouco mais estreito que o raio inicial)": "geometry.width (trail slightly narrower than the initial radius)",
+  "geometry.speed (velocidade do dragão)": "geometry.speed (dragon speed)",
+};
+
 /** Aplica as revisões da fonte aos efeitos importados. */
 export function applyReviews(effects: EffectDef[], className: string, scale?: Scale): EffectDef[] {
   const review = REVIEWS.find((r) => r.source === className);
@@ -172,7 +181,7 @@ export function applyReviews(effects: EffectDef[], className: string, scale?: Sc
     provenance: {
       ...e.provenance,
       origin: review.url ? "wiki" : "review",
-      unknown: [...e.provenance.unknown.filter((u) => !review.resolves.includes(u)), ...review.stillUnknown],
+      unknown: [...e.provenance.unknown.filter((u) => !review.resolves.includes(u)), ...review.stillUnknown.map((u) => tr(u, UNKNOWN_EN[u] ?? u))],
       note: review.evidence,
       ...(review.url ? { url: review.url } : {}),
     },

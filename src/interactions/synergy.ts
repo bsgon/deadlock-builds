@@ -9,6 +9,7 @@ import type { GameData, Hero, Item } from "../data/types.ts";
 import { tagAll, type TaggedData } from "./tagger.ts";
 import { meleePickRate, meleeShare } from "../meta/stats.ts";
 import type { Interaction } from "../knowledge/interactions.ts";
+import { tr, trData } from "../i18n.ts";
 import { STAT_LABEL, TRIGGER_LABEL, type Damage, type Node, type Stat, type Trigger } from "./tags.ts";
 
 export interface Link {
@@ -36,7 +37,7 @@ function knownLinks(graph: Graph, a: string, b: string): Link[] {
     to: i.b,
     rule: `wiki:${i.relation}`,
     score: (i.relation === "synergy" ? KNOWN_SYNERGY : KNOWN_ANTI)[i.strength],
-    reason: `${i.relation === "anti" ? "Não combinam: " : ""}${i.mechanism} (wiki)`,
+    reason: `${i.relation === "anti" ? tr("Não combinam: ", "Don't combine: ") : ""}${trData(i.mechanism)} (wiki)`,
     source: i.source.url,
   }));
 }
@@ -106,19 +107,19 @@ export function linksFrom(a: Node, b: Node): Link[] {
     const obvious = NATURAL[tree].includes(stat);
     const cross = tree !== null && !obvious && Object.entries(NATURAL).some(([t, stats]) => t !== tree && stats.includes(stat));
     const score = weight * wanted * (when === "always" ? 1 : 0.6) * (obvious ? OBVIOUS : cross ? CROSS_TREE : 1);
-    const why = cross ? ` (stat de outra árvore: combinação pouco óbvia)` : "";
-    push(`feed:${stat}`, score, `${a.name} dá ${STAT_LABEL[stat]}${when === "conditional" ? " (condicional)" : ""}; ${b.name} escala com isso${why}`);
+    const why = cross ? tr(` (stat de outra árvore: combinação pouco óbvia)`, ` (stat from another tree: a non-obvious combo)`) : "";
+    push(`feed:${stat}`, score, tr(`${a.name} dá ${STAT_LABEL[stat]}${when === "conditional" ? " (condicional)" : ""}; ${b.name} escala com isso${why}`, `${a.name} gives ${STAT_LABEL[stat]}${when === "conditional" ? " (conditional)" : ""}; ${b.name} scales with it${why}`));
   }
 
   // 2. A causa dano de spirit e B dispara ao causar dano de spirit.
   if (b.triggers.includes("onSpiritDamage") && dealsAny(a, ["spirit", "spiritDot"])) {
     const frequent = a.deals.includes("spiritDot") || a.triggers.includes("onBullet");
-    push("trigger:spiritDamage", frequent ? 1.5 : 1, `${a.name} causa dano de spirit${frequent ? " com frequência" : ""}; isso dispara ${b.name}`);
+    push("trigger:spiritDamage", frequent ? 1.5 : 1, tr(`${a.name} causa dano de spirit${frequent ? " com frequência" : ""}; isso dispara ${b.name}`, `${a.name} deals spirit damage${frequent ? " frequently" : ""}; that triggers ${b.name}`));
   }
 
   // 3. A é uma habilidade que causa dano e B dispara quando habilidades causam dano.
   if (b.triggers.includes("onAbilityHit") && a.kind === "ability" && a.deals.length > 0) {
-    push("trigger:abilityHit", 1, `${a.name} causa dano de habilidade; isso dispara ${b.name}`);
+    push("trigger:abilityHit", 1, tr(`${a.name} causa dano de habilidade; isso dispara ${b.name}`, `${a.name} deals ability damage; that triggers ${b.name}`));
   }
 
   // 4. A reduz a resistência que protege o inimigo do dano de B.
@@ -126,30 +127,30 @@ export function linksFrom(a: Node, b: Node): Link[] {
   // item de arma); entre árvores é o que o jogador não vê sozinho.
   const sameTree = a.kind === "item" && b.kind === "item" && a.slot === b.slot;
   const shredScore = sameTree ? 0.5 : 1.2;
-  if (a.applies.includes("spiritShred") && dealsAny(b, SPIRIT)) push("shred:spirit", shredScore, `${a.name} reduz resistência a spirit; ${b.name} causa dano de spirit`);
-  if (a.applies.includes("bulletShred") && dealsAny(b, PHYSICAL)) push("shred:bullet", shredScore, `${a.name} reduz resistência a bala; ${b.name} causa dano de arma`);
-  if (a.applies.includes("damageTaken") && b.deals.length > 0) push("amp:damageTaken", 0.8, `${a.name} faz o alvo receber mais dano; ${b.name} causa dano`);
+  if (a.applies.includes("spiritShred") && dealsAny(b, SPIRIT)) push("shred:spirit", shredScore, tr(`${a.name} reduz resistência a spirit; ${b.name} causa dano de spirit`, `${a.name} reduces spirit resist; ${b.name} deals spirit damage`));
+  if (a.applies.includes("bulletShred") && dealsAny(b, PHYSICAL)) push("shred:bullet", shredScore, tr(`${a.name} reduz resistência a bala; ${b.name} causa dano de arma`, `${a.name} reduces bullet resist; ${b.name} deals weapon damage`));
+  if (a.applies.includes("damageTaken") && b.deals.length > 0) push("amp:damageTaken", 0.8, tr(`${a.name} faz o alvo receber mais dano; ${b.name} causa dano`, `${a.name} makes the target take more damage; ${b.name} deals damage`));
 
   // 5. Lifesteal de A é alimentado pelo dano de B.
-  if (a.gives.spiritLifesteal && dealsAny(b, ["spirit", "spiritDot"])) push("lifesteal:spirit", 0.8, `${a.name} dá lifesteal de spirit; ${b.name} causa dano de spirit`);
-  if (a.gives.bulletLifesteal && b.deals.includes("weapon")) push("lifesteal:bullet", 0.8, `${a.name} dá lifesteal de bala; ${b.name} causa dano de arma`);
+  if (a.gives.spiritLifesteal && dealsAny(b, ["spirit", "spiritDot"])) push("lifesteal:spirit", 0.8, tr(`${a.name} dá lifesteal de spirit; ${b.name} causa dano de spirit`, `${a.name} gives spirit lifesteal; ${b.name} deals spirit damage`));
+  if (a.gives.bulletLifesteal && b.deals.includes("weapon")) push("lifesteal:bullet", 0.8, tr(`${a.name} dá lifesteal de bala; ${b.name} causa dano de arma`, `${a.name} gives bullet lifesteal; ${b.name} deals weapon damage`));
 
   // 6. A cura e B dispara ao curar.
-  if (b.triggers.includes("onHeal") && a.gives.healing && a.kind !== "weapon") push("trigger:heal", 1, `${a.name} cura; isso dispara ${b.name}`);
+  if (b.triggers.includes("onHeal") && a.gives.healing && a.kind !== "weapon") push("trigger:heal", 1, tr(`${a.name} cura; isso dispara ${b.name}`, `${a.name} heals; that triggers ${b.name}`));
 
   // 7. A arma dispara efeitos "por bala" de itens; armas com mais balas por segundo disparam mais.
   if (a.kind === "weapon" && b.kind === "item" && b.triggers.includes("onBullet")) {
     const rate = a.hitsPerSecond ?? 0;
     const score = Math.min(1.5, Math.max(0.3, rate / 8));
-    push("trigger:bullet", score, `${a.name} acerta ${rate.toFixed(1)} balas/s; isso dispara ${b.name}`);
+    push("trigger:bullet", score, tr(`${a.name} acerta ${rate.toFixed(1)} balas/s; isso dispara ${b.name}`, `${a.name} lands ${rate.toFixed(1)} bullets/s; that triggers ${b.name}`));
   }
 
   // 8. Controle de A facilita acertar o gatilho de B.
   const aimed = b.triggers.some((t) => t === "onHeadshot" || t === "onMelee" || t === "closeRange");
   if (a.applies.includes("stun") && aimed) {
-    push("setup:stun", 0.5, `${a.name} imobiliza o alvo; isso facilita o gatilho de ${b.name}`);
+    push("setup:stun", 0.5, tr(`${a.name} imobiliza o alvo; isso facilita o gatilho de ${b.name}`, `${a.name} immobilizes the target; that makes ${b.name} easier to trigger`));
   } else if (a.applies.includes("slow") && aimed) {
-    push("setup:slow", 0.3, `${a.name} deixa o alvo lento; isso facilita o gatilho de ${b.name}`);
+    push("setup:slow", 0.3, tr(`${a.name} deixa o alvo lento; isso facilita o gatilho de ${b.name}`, `${a.name} slows the target; that makes ${b.name} easier to trigger`));
   }
 
   // As regras abaixo ligam sobretudo itens de árvores diferentes: um dá o meio
@@ -158,7 +159,7 @@ export function linksFrom(a: Node, b: Node): Link[] {
   // 9. A amplifica todo dano causado, e B causa dano.
   if (a.gives.damageAmp && b.deals.length > 0) {
     const conditional = a.gives.damageAmp === "conditional";
-    push("amp:damage", conditional ? 0.5 : 0.8, `${a.name} aumenta o dano causado${conditional ? " (condicional)" : ""}; ${b.name} causa dano`);
+    push("amp:damage", conditional ? 0.5 : 0.8, tr(`${a.name} aumenta o dano causado${conditional ? " (condicional)" : ""}; ${b.name} causa dano`, `${a.name} amplifies damage dealt${conditional ? " (conditional)" : ""}; ${b.name} deals damage`));
   }
 
   // 10. A dá defesa, e o gatilho de B pede ficar perto do inimigo ou com pouca vida.
@@ -166,20 +167,20 @@ export function linksFrom(a: Node, b: Node): Link[] {
   const defense = (["health", "barrier", "bulletResist", "spiritResist"] as Stat[]).find((s) => a.gives[s] === "always");
   if (frontline && defense) {
     // Genérico (qualquer defesa ajuda quem luta de perto): pista fraca.
-    push("enable:frontline", 0.15, `${a.name} dá ${STAT_LABEL[defense]}; ajuda a sobreviver no gatilho de ${b.name} (${TRIGGER_LABEL[frontline]})`);
+    push("enable:frontline", 0.15, tr(`${a.name} dá ${STAT_LABEL[defense]}; ajuda a sobreviver no gatilho de ${b.name} (${TRIGGER_LABEL[frontline]})`, `${a.name} gives ${STAT_LABEL[defense]}; helps you survive while triggering ${b.name} (${TRIGGER_LABEL[frontline]})`));
   }
 
   // 11. A recupera vida, e B só funciona com a vida alta.
   const recovery = (["healing", "regen", "bulletLifesteal", "spiritLifesteal"] as Stat[]).find((s) => a.gives[s]);
   if (recovery && b.triggers.includes("highHealth")) {
-    push("sustain:highHealth", 0.5, `${a.name} dá ${STAT_LABEL[recovery]}; isso mantém a vida alta, condição de ${b.name}`);
+    push("sustain:highHealth", 0.5, tr(`${a.name} dá ${STAT_LABEL[recovery]}; isso mantém a vida alta, condição de ${b.name}`, `${a.name} gives ${STAT_LABEL[recovery]}; that keeps health high, which ${b.name} needs`));
   }
 
   // 12. A dá mobilidade, e B pede chegar perto ou se mover.
   const approach = b.triggers.find((t) => t === "closeRange" || t === "onMelee" || t === "onMovement");
   const mobility = (["moveSpeed", "stamina"] as Stat[]).find((s) => a.gives[s] === "always");
   if (approach && mobility) {
-    push("enable:mobility", 0.2, `${a.name} dá ${STAT_LABEL[mobility]}; ajuda a cumprir o gatilho de ${b.name} (${TRIGGER_LABEL[approach]})`);
+    push("enable:mobility", 0.2, tr(`${a.name} dá ${STAT_LABEL[mobility]}; ajuda a cumprir o gatilho de ${b.name} (${TRIGGER_LABEL[approach]})`, `${a.name} gives ${STAT_LABEL[mobility]}; helps meet the trigger of ${b.name} (${TRIGGER_LABEL[approach]})`));
   }
 
   return out;
@@ -196,8 +197,8 @@ export function sharedLinks(a: Node, b: Node): Link[] {
     rule: kit ? `kit:${t}` : `shared:${t}`,
     score: kit && item.kind === "item" ? SHARED_KIT : SHARED_ITEMS,
     reason: kit
-      ? `${kit.name} já leva você a agir ${TRIGGER_LABEL[t]}; ${item.name} dispara na mesma ação`
-      : `${a.name} e ${b.name} pedem a mesma condição (${TRIGGER_LABEL[t]}): reforçam um ao outro, mas não abrem nada novo`,
+      ? tr(`${kit.name} já leva você a agir ${TRIGGER_LABEL[t]}; ${item.name} dispara na mesma ação`, `${kit.name} already has you acting ${TRIGGER_LABEL[t]}; ${item.name} triggers on the same action`)
+      : tr(`${a.name} e ${b.name} pedem a mesma condição (${TRIGGER_LABEL[t]}): reforçam um ao outro, mas não abrem nada novo`, `${a.name} and ${b.name} need the same condition (${TRIGGER_LABEL[t]}): they reinforce each other but unlock nothing new`),
   }));
 }
 
@@ -243,7 +244,7 @@ function kitOf(graph: Graph, hero: Hero): Node[] {
 
 function nodeOf(graph: Graph, item: Item): Node {
   const node = graph.itemNode.get(item.className);
-  if (!node) throw new Error(`Item sem etiquetas: ${item.name}`);
+  if (!node) throw new Error(tr(`Item sem etiquetas: ${item.name}`, `Item without tags: ${item.name}`));
   return node;
 }
 
@@ -261,8 +262,8 @@ function metaLinks(graph: Graph, hero: Hero, node: Node): Link[] {
   const score = Math.max(-0.5, 2 * (share - MELEE_NEUTRAL));
   const reason =
     score > 0
-      ? `jogadores de ${hero.name} usam muito corpo a corpo (compram itens de melee em ${Math.round(rate * 100)}% das partidas); ${node.name} dispara no melee`
-      : `jogadores de ${hero.name} quase não usam corpo a corpo (itens de melee em ${Math.round(rate * 100)}% das partidas); ${node.name} depende disso`;
+      ? tr(`jogadores de ${hero.name} usam muito corpo a corpo (compram itens de melee em ${Math.round(rate * 100)}% das partidas); ${node.name} dispara no melee`, `${hero.name} players melee a lot (they buy melee items in ${Math.round(rate * 100)}% of matches); ${node.name} triggers on melee`)
+      : tr(`jogadores de ${hero.name} quase não usam corpo a corpo (itens de melee em ${Math.round(rate * 100)}% das partidas); ${node.name} depende disso`, `${hero.name} players rarely melee (melee items in ${Math.round(rate * 100)}% of matches); ${node.name} depends on it`);
   return [{ from: `meta:${hero.id}`, to: node.id, rule: "meta:melee", score, reason }];
 }
 
@@ -301,16 +302,16 @@ function theoryLinks(graph: Graph, hero: Hero, node: Node): Link[] {
       const support = THEORY_BASE + THEORY_PER_BUILD * Math.min(THEORY_MAX_BUILDS, t.builds.length - 1);
       const data =
         t.evidence?.verdict === "supported"
-          ? `; nas partidas, juntos ganham ${t.evidence.lift.toFixed(1)} pp a mais`
+          ? tr(`; nas partidas, juntos ganham ${t.evidence.lift.toFixed(1)} pp a mais`, `; in matches, together they win ${t.evidence.lift.toFixed(1)} pp more`)
           : t.evidence?.verdict === "contradicted"
-            ? `; nas partidas, juntos ganham menos`
+            ? tr(`; nas partidas, juntos ganham menos`, `; in matches, together they win less`)
             : "";
       return {
         from: `theory:${hero.id}`,
         to: node.id,
         rule: `theory:${t.kind}`,
         score: support * THEORY_VERDICT[verdict],
-        reason: `${t.title}: ${t.claim} (${t.builds.length} ${t.builds.length === 1 ? "build publicada" : "builds publicadas"}${data})`,
+        reason: `${trData(t.title)}: ${trData(t.claim)} (${t.builds.length} ${t.builds.length === 1 ? tr("build publicada", "published build") : tr("builds publicadas", "published builds")}${data})`,
       };
     })
     .filter((l) => l.score > 0);

@@ -11,6 +11,7 @@
  *   na thread principal depois de pintar o estado "calculando".
  */
 import type { GameData } from "../src/data/types.ts";
+import { lang } from "../src/i18n.ts";
 import type { OptimizeInput } from "../src/optimizer/optimize.ts";
 import { computeBuild, relinkItems, withoutImages, type BuildPayload } from "./compute.ts";
 import type { WorkerRequest, WorkerResponse } from "./optimize.worker.ts";
@@ -142,7 +143,7 @@ export class BuildClient {
     };
     // Os dados vão como texto (cópia rápida); sem ícones, que o worker não usa.
     this.dataJson ??= JSON.stringify(withoutImages(this.data));
-    worker.postMessage({ type: "data", json: this.dataJson } satisfies WorkerRequest);
+    worker.postMessage({ type: "data", json: this.dataJson, lang: lang() } satisfies WorkerRequest);
     this.worker = worker;
     return worker;
   }

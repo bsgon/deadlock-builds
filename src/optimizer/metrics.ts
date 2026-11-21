@@ -40,6 +40,11 @@ export interface Metrics {
   ehp: number;
   /** Cura por segundo: regeneração + lifesteal sobre o dano causado. */
   sustain: number;
+  /**
+   * Vida que o herói tem para gastar numa luta: vida efetiva mais a cura ao longo da
+   * duração medida da luta. Junta tanque e sustain na mesma unidade.
+   */
+  fightHp: number;
   /** Segundos de controle por minuto (stun = 1, slow pela força), de habilidades e itens. */
   control: number;
   /**
@@ -433,6 +438,7 @@ export function computeMetrics(build: BuildResult, options: MetricOptions = DEFA
     // Vida e resistência, mais barreiras, tempo sem levar dano, proteção contra controle e desvio.
     ehp: effectiveHealth(build),
     sustain,
+    fightHp: effectiveHealth(build) + sustain * fight,
     control: controlSources(build, options.uptime, firing).reduce((sum, s) => sum + s.perMinute, 0),
     play: options.plan ? playUtility(build, options.plan, options.fights ? { only: options.fights } : {}) : 0,
   };
@@ -446,6 +452,8 @@ export const OBJECTIVES = {
   tank: { ehp: 1 },
   sustain: { sustain: 1, ehp: 0.3 },
   bruiser: { totalDps: 0.5, ehp: 0.5 },
+  // Tanque e sustentação juntos: vida efetiva mais a cura durante a luta, na mesma unidade.
+  survival: { fightHp: 1 },
   // Dano máximo com defesa ok: o piso de vida efetiva é recalculado pelo otimizador a
   // partir das builds publicadas mais jogadas; 1,5x a referência é o valor sem estatísticas.
   optimized: { totalDps: 1, ehpFloor: 1.5 },

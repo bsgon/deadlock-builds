@@ -1,3 +1,5 @@
+import { locale, tr } from "../src/i18n.ts";
+
 /** Utilitários mínimos de DOM para a interface (sem framework). */
 
 type Child = Node | string | number | null | undefined | false;
@@ -19,18 +21,23 @@ export function h<K extends keyof HTMLElementTagNameMap>(tag: K, attrs: Attrs = 
   return el;
 }
 
-const number = new Intl.NumberFormat("pt-BR", { maximumFractionDigits: 0 });
-const decimal = new Intl.NumberFormat("pt-BR", { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+// Formatadores criados na primeira chamada: o idioma já está definido quando a página desenha.
+let formats: { number: Intl.NumberFormat; decimal: Intl.NumberFormat } | null = null;
+const formatters = () =>
+  (formats ??= {
+    number: new Intl.NumberFormat(locale(), { maximumFractionDigits: 0 }),
+    decimal: new Intl.NumberFormat(locale(), { minimumFractionDigits: 1, maximumFractionDigits: 1 }),
+  });
 
-export const fmt = (n: number) => number.format(n);
-export const fmt1 = (n: number) => decimal.format(n);
+export const fmt = (n: number) => formatters().number.format(n);
+export const fmt1 = (n: number) => formatters().decimal.format(n);
 
 /** Variação percentual em relação à referência, com sinal. */
 export function delta(now: number, base: number): string {
-  if (base <= 0.5) return now > 0.5 ? "novo" : "igual";
+  if (base <= 0.5) return now > 0.5 ? tr("novo", "new") : tr("igual", "same");
   const pct = (now / base - 1) * 100;
-  if (Math.abs(pct) < 0.5) return "igual";
-  return `${pct > 0 ? "+" : "−"}${number.format(Math.abs(pct))}%`;
+  if (Math.abs(pct) < 0.5) return tr("igual", "same");
+  return `${pct > 0 ? "+" : "−"}${fmt(Math.abs(pct))}%`;
 }
 
 /** Ícone com fallback: se a imagem não carregar, mostra as iniciais. */

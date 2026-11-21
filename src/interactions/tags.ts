@@ -1,4 +1,5 @@
 /** Vocabulário de etiquetas do grafo de interações. */
+import { tr } from "../i18n.ts";
 
 /** Recursos que um nó concede a quem o usa, ou dos quais ele se beneficia. */
 export const STATS = [
@@ -86,49 +87,62 @@ export interface Node extends Facets {
   slot?: "weapon" | "vitality" | "spirit";
 }
 
-export const STAT_LABEL: Record<Stat, string> = {
-  spiritPower: "Spirit Power",
-  weaponDamage: "dano de arma",
-  fireRate: "cadência de tiro",
-  ammo: "munição",
-  reload: "recarga",
-  cooldown: "redução de cooldown",
-  itemCooldown: "redução de cooldown de itens",
-  duration: "duração",
-  range: "alcance/raio",
-  charges: "cargas",
-  health: "vida",
-  barrier: "barreira",
-  bulletResist: "resistência a bala",
-  spiritResist: "resistência a spirit",
-  moveSpeed: "velocidade",
-  bulletLifesteal: "lifesteal de bala",
-  spiritLifesteal: "lifesteal de spirit",
-  healing: "cura",
-  healAmp: "amplificação de cura",
-  regen: "regeneração",
-  melee: "dano corpo a corpo",
-  stamina: "stamina",
-  damageAmp: "amplificação de dano",
-};
+/**
+ * Rótulos no idioma em uso. São getters: a constante é avaliada antes de o idioma
+ * ser definido, então o texto é escolhido a cada leitura.
+ */
+function labels<K extends string>(pairs: Record<K, [string, string]>): Record<K, string> {
+  const out = {} as Record<K, string>;
+  for (const key of Object.keys(pairs) as K[]) {
+    const [pt, en] = pairs[key];
+    Object.defineProperty(out, key, { enumerable: true, get: () => tr(pt, en) });
+  }
+  return out;
+}
 
-export const TRIGGER_LABEL: Record<Trigger, string> = {
-  active: "ao ativar",
-  imbue: "imbuído numa habilidade",
-  onBullet: "ao acertar balas",
-  onHeadshot: "ao acertar headshot",
-  onMelee: "ao acertar corpo a corpo",
-  onParry: "ao aparar",
-  onSpiritDamage: "ao causar dano de spirit",
-  onAbilityHit: "quando uma habilidade causa dano",
-  onAbilityUse: "ao usar habilidade",
-  onUltimate: "ao usar o ultimate",
-  onHeal: "ao curar",
-  onKill: "ao matar ou dar assistência",
-  onMovement: "ao usar movimento (dash, slide, ar)",
-  highHealth: "com vida alta",
-  lowHealth: "com vida baixa",
-  closeRange: "a curta distância",
-  longRange: "a longa distância",
-  takingDamage: "ao receber dano",
-};
+export const STAT_LABEL: Record<Stat, string> = labels<Stat>({
+  spiritPower: ["Spirit Power", "Spirit Power"],
+  weaponDamage: ["dano de arma", "weapon damage"],
+  fireRate: ["cadência de tiro", "fire rate"],
+  ammo: ["munição", "ammo"],
+  reload: ["recarga", "reload"],
+  cooldown: ["redução de cooldown", "cooldown reduction"],
+  itemCooldown: ["redução de cooldown de itens", "item cooldown reduction"],
+  duration: ["duração", "duration"],
+  range: ["alcance/raio", "range/radius"],
+  charges: ["cargas", "charges"],
+  health: ["vida", "health"],
+  barrier: ["barreira", "barrier"],
+  bulletResist: ["resistência a bala", "bullet resist"],
+  spiritResist: ["resistência a spirit", "spirit resist"],
+  moveSpeed: ["velocidade", "move speed"],
+  bulletLifesteal: ["lifesteal de bala", "bullet lifesteal"],
+  spiritLifesteal: ["lifesteal de spirit", "spirit lifesteal"],
+  healing: ["cura", "healing"],
+  healAmp: ["amplificação de cura", "heal amp"],
+  regen: ["regeneração", "regen"],
+  melee: ["dano corpo a corpo", "melee damage"],
+  stamina: ["stamina", "stamina"],
+  damageAmp: ["amplificação de dano", "damage amp"],
+});
+
+export const TRIGGER_LABEL: Record<Trigger, string> = labels<Trigger>({
+  active: ["ao ativar", "on activation"],
+  imbue: ["imbuído numa habilidade", "imbued on an ability"],
+  onBullet: ["ao acertar balas", "on bullet hit"],
+  onHeadshot: ["ao acertar headshot", "on headshot"],
+  onMelee: ["ao acertar corpo a corpo", "on melee hit"],
+  onParry: ["ao aparar", "on parry"],
+  onSpiritDamage: ["ao causar dano de spirit", "on dealing spirit damage"],
+  onAbilityHit: ["quando uma habilidade causa dano", "when an ability deals damage"],
+  onAbilityUse: ["ao usar habilidade", "on ability use"],
+  onUltimate: ["ao usar o ultimate", "on ultimate use"],
+  onHeal: ["ao curar", "on healing"],
+  onKill: ["ao matar ou dar assistência", "on kill or assist"],
+  onMovement: ["ao usar movimento (dash, slide, ar)", "on movement (dash, slide, air)"],
+  highHealth: ["com vida alta", "at high health"],
+  lowHealth: ["com vida baixa", "at low health"],
+  closeRange: ["a curta distância", "at close range"],
+  longRange: ["a longa distância", "at long range"],
+  takingDamage: ["ao receber dano", "when taking damage"],
+});

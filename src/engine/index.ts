@@ -6,6 +6,7 @@ import { equippedItems } from "./inventory.ts";
 import { meleeShare } from "../meta/stats.ts";
 import { BASE_ITEM_SLOTS, MAX_ACTIVE_ITEMS, MAX_ITEM_SLOTS } from "./rules.ts";
 import { computeStats, type HeroStats } from "./stats.ts";
+import { tr } from "../i18n.ts";
 
 export * from "./abilities.ts";
 export * from "./conditional.ts";
@@ -77,13 +78,13 @@ function lookup<T>(cache: WeakMap<T[], Map<string, T>>, list: T[], ref: string, 
 
 export function findHero(data: GameData, ref: string): Hero {
   const hero = lookup(heroLookup, data.heroes, ref, (h) => norm(h.name) === norm(ref) || h.className === ref);
-  if (!hero) throw new Error(`Herói não encontrado: ${ref}`);
+  if (!hero) throw new Error(tr(`Herói não encontrado: ${ref}`, `Hero not found: ${ref}`));
   return hero;
 }
 
 export function findItem(data: GameData, ref: string): Item {
   const item = lookup(itemLookup, data.items, ref, (i) => norm(i.name) === norm(ref) || i.className === ref);
-  if (!item) throw new Error(`Item não encontrado: ${ref}`);
+  if (!item) throw new Error(tr(`Item não encontrado: ${ref}`, `Item not found: ${ref}`));
   return item;
 }
 
@@ -109,23 +110,23 @@ export function evaluateBuild(data: GameData, input: BuildInput): BuildResult {
   // slot nem dão stats; o jogo também não deixa ter dois itens iguais.
   const names = items.map((i) => i.name);
   const duplicates = [...new Set(names.filter((n, i) => names.indexOf(n) !== i))];
-  if (duplicates.length > 0) warnings.push(`Itens repetidos (o jogo não permite; contados uma vez): ${duplicates.join(", ")}.`);
+  if (duplicates.length > 0) warnings.push(tr(`Itens repetidos (o jogo não permite; contados uma vez): ${duplicates.join(", ")}.`, `Duplicate items (not allowed in game; counted once): ${duplicates.join(", ")}.`));
   const equipped = equippedItems(data, items);
   const spend = spending(data.shared, equipped);
-  if (slots < BASE_ITEM_SLOTS || slots > MAX_ITEM_SLOTS) warnings.push(`Slots de item devem ficar entre ${BASE_ITEM_SLOTS} e ${MAX_ITEM_SLOTS}.`);
-  if (equipped.length > slots) warnings.push(`${equipped.length} itens para ${slots} slots.`);
+  if (slots < BASE_ITEM_SLOTS || slots > MAX_ITEM_SLOTS) warnings.push(tr(`Slots de item devem ficar entre ${BASE_ITEM_SLOTS} e ${MAX_ITEM_SLOTS}.`, `Item slots must be between ${BASE_ITEM_SLOTS} and ${MAX_ITEM_SLOTS}.`));
+  if (equipped.length > slots) warnings.push(tr(`${equipped.length} itens para ${slots} slots.`, `${equipped.length} items for ${slots} slots.`));
   const actives = equipped.filter((i) => i.isActive).length;
-  if (actives > MAX_ACTIVE_ITEMS) warnings.push(`${actives} itens ativos; o máximo é ${MAX_ACTIVE_ITEMS}.`);
-  if (spend.total > input.souls) warnings.push(`Build custa ${spend.total} souls, mas só há ${input.souls}.`);
+  if (actives > MAX_ACTIVE_ITEMS) warnings.push(tr(`${actives} itens ativos; o máximo é ${MAX_ACTIVE_ITEMS}.`, `${actives} active items; the maximum is ${MAX_ACTIVE_ITEMS}.`));
+  if (spend.total > input.souls) warnings.push(tr(`Build custa ${spend.total} souls, mas só há ${input.souls}.`, `Build costs ${spend.total} souls, but only ${input.souls} are available.`));
 
   const abilities = heroAbilities(data, hero);
   const spentPoints = abilityPointsSpent(tiers);
   if (spentPoints > progression.abilityPoints) {
-    warnings.push(`Upgrades de habilidade custam ${spentPoints} pontos, mas o nível ${progression.level} dá ${progression.abilityPoints}.`);
+    warnings.push(tr(`Upgrades de habilidade custam ${spentPoints} pontos, mas o nível ${progression.level} dá ${progression.abilityPoints}.`, `Ability upgrades cost ${spentPoints} points, but level ${progression.level} gives ${progression.abilityPoints}.`));
   }
   const upgradedLocked = abilities.filter((a) => (tiers[a.slot - 1] ?? 0) > 0 && a.slot > progression.abilityUnlocks);
   if (upgradedLocked.length > 0) {
-    warnings.push(`Upgrades em habilidades além das ${progression.abilityUnlocks} desbloqueadas no nível ${progression.level}.`);
+    warnings.push(tr(`Upgrades em habilidades além das ${progression.abilityUnlocks} desbloqueadas no nível ${progression.level}.`, `Upgrades on abilities beyond the ${progression.abilityUnlocks} unlocked at level ${progression.level}.`));
   }
 
   const melee = input.meleeShare ?? meleeShare(data, hero.id);

@@ -1,16 +1,20 @@
 import type { GameData } from "../src/data/types.ts";
 import { withoutBrawlItems } from "../src/data/playable.ts";
 import { buildGraph, type Graph } from "../src/interactions/synergy.ts";
-import { applyFightProfile, type Objective } from "../src/optimizer/metrics.ts";
+import { applyFightProfile } from "../src/optimizer/metrics.ts";
+import { detectLang, lang, setLang, tr } from "../src/i18n.ts";
 import { BuildClient } from "./build-client.ts";
 import { renderBuildView } from "./build-view.ts";
 import { h } from "./dom.ts";
 import { renderSynergyView } from "./synergy-view.ts";
 
+/** Objetivos da tela: os do motor mais o "Padrão do arquétipo" (pesos tirados do arquétipo). */
+export type UiObjective = "optimized" | "weapon" | "spirit" | "survival" | "control" | "archetype";
+
 export interface State {
   tab: "build" | "synergy";
   hero: string;
-  objective: Objective;
+  objective: UiObjective;
   /** Título do arquétipo da comunidade escolhido ("" = livre). */
   archetype: string;
   required: string[];
@@ -36,8 +40,8 @@ export interface App {
 
 const STORAGE_KEY = "deadlock-builds:state";
 const DEFAULTS: State = { tab: "build", hero: "Infernus", objective: "optimized", archetype: "", progressive: true, required: [], banned: [], item: "Mystic Vulnerability" };
-/** Objetivos que não aparecem mais no seletor voltam para o padrão. */
-const RETIRED_OBJECTIVES: Objective[] = ["dps"];
+/** Objetivos que saíram do seletor: os de defesa viram "Tanque/Sustain", o resto volta ao padrão. */
+const RETIRED_OBJECTIVES: Record<string, UiObjective> = { dps: "optimized", bruiser: "optimized", tank: "survival", sustain: "survival" };
 
 function loadState(data: GameData): State {
   let saved: Partial<State> = {};
@@ -47,7 +51,7 @@ function loadState(data: GameData): State {
     // Sem armazenamento ou conteúdo inválido: segue com o padrão.
   }
   const state = { ...DEFAULTS, ...saved };
-  if (RETIRED_OBJECTIVES.includes(state.objective)) state.objective = DEFAULTS.objective;
+  state.objective = RETIRED_OBJECTIVES[state.objective] ?? state.objective;
   // Um patch pode remover heróis ou itens salvos.
   const itemNames = new Set(data.items.map((i) => i.name));
   if (!data.heroes.some((h) => h.name === state.hero)) state.hero = data.heroes[0]!.name;
@@ -83,7 +87,14 @@ async function loadData(): Promise<GameData> {
   const fights = await fetch("./fights.json")
     .then((res) => (res.ok ? res.json() : undefined))
     .catch(() => undefined);
-  return withoutBrawlItems({ meta, shared, heroes, abilities, items, ...(stats ? { stats } : {}), ...(knowledge ? { knowledge } : {}), ...(theories ? { theories } : {}), ...(windows ? { windows } : {}), ...(fights ? { fights } : {}) });
+  // Traduções dos textos dos dados: só baixa quando a página está em inglês.
+  const translations =
+    lang() === "en"
+      ? await fetch("./i18n-en.json")
+          .then((res) => (res.ok ? res.json() : undefined))
+          .catch(() => undefined)
+      : undefined;
+  return withoutBrawlItems({ meta, shared, heroes, abilities, items, ...(stats ? { stats } : {}), ...(knowledge ? { knowledge } : {}), ...(theories ? { theories } : {}), ...(windows ? { windows } : {}), ...(fights ? { fights } : {}), ...(translations ? { translations } : {}) });
 }
 
 const root = document.getElementById("app")!;
@@ -96,23 +107,30 @@ function render(app: App): void {
   const header = h(
     "header",
     { class: "masthead" },
-    h("p", { class: "brand" }, "Livro de Souls"),
-    h("nav", { class: "tabs", role: "tablist", "aria-label": "Seções" }, tab("build", "Montar build"), tab("synergy", "Explorar sinergias")),
-    h("p", { class: "patch" }, `Dados do patch ${data.meta.clientVersion}, de ${data.meta.versionDate ?? "data desconhecida"}`),
+    h("p", { class: "brand" }, tr("Livro de Souls", "Book of Souls")),
+    h("nav", { class: "tabs", role: "tablist", "aria-label": tr("Seções", "Sections") }, tab("build", tr("Montar build", "Build")), tab("synergy", tr("Explorar sinergias", "Explore synergies"))),
+    h("p", { class: "patch" }, tr(`Dados do patch ${data.meta.clientVersion}, de ${data.meta.versionDate ?? "data desconhecida"}`, `Data from patch ${data.meta.clientVersion}, ${data.meta.versionDate ?? "unknown date"}`)),
   );
   const view = state.tab === "build" ? renderBuildView(app) : renderSynergyView(app);
   const footer = h(
     "footer",
     { class: "colophon" },
-    "Ferramenta de fã, sem vínculo com a Valve. Dados e imagens do jogo vêm do ",
+    tr("Ferramenta de fã, sem vínculo com a Valve. Dados e imagens do jogo vêm do ", "Fan-made tool, not affiliated with Valve. Game data and images come from "),
     h("a", { href: "https://deadlock-api.com", target: "_blank", rel: "noopener" }, "deadlock-api.com"),
     ".",
   );
   root.replaceChildren(header, view, footer);
 }
 
+// Idioma do navegador: português para pt, inglês para todo o resto. ?lang=pt ou ?lang=en força um dos dois.
+const forced = new URLSearchParams(location.search).get("lang");
+setLang(forced === "pt" || forced === "en" ? forced : detectLang(navigator.languages?.length ? navigator.languages : [navigator.language]));
+document.documentElement.lang = tr("pt-BR", "en");
+document.title = tr("Livro de Souls: builds de Deadlock", "Book of Souls: Deadlock builds");
+
 try {
   const data = await loadData();
+  setLang(lang(), data.translations);
   // Duração e tipos de luta medidos nas partidas valem para todo o cálculo.
   applyFightProfile(data.fights);
   const app: App = {
@@ -139,8 +157,11 @@ try {
     h(
       "div",
       { class: "failure" },
-      h("h1", {}, "Os dados do jogo não carregaram"),
-      h("p", {}, `Motivo: ${(err as Error).message}. Rode "npm run snapshot" na pasta do projeto para baixar os dados e recarregue a página.`),
+      h("h1", {}, tr("Os dados do jogo não carregaram", "The game data didn't load")),
+      h("p", {}, tr(
+          `Motivo: ${(err as Error).message}. Rode "npm run snapshot" na pasta do projeto para baixar os dados e recarregue a página.`,
+          `Reason: ${(err as Error).message}. Run "npm run snapshot" in the project folder to download the data and reload the page.`,
+        )),
     ),
   );
 }

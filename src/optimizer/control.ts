@@ -11,6 +11,7 @@
 import type { GameData, Item } from "../data/types.ts";
 import { evaluateBuild, resolveProperties, type BuildResult, type ResolvedProperty } from "../engine/index.ts";
 import { contextId, memoByObject } from "../engine/memo.ts";
+import { tr } from "../i18n.ts";
 
 export type ControlKind = "stun" | "immobilize" | "sleep" | "silence" | "hex" | "disarm" | "tether" | "slow" | "fireRateSlow";
 
@@ -27,16 +28,35 @@ export const CONTROL_WEIGHTS: Record<ControlKind, number> = {
   fireRateSlow: 0.3, // idem
 };
 
+// Rótulos como getters: o idioma só é definido depois de o módulo carregar.
 export const CONTROL_LABEL: Record<ControlKind, string> = {
-  stun: "stun",
-  immobilize: "imobiliza",
-  sleep: "sono",
-  silence: "silêncio",
-  hex: "hex",
-  disarm: "desarme",
-  tether: "prende",
-  slow: "lentidão",
-  fireRateSlow: "lentidão de tiro",
+  get stun() {
+    return tr("stun", "stun");
+  },
+  get immobilize() {
+    return tr("imobiliza", "immobilize");
+  },
+  get sleep() {
+    return tr("sono", "sleep");
+  },
+  get silence() {
+    return tr("silêncio", "silence");
+  },
+  get hex() {
+    return tr("hex", "hex");
+  },
+  get disarm() {
+    return tr("desarme", "disarm");
+  },
+  get tether() {
+    return tr("prende", "tether");
+  },
+  get slow() {
+    return tr("lentidão", "slow");
+  },
+  get fireRateSlow() {
+    return tr("lentidão de tiro", "fire rate slow");
+  },
 };
 
 /** Controle em área pega mais de um inimigo de vez em quando. */

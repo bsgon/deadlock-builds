@@ -6,6 +6,7 @@
  */
 import type { Ability, GameData, Hero, Item, Property, PropertyUpgrade } from "../data/types.ts";
 import { OVERRIDES } from "./overrides.ts";
+import { tr } from "../i18n.ts";
 import type { Damage, Debuff, Facets, Node, Stat, Trigger, When } from "./tags.ts";
 
 interface ProvideRule {
@@ -344,7 +345,7 @@ export function tagWeapon(hero: Hero): Node {
   return {
     id: `weapon:${hero.className}`,
     kind: "weapon",
-    name: `Arma de ${hero.name}`,
+    name: tr(`Arma de ${hero.name}`, `${hero.name}'s weapon`),
     heroId: hero.id,
     hitsPerSecond: hero.weapon.shotsPerSecond * hero.weapon.bullets,
     ...facets,

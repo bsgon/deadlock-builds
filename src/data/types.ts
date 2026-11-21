@@ -168,4 +168,6 @@ export interface GameData {
   windows?: PurchaseWindows;
   /** Perfil das lutas medido nas partidas (data/snapshot/fights.json, `npm run fights`), se existir. */
   fights?: FightProfile;
+  /** Traduções para o inglês dos textos dos dados (português → inglês; data/snapshot/i18n-en.json), se existirem. */
+  translations?: Record<string, string>;
 }

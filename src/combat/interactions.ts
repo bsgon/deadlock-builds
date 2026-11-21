@@ -4,6 +4,7 @@
  * A detecção só aponta a pergunta; quem mede é a simulação (`value.ts`) ou as
  * contas abaixo (ativações por acerto, ciclo do combo).
  */
+import { tr } from "../i18n.ts";
 import type { EffectDef, EffectState } from "./effects.ts";
 
 export type Family =
@@ -15,24 +16,53 @@ export type Family =
   | "defenseExposure" // defesa + habilidade que exige exposição
   | "cooldownCombo"; // redução de cooldown + combo
 
+// Rótulos como getters: o idioma só é definido depois de o módulo carregar.
 export const FAMILY_LABEL: Record<Family, string> = {
-  grouping: "agrupar alvos para uma área",
-  restraintDelayed: "prender o alvo até a detonação",
-  zoneDot: "manter o alvo no dano contínuo",
-  onHit: "acertos frequentes ativando efeito por acerto",
-  shredDamage: "reduzir resistência antes do dano",
-  defenseExposure: "sobreviver para concluir a jogada",
-  cooldownCombo: "combo volta mais cedo",
+  get grouping() {
+    return tr("agrupar alvos para uma área", "group targets for an area");
+  },
+  get restraintDelayed() {
+    return tr("prender o alvo até a detonação", "hold the target until the detonation");
+  },
+  get zoneDot() {
+    return tr("manter o alvo no dano contínuo", "keep the target in the damage over time");
+  },
+  get onHit() {
+    return tr("acertos frequentes ativando efeito por acerto", "frequent hits triggering on-hit effects");
+  },
+  get shredDamage() {
+    return tr("reduzir resistência antes do dano", "reduce resistance before the damage");
+  },
+  get defenseExposure() {
+    return tr("sobreviver para concluir a jogada", "survive to finish the play");
+  },
+  get cooldownCombo() {
+    return tr("combo volta mais cedo", "combo comes back sooner");
+  },
 };
 
 export const FAMILY_QUESTION: Record<Family, string> = {
-  grouping: "Quantos alvos a mais estão dentro da área no instante do impacto?",
-  restraintDelayed: "O alvo que escaparia continua dentro quando a habilidade resolve?",
-  zoneDot: "Quantos ticks a mais atingem o alvo antes de ele sair, dissipar ou morrer?",
-  onHit: "Quantas ativações elegíveis ocorrem, com cooldown interno, limite de acúmulo e duração da luta?",
-  shredDamage: "Quanto dano do tipo certo entra na janela da redução?",
-  defenseExposure: "A proteção cobre a ameaça que impedia a execução? Quanto da jogada o herói conclui?",
-  cooldownCombo: "A sequência inteira volta mais cedo ou outra peça continua limitando?",
+  get grouping() {
+    return tr("Quantos alvos a mais estão dentro da área no instante do impacto?", "How many more targets are inside the area at the moment of impact?");
+  },
+  get restraintDelayed() {
+    return tr("O alvo que escaparia continua dentro quando a habilidade resolve?", "Is the target that would escape still inside when the ability resolves?");
+  },
+  get zoneDot() {
+    return tr("Quantos ticks a mais atingem o alvo antes de ele sair, dissipar ou morrer?", "How many more ticks hit the target before it leaves, cleanses or dies?");
+  },
+  get onHit() {
+    return tr("Quantas ativações elegíveis ocorrem, com cooldown interno, limite de acúmulo e duração da luta?", "How many eligible procs happen, given internal cooldown, stack limit and fight length?");
+  },
+  get shredDamage() {
+    return tr("Quanto dano do tipo certo entra na janela da redução?", "How much damage of the right type lands within the reduction window?");
+  },
+  get defenseExposure() {
+    return tr("A proteção cobre a ameaça que impedia a execução? Quanto da jogada o herói conclui?", "Does the protection cover the threat that prevented the play? How much of the play does the hero finish?");
+  },
+  get cooldownCombo() {
+    return tr("A sequência inteira volta mais cedo ou outra peça continua limitando?", "Does the whole sequence come back sooner, or does another piece still limit it?");
+  },
 };
 
 const RESTRAINT: EffectState[] = ["pull", "immobilize", "stun", "sleep", "slow", "movementSilence"];
@@ -68,13 +98,13 @@ export function discoverInteractions(effects: EffectDef[], opts: { defenseGain?:
     for (const payoff of effects.filter(offensive)) {
       if (setup.source.className === payoff.source.className) continue;
       if (setup.state === "pull" && isArea(payoff) && ["damage", "immobilize", "stun", "dot"].includes(payoff.state))
-        push({ family: "grouping", setup, payoff, question: FAMILY_QUESTION.grouping, risk: payoff.state === "dot" ? "Puxar depois de lançar a área tira os alvos do dano contínuo." : undefined });
+        push({ family: "grouping", setup, payoff, question: FAMILY_QUESTION.grouping, risk: payoff.state === "dot" ? tr("Puxar depois de lançar a área tira os alvos do dano contínuo.", "Pulling after casting the area takes the targets out of the damage over time.") : undefined });
       if (RESTRAINT.includes(setup.state) && isDelayed(payoff)) push({ family: "restraintDelayed", setup, payoff, question: FAMILY_QUESTION.restraintDelayed });
       if (RESTRAINT.includes(setup.state) && payoff.state === "dot" && isArea(payoff)) push({ family: "zoneDot", setup, payoff, question: FAMILY_QUESTION.zoneDot });
       if (setup.state === "resistShred" && (payoff.state === "damage" || payoff.state === "dot") && payoff.damageType === setup.damageType)
         push({ family: "shredDamage", setup, payoff, question: FAMILY_QUESTION.shredDamage });
       if (HARD.includes(setup.state) && HARD.includes(payoff.state) && setup.state !== "pull")
-        push({ family: "restraintDelayed", setup, payoff, question: "Controle sobreposto: quanto tempo ou quantas ações a mais ele afeta?", risk: "Dois controles ao mesmo tempo impedem a mesma ação: só conta o tempo a mais." });
+        push({ family: "restraintDelayed", setup, payoff, question: tr("Controle sobreposto: quanto tempo ou quantas ações a mais ele afeta?", "Overlapping control: how much extra time or how many extra actions does it affect?"), risk: tr("Dois controles ao mesmo tempo impedem a mesma ação: só conta o tempo a mais.", "Two controls at once block the same action: only the extra time counts.") });
     }
   }
   for (const payoff of effects.filter((e) => e.trigger === "bulletHit" || e.trigger === "spiritDamage"))

@@ -12,6 +12,7 @@
  * herói no mesmo contexto. Os cenários e pesos estão aqui, à vista, para ajuste.
  */
 import type { BuildResult } from "../engine/index.ts";
+import { tr } from "../i18n.ts";
 import { effectiveHealth } from "../optimizer/defense.ts";
 import { buildEffects, type EffectDef } from "./effects.ts";
 import { simulate, type Action, type Point, type Scenario, type SimResult } from "./sim.ts";
@@ -52,18 +53,45 @@ export function setScenarioMix(mix: Record<ScenarioId, number> | undefined): voi
   cache.clear();
 }
 
+// Rótulos como getters: o idioma só é definido depois de o módulo carregar.
 export const PLANS: Record<PlanId, Plan> = {
-  control: { id: "control", label: "Controle", weights: { hits: 1, control: 1.5, allyDamage: 1, damage: 0.5, survival: 3 }, scenarios: MIX },
-  damage: { id: "damage", label: "Dano sustentado", weights: { hits: 0.2, control: 0.3, allyDamage: 0.3, damage: 1.5, survival: 2 }, scenarios: MIX },
+  control: {
+    id: "control",
+    get label() {
+      return tr("Controle", "Control");
+    },
+    weights: { hits: 1, control: 1.5, allyDamage: 1, damage: 0.5, survival: 3 },
+    scenarios: MIX,
+  },
+  damage: {
+    id: "damage",
+    get label() {
+      return tr("Dano sustentado", "Sustained damage");
+    },
+    weights: { hits: 0.2, control: 0.3, allyDamage: 0.3, damage: 1.5, survival: 2 },
+    scenarios: MIX,
+  },
 };
 
 export const SCENARIO_LABEL: Record<ScenarioId, string> = {
-  duel: "duelo",
-  skirmish: "luta pequena (2)",
-  teamfight: "teamfight (4 agrupados)",
-  spread: "inimigos dispersos",
-  chase: "perseguição",
-  dive: "defesa contra iniciação",
+  get duel() {
+    return tr("duelo", "duel");
+  },
+  get skirmish() {
+    return tr("luta pequena (2)", "small fight (2)");
+  },
+  get teamfight() {
+    return tr("teamfight (4 agrupados)", "teamfight (4 grouped)");
+  },
+  get spread() {
+    return tr("inimigos dispersos", "spread-out enemies");
+  },
+  get chase() {
+    return tr("perseguição", "chase");
+  },
+  get dive() {
+    return tr("defesa contra iniciação", "defending a dive");
+  },
 };
 
 /**

@@ -13,6 +13,7 @@
  */
 import type { Item } from "../data/types.ts";
 import { resolveProperties, type BuildResult, type ResolvedProperty } from "../engine/index.ts";
+import { tr } from "../i18n.ts";
 
 /** Duração de uma luta e intervalo entre lutas, em segundos. */
 export const FIGHT_SECONDS = 20;
@@ -88,7 +89,7 @@ function itemDefenseUncached(item: Item, p: Record<string, ResolvedProperty>): D
 export function defenseOf(build: BuildResult): Defense {
   const sources = build.items.flatMap((i) => itemDefense(i, build));
   const status = (build.stats.itemTotals[`${M}STATUS_RESISTANCE`] ?? 0) / 100;
-  if (status > 0) sources.push({ name: "Resistência a status", kind: "cc", value: status });
+  if (status > 0) sources.push({ name: tr("Resistência a status", "Status resistance"), kind: "cc", value: status });
   const sum = (kind: DefenseSource["kind"]) => sources.filter((s) => s.kind === kind).reduce((t, s) => t + s.value, 0);
   // Proteções independentes se combinam: 1 - produto do que sobra.
   const cc = 1 - sources.filter((s) => s.kind === "cc").reduce((rest, s) => rest * (1 - Math.min(1, s.value)), 1);
