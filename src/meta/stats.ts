@@ -84,6 +84,28 @@ export function minuteForSouls(data: GameData, heroId: number, souls: number): n
 /** Souls do herói no começo do mid game: o prazo para o pico de vitality. */
 export const midGameSouls = (data: GameData, heroId: number, minute = MID_GAME_MINUTE): number => soulsAtMinute(data, heroId, minute);
 
+/**
+ * Pico de vitality medido nas partidas do herói: o minuto em que a compra média em
+ * itens de vitality (taxa de compra × preço, na ordem do minuto médio de compra)
+ * chega a `target` souls, e os souls do herói nesse minuto. Null sem estatísticas
+ * ou quando os jogadores do herói, na média, não chegam lá.
+ */
+export function vitalitySpikeOf(data: GameData, heroId: number, target: number): { minute: number; souls: number } | null {
+  const meta = heroMeta(data, heroId);
+  if (!meta || meta.matches <= 0) return null;
+  const byClass = new Map(data.items.map((i) => [i.className, i]));
+  const bought = Object.entries(meta.items)
+    .map(([cls, usage]) => ({ item: byClass.get(cls), usage }))
+    .filter((x): x is { item: Item; usage: ItemUsage } => x.item?.slot === "vitality" && Number.isFinite(x.usage.buyMinute))
+    .sort((a, b) => a.usage.buyMinute - b.usage.buyMinute);
+  let spent = 0;
+  for (const { item, usage } of bought) {
+    spent += (usage.matches / meta.matches) * item.cost;
+    if (spent >= target) return { minute: usage.buyMinute, souls: soulsAtMinute(data, heroId, usage.buyMinute) };
+  }
+  return null;
+}
+
 export interface PowerWindow {
   bucket: DurationBucket;
   winrate: number;

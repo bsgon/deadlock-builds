@@ -3,7 +3,8 @@ import { componentTree, heroAbilities, findHero, progressionFromSouls, MAX_ACTIV
 import { heroItemFit, itemPairLinks, topLinks, type Link } from "../src/interactions/synergy.ts";
 import type { Metrics, Objective } from "../src/optimizer/metrics.ts";
 import type { BuildComparison } from "../src/meta/compare.ts";
-import { buyMinute, heroMeta, meleePickRate, minuteForSouls, pickRate, powerWindows } from "../src/meta/stats.ts";
+import { buyMinute, heroMeta, meleePickRate, pickRate, powerWindows, vitalitySpikeOf } from "../src/meta/stats.ts";
+import { VITALITY_SPIKE_SOULS } from "../src/engine/rules.ts";
 import type { OptimizeInput, OptimizeResult } from "../src/optimizer/optimize.ts";
 import { CONTROL_LABEL, CONTROL_MIN_PER_MINUTE, heroControl } from "../src/optimizer/control.ts";
 import { defenseOf } from "../src/optimizer/defense.ts";
@@ -28,8 +29,15 @@ const OBJECTIVE_LABEL: Record<Objective, { name: string; hint: string }> = {
   control: { name: "Controle", hint: "stun, silêncio e lentidão, com dano e a defesa da Otimizada" },
 };
 
+/** Objetivos oferecidos no seletor ("Dano total" fica só no motor). */
+const SHOWN_OBJECTIVES: Objective[] = ["optimized", "weapon", "spirit", "tank", "sustain", "bruiser", "control"];
+
 const SLOT_LABEL = { weapon: "Arma", vitality: "Vitalidade", spirit: "Spirit" } as const;
-const MAX_SOULS = 50_000;
+/** A build é sempre a de fim de partida: souls e slots fixos. */
+const SOULS = 50_000;
+const SLOTS = 12;
+/** Efeitos condicionais sem duração/cooldown na API valem metade do tempo. */
+const UPTIME = DEFAULT_METRIC_OPTIONS.uptime;
 
 /** Motivos de um item estar na build: encaixe no kit (e como o herói é jogado) e sinergia com os outros itens. */
 function reasonsFor(app: App, item: Item, heroId: number, others: Item[]): Link[] {
@@ -67,7 +75,7 @@ function controls(app: App): HTMLElement {
           "aria-checked": String(hero.name === state.hero),
           title: hero.name,
           "aria-label": hero.name,
-          onclick: () => app.update({ hero: hero.name, required: [], banned: [] }),
+          onclick: () => app.update({ hero: hero.name, archetype: "", required: [], banned: [] }),
         },
         icon(hero.image, hero.name, "portrait"),
       ),
@@ -77,7 +85,7 @@ function controls(app: App): HTMLElement {
   const objectives = h(
     "div",
     { class: "objectives", role: "radiogroup", "aria-label": "Objetivo" },
-    (Object.keys(OBJECTIVE_LABEL) as Objective[]).map((id) => {
+    SHOWN_OBJECTIVES.map((id) => {
       const kit = id === "control" ? heroControl(data, state.hero) : Infinity;
       const off = kit < CONTROL_MIN_PER_MINUTE;
       return h(
@@ -96,45 +104,20 @@ function controls(app: App): HTMLElement {
   );
 
   const heroId = findHero(data, state.hero).id;
-  const soulsLabel = (value: number) => `${fmt(value)} souls, nível ${progressionFromSouls(data.shared, value).level}, por volta do minuto ${Math.round(minuteForSouls(data, heroId, value))}`;
-  const soulsOut = h("output", { for: "souls" }, soulsLabel(state.souls));
-  const souls = h("input", {
-    id: "souls",
-    type: "range",
-    min: 0,
-    max: MAX_SOULS,
-    step: 400,
-    value: state.souls,
-    oninput: (ev) => {
-      const value = Number((ev.target as HTMLInputElement).value);
-      soulsOut.textContent = soulsLabel(value);
-    },
-    onchange: (ev) => app.update({ souls: Number((ev.target as HTMLInputElement).value) }),
-  });
-
-  const uptimeOut = h("output", { for: "uptime" }, `${Math.round(state.uptime * 100)}% do tempo`);
-  const uptime = h("input", {
-    id: "uptime",
-    type: "range",
-    min: 0,
-    max: 100,
-    step: 10,
-    value: Math.round(state.uptime * 100),
-    oninput: (ev) => (uptimeOut.textContent = `${(ev.target as HTMLInputElement).value}% do tempo`),
-    onchange: (ev) => app.update({ uptime: Number((ev.target as HTMLInputElement).value) / 100 }),
-  });
-
-  const slots = h(
-    "select",
-    { id: "slots", onchange: (ev) => app.update({ slots: Number((ev.target as HTMLSelectElement).value) }) },
-    [9, 10, 11, 12].map((n) => h("option", { value: n, selected: n === state.slots }, n === 9 ? "9 (início da partida)" : `${n} (${n - 9} Walker${n > 10 ? "s" : ""} derrubado${n > 10 ? "s" : ""})`)),
-  );
-
-  const spike = h(
-    "label",
-    { class: "check" },
-    h("input", { type: "checkbox", checked: state.vitalitySpike, onchange: (ev) => app.update({ vitalitySpike: (ev.target as HTMLInputElement).checked }) }),
-    " Chegar a 4.800 souls em vitality antes do mid game",
+  const spike = vitalitySpikeOf(data, heroId, VITALITY_SPIKE_SOULS);
+  const level = progressionFromSouls(data.shared, SOULS).level;
+  const match = h(
+    "ul",
+    { class: "fixed" },
+    h("li", {}, `${fmt(SOULS)} souls (nível ${level}) e ${SLOTS} slots de item: a build de fim de partida.`),
+    h("li", {}, `Efeitos condicionais: ativos e procs valem pela duração ÷ cooldown do item; condições sem esses números (como “acima de 65% de vida”) valem ${Math.round(UPTIME * 100)}% do tempo.`),
+    h(
+      "li",
+      {},
+      spike
+        ? `Pico de vitality (${fmt(VITALITY_SPIKE_SOULS)} souls em vitality) até ${fmt(spike.souls)} souls, por volta do minuto ${Math.round(spike.minute)}: a média dos jogadores de ${state.hero}.`
+        : `Pico de vitality sem prazo: na média, os jogadores de ${state.hero} não chegam a ${fmt(VITALITY_SPIKE_SOULS)} souls em vitality.`,
+    ),
   );
 
   const fp = app.data.fights;
@@ -160,18 +143,10 @@ function controls(app: App): HTMLElement {
     "aside",
     { class: "controls", "aria-label": "Configuração da build" },
     h("section", {}, h("h2", {}, "Herói"), heroes),
+    archetypeSection(app, heroId),
     h("section", {}, h("h2", {}, "Objetivo"), objectives),
-    h("section", {}, h("h2", {}, h("label", { for: "souls" }, "Souls na partida")), souls, soulsOut),
-    h("section", {}, h("h2", {}, h("label", { for: "slots" }, "Slots de item")), slots),
+    h("section", {}, h("h2", {}, "Partida"), match),
     h("section", {}, h("h2", {}, "Lutas"), fightInfo),
-    h(
-      "section",
-      {},
-      h("h2", {}, h("label", { for: "uptime" }, "Efeitos condicionais ativos")),
-      uptime,
-      uptimeOut,
-      h("p", { class: "hint" }, "Quanto do tempo procs e bônus como “acima de 65% de vida” estão valendo. Mais alto favorece itens situacionais."),
-    ),
     h(
       "section",
       {},
@@ -183,12 +158,54 @@ function controls(app: App): HTMLElement {
         "Cada compra é a de maior ganho entre as que o herói já consegue pagar. Itens de 1.600, 3.200 e 6.400 só entram a partir dos souls em que os jogadores desse herói costumam comprá-los. Desmarcado, mostra a build mais forte para os souls finais, que nem sempre dá para montar na partida.",
       ),
     ),
+  );
+}
+
+/** Arquétipos da comunidade para o herói, com a fatia das partidas de cada um entre eles. */
+function heroArchetypes(app: App, heroId: number): { theory: Theory; share: number | null }[] {
+  const list = (app.data.theories ?? [])
+    .filter((t) => t.heroId === heroId && t.kind === "archetype" && t.evidence?.verdict !== "contradicted")
+    .sort((a, b) => (b.evidence?.matches ?? 0) - (a.evidence?.matches ?? 0) || b.builds.length - a.builds.length);
+  const total = list.reduce((sum, t) => sum + (t.evidence?.matches ?? 0), 0);
+  return list.map((theory) => ({ theory, share: total > 0 && theory.evidence?.matches ? theory.evidence.matches / total : null }));
+}
+
+/** Seletor de arquétipo: fixa os itens que definem o estilo e deixa o resto com o otimizador. */
+function archetypeSection(app: App, heroId: number): HTMLElement | null {
+  const list = heroArchetypes(app, heroId);
+  if (!list.length) return null;
+  const current = list.find((a) => a.theory.title === app.state.archetype)?.theory ?? null;
+  const option = (label: string, meta: string, checked: boolean, pick: () => void, title?: string) =>
     h(
-      "section",
-      {},
-      h("h2", {}, "Pico de vitality"),
-      spike,
-      h("p", { class: "hint" }, "Com 4.800 souls em itens de vitality, o bônus de vida base pula de 20% para 38%. O prazo são os souls médios do herói aos 15 minutos."),
+      "button",
+      { class: "objective archetype", role: "radio", "aria-checked": String(checked), ...(title ? { title } : {}), onclick: pick },
+      h("strong", {}, label),
+      h("span", {}, meta),
+    );
+  return h(
+    "section",
+    {},
+    h("h2", {}, "Arquétipo"),
+    h(
+      "div",
+      { class: "objectives", role: "radiogroup", "aria-label": "Arquétipo" },
+      option("Livre", "o otimizador escolhe todos os itens", current === null, () => app.update({ archetype: "", required: [] })),
+      list.map(({ theory, share }) =>
+        option(
+          theory.title,
+          share === null ? "sem partidas medidas" : `${Math.round(share * 100)}% de popularidade`,
+          theory === current,
+          () => app.update({ archetype: theory.title, required: archetypeCore(app, theory) }),
+          theory.claim,
+        ),
+      ),
+    ),
+    h(
+      "p",
+      { class: "hint" },
+      current
+        ? `${current.claim} Fixa ${archetypeCore(app, current).join(", ")}.`
+        : "Popularidade: partidas do herói com todos os itens do arquétipo, como fatia da soma entre os arquétipos (uma partida pode entrar em mais de um).",
     ),
   );
 }
@@ -223,7 +240,7 @@ function soulTrack(result: OptimizeResult): HTMLElement {
     return h("span", { class: `mark mark-${kind}${pos > 50 ? " mark-end" : ""}`, style: `left:${pos}%` }, label);
   };
   if (v && v.reachedAt !== null) marks.push(mark("spike", v.reachedAt, "4,8k vitality"));
-  if (v && v.deadline < total) marks.push(mark("deadline", v.deadline, `mid game, ~${Math.round(v.deadlineMinute)} min`));
+  if (v && v.deadline < total) marks.push(mark("deadline", v.deadline, `média do herói, ~${Math.round(v.deadlineMinute)} min`));
   let spikeText = "";
   if (v) {
     if (v.reachedAt !== null) spikeText = ` O pico de vitality vem com ${fmt(v.reachedAt)} souls gastos, por volta do minuto ${Math.round(v.reachedMinute ?? 0)}${v.enforced && !v.ok ? ", depois do prazo" : ""}.`;
@@ -247,7 +264,6 @@ const SLOT_ORDER = { weapon: 0, vitality: 1, spirit: 2 } as const;
  * já absorvidos pelos upgrades. Mostra todos os slots liberados, inclusive os vazios.
  */
 const THEORY_GROUPS: { kind: TheoryKind; title: string; hint: string }[] = [
-  { kind: "archetype", title: "Arquétipos", hint: "Estilos de jogo e os itens que os definem." },
   { kind: "combo", title: "Combos", hint: "Itens que os autores juntam, e por quê." },
   { kind: "timing", title: "Prioridades", hint: "O que comprar cedo ou tarde." },
   { kind: "late-swap", title: "Trocas de fim de jogo", hint: "O que vender, e o que entra no lugar." },
@@ -289,15 +305,12 @@ function theoriesSection(app: App, heroId: number): HTMLElement | null {
         `${t.builds.length} ${t.builds.length === 1 ? "build publicada" : "builds publicadas"}` +
           (t.evidence ? `, ${VERDICT_LABEL[t.evidence.verdict]}${t.evidence.matches ? ` (${t.evidence.lift >= 0 ? "+" : ""}${fmt1(t.evidence.lift)} pp em ${fmt(t.evidence.matches)} partidas)` : ""}` : ""),
       ),
-      t.kind === "archetype"
-        ? h("button", { class: "link", onclick: () => app.update({ required: archetypeCore(app, t) }) }, "Montar a build a partir deste arquétipo")
-        : null,
     );
   return h(
     "section",
     { class: "theories" },
     h("h2", {}, "Teorias da comunidade"),
-    h("p", { class: "hint" }, "Ideias tiradas das builds mais favoritadas do patch atual no navegador de builds do jogo. Combos e arquétipos são conferidos contra partidas reais: juntos, os itens ganham mais que o melhor deles sozinho?"),
+    h("p", { class: "hint" }, "Ideias tiradas das builds mais favoritadas do patch atual no navegador de builds do jogo. Combos são conferidos contra partidas reais: juntos, os itens ganham mais que o melhor deles sozinho?"),
     THEORY_GROUPS.map((g) => {
       const list = mine
         .filter((t) => t.kind === g.kind && t.evidence?.verdict !== "contradicted")
@@ -773,16 +786,17 @@ function controlPanel(result: OptimizeResult, uptime: number): HTMLElement {
 
 /** Configuração do otimizador a partir do estado da tela. */
 function inputFor(app: App): OptimizeInput {
-  const { state } = app;
+  const { state, data } = app;
+  const spike = vitalitySpikeOf(data, findHero(data, state.hero).id, VITALITY_SPIKE_SOULS);
   return {
     hero: state.hero,
     objective: objectiveFor(app),
-    souls: state.souls,
-    itemSlots: state.slots,
+    souls: SOULS,
+    itemSlots: SLOTS,
     required: state.required,
     banned: state.banned,
-    metric: { uptime: state.uptime },
-    ...(state.vitalitySpike ? {} : { vitalitySpike: false as const }),
+    metric: { uptime: UPTIME },
+    vitalitySpike: spike ? { souls: VITALITY_SPIKE_SOULS, deadline: spike.souls } : false,
     mode: state.progressive === false ? "final" : "progressive",
     explain: true,
   };
@@ -844,7 +858,7 @@ function resultView(app: App, payload: BuildPayload, input: OptimizeInput, statu
         { class: "side" },
         metricsTable(result.metrics, result.baseline),
         h("p", { class: "hint" }, meleeNote(app, result, hero.id)),
-        objective === "control" ? controlPanel(result, input.metric?.uptime ?? app.state.uptime) : null,
+        objective === "control" ? controlPanel(result, input.metric?.uptime ?? UPTIME) : null,
         playPanel(app, payload, input),
         abilityPlan(app, result),
         h(

@@ -11,14 +11,10 @@ export interface State {
   tab: "build" | "synergy";
   hero: string;
   objective: Objective;
-  souls: number;
-  slots: number;
-  /** Tempo ativo dos efeitos condicionais, 0 a 1. */
-  uptime: number;
+  /** Título do arquétipo da comunidade escolhido ("" = livre). */
+  archetype: string;
   required: string[];
   banned: string[];
-  /** Exige 4.800 souls em vitality antes do mid game. */
-  vitalitySpike: boolean;
   /** Monta a build compra a compra, como na partida (false: melhor build final, depois a ordem). */
   progressive: boolean;
   /** Item em foco no explorador de sinergias. */
@@ -39,7 +35,9 @@ export interface App {
 }
 
 const STORAGE_KEY = "deadlock-builds:state";
-const DEFAULTS: State = { tab: "build", hero: "Infernus", objective: "optimized", souls: 15_000, slots: 9, uptime: 0.5, vitalitySpike: true, progressive: true, required: [], banned: [], item: "Mystic Vulnerability" };
+const DEFAULTS: State = { tab: "build", hero: "Infernus", objective: "optimized", archetype: "", progressive: true, required: [], banned: [], item: "Mystic Vulnerability" };
+/** Objetivos que não aparecem mais no seletor voltam para o padrão. */
+const RETIRED_OBJECTIVES: Objective[] = ["dps"];
 
 function loadState(data: GameData): State {
   let saved: Partial<State> = {};
@@ -49,6 +47,7 @@ function loadState(data: GameData): State {
     // Sem armazenamento ou conteúdo inválido: segue com o padrão.
   }
   const state = { ...DEFAULTS, ...saved };
+  if (RETIRED_OBJECTIVES.includes(state.objective)) state.objective = DEFAULTS.objective;
   // Um patch pode remover heróis ou itens salvos.
   const itemNames = new Set(data.items.map((i) => i.name));
   if (!data.heroes.some((h) => h.name === state.hero)) state.hero = data.heroes[0]!.name;
