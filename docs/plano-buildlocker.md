@@ -113,9 +113,13 @@ Não é idêntico ao WPA do Buildlocker, que mede a mudança da probabilidade de
 
 **Ordem:**
 
-1. Ordem de habilidades e caminho do elo alto (rápido, só endpoints agregados).
-2. Script `npm run wpa` com o modelo, gravando `data/snapshot/wpa.json` no formato da Fase 1.
-3. As Fases 2 a 5 acima, sem mudanças.
+1. ✅ Ordem de habilidades e caminho do elo alto (`npm run elite`).
+2. ✅ Script `npm run wpa` com o modelo, gravando `data/snapshot/wpa.json`, e o WPA na explicação de cada compra.
+3. ✅ WPA no otimizador (Fase 3.1), depois do relatório `npm run priors` (resultado em `reports/priors/fontes-do-peso.txt`). O WPA sozinho, com 20 mil partidas, tem intervalos largos e quase não mexe na build; o padrão virou o **blend**: winrate por janela e WPA pesados pela precisão, com 2 pp de viés somados à variância da janela. Nos 44 heróis, o blend dá o maior WPA médio dos itens (0,10 pp, contra 0,05 da janela) e custa 1,4% da pontuação do modelo (a janela custava 2,5%).
+4. ✅ Rotina de patch (Fase 5): o `npm run update` lista a idade de cada dado de partidas e o comando para atualizar; o `npm run wpa -- --refresh` baixa partidas novas.
+5. Pendente: seletor "à frente / atrás" no app (Fase 3.2), usando os valores de virada e win-more que já estão no wpa.json.
+
+**Como ficou o download:** a API devolve as compras com `include_player_items` sem precisar de `include_player_info` nem de `include_player_stats` (cerca de 54 KB por partida, contra 400 KB com as estatísticas). A série de patrimônio vem do `net_worth_at_buy` de cada compra e de cada upgrade de habilidade, uns 30 pontos por jogador.
 
 ## 4. Riscos
 

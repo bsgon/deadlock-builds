@@ -12,6 +12,7 @@ import { evaluateBuild, type BuildResult } from "../engine/index.ts";
 import { tr } from "../i18n.ts";
 import { heroMeta, minuteForSouls } from "../meta/stats.ts";
 import { compareInWindow, windowStat, type WindowStat } from "../meta/windows.ts";
+import { itemWpa, type ItemWpa } from "../meta/wpa.ts";
 import { effectiveHealth } from "../optimizer/defense.ts";
 import { buildEffects, type EffectDef } from "./effects.ts";
 import { discoverInteractions, familyFor, FAMILY_LABEL, type Family } from "./interactions.ts";
@@ -42,6 +43,8 @@ export interface Observed {
   versusAlternative: { name: string; diff: number; margin: number; significant: boolean } | null;
   /** O modelo e as partidas apontam lados opostos (diferença fora do intervalo). */
   diverges: boolean;
+  /** Vitória acima do esperado pelo estado da partida na hora da compra (wpa.json), quando existe. */
+  wpa: ItemWpa | null;
   notes: string[];
 }
 
@@ -131,7 +134,15 @@ function observedFor(data: GameData, heroId: number, item: Item, minute: number,
   const usage = meta?.items[item.className];
   const win = windowStat(data, heroId, item, minute);
   if (!win && (!meta || !usage || usage.matches === 0)) return null;
+  const wpa = itemWpa(data, heroId, item);
   const notes: string[] = [];
+  if (wpa)
+    notes.push(
+      tr(
+        `vitória acima do esperado pela vantagem de patrimônio na hora da compra: ${pp(wpa.relative)} ± ${wpa.margin.toFixed(1)} contra os outros itens do tier ${item.tier} do herói (${wpa.purchases} compras)`,
+        `wins above expectation given the net worth lead at purchase time: ${pp(wpa.relative)} ± ${wpa.margin.toFixed(1)} vs the hero's other tier ${item.tier} items (${wpa.purchases} purchases)`,
+      ),
+    );
   let versus: Observed["versusAlternative"] = null;
   let diverges = false;
   if (win) {
@@ -164,12 +175,13 @@ function observedFor(data: GameData, heroId: number, item: Item, minute: number,
           );
       } else notes.push(tr(`${alternative.name}: amostra pequena na mesma janela para comparar`, `${alternative.name}: sample too small in the same window to compare`));
     }
-    notes.push(
-      tr(
-        "o momento da compra é o único estado anterior à decisão nos dados; inventário e vantagem de souls na hora não estão (o filtro de patrimônio da API usa o patrimônio final)",
-        "purchase timing is the only pre-decision state in the data; inventory and soul lead at that moment are not (the API's net worth filter uses final net worth)",
-      ),
-    );
+    if (!wpa)
+      notes.push(
+        tr(
+          "o momento da compra é o único estado anterior à decisão nos dados; inventário e vantagem de souls na hora não estão (o filtro de patrimônio da API usa o patrimônio final)",
+          "purchase timing is the only pre-decision state in the data; inventory and soul lead at that moment are not (the API's net worth filter uses final net worth)",
+        ),
+      );
   } else {
     if (usage!.matches < 1000) notes.push(tr(`amostra pequena (${usage!.matches} partidas)`, `small sample (${usage!.matches} matches)`));
     if (usage!.buyMinute >= 25)
@@ -188,6 +200,7 @@ function observedFor(data: GameData, heroId: number, item: Item, minute: number,
     window: win,
     versusAlternative: versus,
     diverges,
+    wpa,
     notes,
   };
 }
@@ -317,7 +330,9 @@ export function analyzePurchase(data: GameData, ctx: PurchaseContext, before: st
     const vs = observed.versusAlternative;
     if (observed.diverges) confidenceBest = "baixa";
     else if (vs?.significant) confidenceBest = shift(confidenceBest, 1);
-    if (observed.window.delta + observed.window.margin < 0) confidenceBest = shift(confidenceBest, -1);
+    // Abaixo do esperado na janela ou pelo estado da partida: um nível a menos (uma vez só).
+    const wpa = observed.wpa;
+    if (observed.window.delta + observed.window.margin < 0 || (wpa && wpa.relative + wpa.margin < 0)) confidenceBest = shift(confidenceBest, -1);
   } else {
     if (observed && observed.winrateDelta < -3) confidenceBest = shift(confidenceBest, -1);
     // Sem partidas no mesmo momento, a recomendação não passa de "média".

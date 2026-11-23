@@ -9,7 +9,7 @@
  * tipos de bônus que o motor ainda não conhece e correções manuais órfãs.
  */
 import { execFileSync } from "node:child_process";
-import { existsSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { loadSnapshot } from "../src/data/load.ts";
@@ -35,6 +35,35 @@ if (dry) {
   // O snapshot roda em processo separado para reusar o script já testado.
   execFileSync(process.execPath, [join(root, "scripts", "snapshot.ts")], { stdio: "inherit", cwd: root });
   report(loadSnapshot());
+}
+matchDataAge(info.version_date);
+
+/**
+ * Idade dos dados de partidas. Eles não são baixados aqui: logo depois de um patch,
+ * a janela de 14 a 30 dias ainda seria quase toda do patch anterior. O certo é
+ * esperar alguns dias de partidas e então rodar cada comando.
+ */
+function matchDataAge(patchDate: string | undefined): void {
+  const sources: [string, string, string][] = [
+    ["stats.json", "npm run stats -- --refresh", "curva de souls, uso de itens, builds publicadas"],
+    ["windows.json", "npm run windows -- --refresh", "winrate por janela de compra"],
+    ["elite.json", "npm run elite -- --refresh", "itens e habilidades do elo alto"],
+    ["wpa.json", "npm run wpa -- --refresh", "vitória acima do esperado"],
+    ["fights.json", "npm run fights -- --refresh", "duração e tamanho das lutas"],
+  ];
+  const patchTime = patchDate ? Date.parse(patchDate) : NaN;
+  console.log("\nDados de partidas (atualize alguns dias depois do patch, quando houver partidas suficientes):");
+  for (const [file, command, what] of sources) {
+    const path = join(snapshotDir, file);
+    if (!existsSync(path)) {
+      console.log(`  ${file.padEnd(13)} ausente — ${command} (${what})`);
+      continue;
+    }
+    const fetched = Date.parse((JSON.parse(readFileSync(path, "utf8")) as { fetchedAt?: string }).fetchedAt ?? "");
+    const days = Number.isFinite(fetched) ? Math.floor((Date.now() - fetched) / 86_400_000) : null;
+    const old = Number.isFinite(patchTime) && Number.isFinite(fetched) && fetched < patchTime;
+    console.log(`  ${file.padEnd(13)} ${days === null ? "sem data" : `${days} dia(s)`}${old ? ", anterior ao patch" : ""} — ${command} (${what})`);
+  }
 }
 
 function report(current: GameData): void {

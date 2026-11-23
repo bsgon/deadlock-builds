@@ -31,6 +31,8 @@
     "theory": "node scripts/theory.ts",
     "windows": "node scripts/windows.ts",
     "elite": "node scripts/elite.ts",
+    "wpa": "node scripts/wpa.ts",
+    "priors": "node scripts/priors.ts",
     "fights": "node scripts/fights.ts"
   },
   "devDependencies": {

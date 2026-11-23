@@ -87,6 +87,9 @@ export const PRIOR_SD = 2;
 export const MIN_PRIOR_MATCHES = 50;
 
 export interface TierPrior {
+  /** De onde vem o Δ: winrate na janela de compra, ou vitória acima do esperado pelo placar (wpa.json). */
+  source: "window" | "wpa" | "blend";
+  /** Janela de compra (fonte "window") ou minuto médio de compra (fonte "wpa"). */
   window: string;
   matches: number;
   /** Winrate do item menos o das compras do mesmo tier na mesma janela, em pp. */
@@ -126,7 +129,7 @@ export function tierPrior(data: GameData, heroId: number, item: Item, minute: nu
   const p = own[0] / own[1];
   const delta = (p - wins / matches) * 100;
   const se = 100 * Math.sqrt((p * (1 - p)) / own[1]);
-  return { window: windowLabel(i), matches: own[1], delta, margin: 1.96 * se, shrunk: (delta * PRIOR_SD ** 2) / (PRIOR_SD ** 2 + se ** 2) };
+  return { source: "window", window: windowLabel(i), matches: own[1], delta, margin: 1.96 * se, shrunk: (delta * PRIOR_SD ** 2) / (PRIOR_SD ** 2 + se ** 2) };
 }
 
 /**

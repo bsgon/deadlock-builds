@@ -99,7 +99,7 @@ describe("winrate por janela de compra", () => {
     }
     const d = { ...data, windows: fake };
     const mean = (w: number) => {
-      const deltas = ["Haze", "Abrams"].flatMap((hero) => optimize(d, { hero, objective: "dps", souls: 20000, matchWeight: w }).order.map((s) => tierPrior(d, data.heroes.find((h) => h.name === hero)!.id, s.item, s.minute)?.delta ?? 0));
+      const deltas = ["Haze", "Abrams"].flatMap((hero) => optimize(d, { hero, objective: "dps", souls: 20000, matchWeight: w, matchSource: "window" }).order.map((s) => tierPrior(d, data.heroes.find((h) => h.name === hero)!.id, s.item, s.minute)?.delta ?? 0));
       return deltas.reduce((a, b) => a + b, 0) / deltas.length;
     };
     expect(mean(2)).toBeGreaterThan(mean(0) + 1);

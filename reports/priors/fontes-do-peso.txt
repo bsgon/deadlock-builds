@@ -1,0 +1,50 @@
+Abrams         none elo 6% jan -0.8 wpa -1.0 pts 0.0% trocas 0 | window elo 5% jan 0.6 wpa -1.0 pts -1.5% trocas 2 | wpa elo 6% jan 0.1 wpa -1.0 pts 0.0% trocas 0 | blend elo 5% jan 0.7 wpa -1.0 pts 2.2% trocas 2
+Apollo         none elo 1% jan 1.4 wpa -0.3 pts 0.0% trocas 0 | window elo 1% jan 2.2 wpa -0.0 pts -4.5% trocas 2 | wpa elo 1% jan 2.0 wpa -0.2 pts -0.7% trocas 4 | blend elo 1% jan 2.2 wpa 0.1 pts -7.5% trocas 4
+Baba           none elo 12% jan -0.6 wpa -3.1 pts 0.0% trocas 0 | window elo 22% jan 1.1 wpa -1.7 pts -6.7% trocas 3 | wpa elo 12% jan -1.7 wpa -3.5 pts -5.5% trocas 1 | blend elo 16% jan -0.6 wpa -2.6 pts -4.2% trocas 2
+Bebop          none elo 16% jan -0.8 wpa -0.3 pts 0.0% trocas 0 | window elo 16% jan 1.9 wpa -0.2 pts -9.1% trocas 4 | wpa elo 17% jan -0.6 wpa 0.3 pts -1.0% trocas 2 | blend elo 17% jan -0.2 wpa 0.3 pts -1.0% trocas 2
+Billy          none elo 18% jan -1.7 wpa -0.7 pts 0.0% trocas 0 | window elo 23% jan -0.1 wpa -0.5 pts -7.4% trocas 2 | wpa elo 18% jan -0.8 wpa -0.7 pts 0.0% trocas 0 | blend elo 18% jan -0.7 wpa -0.7 pts -2.9% trocas 1
+Calico         none elo 9% jan -1.8 wpa 2.0 pts 0.0% trocas 0 | window elo 10% jan 1.6 wpa 2.8 pts -4.4% trocas 4 | wpa elo 9% jan -2.7 wpa 2.0 pts 0.0% trocas 0 | blend elo 9% jan -2.2 wpa 2.0 pts 0.0% trocas 0
+Celeste        none elo 27% jan 0.9 wpa 0.7 pts 0.0% trocas 0 | window elo 27% jan 1.2 wpa 0.7 pts 0.0% trocas 0 | wpa elo 19% jan 0.9 wpa 0.2 pts 1.2% trocas 1 | blend elo 19% jan 0.9 wpa 0.2 pts 1.2% trocas 1
+Deadman Danny  none elo 2% jan -1.0 wpa -2.9 pts 0.0% trocas 0 | window elo 10% jan 0.6 wpa -2.0 pts -8.2% trocas 3 | wpa elo 7% jan -0.2 wpa -1.9 pts -1.6% trocas 2 | blend elo 8% jan 0.0 wpa -1.5 pts -4.7% trocas 3
+Drifter        none elo 9% jan -0.2 wpa 0.2 pts 0.0% trocas 0 | window elo 8% jan 0.7 wpa 0.4 pts 3.8% trocas 3 | wpa elo 9% jan -0.2 wpa 0.2 pts 0.0% trocas 0 | blend elo 9% jan -0.1 wpa 0.2 pts 2.5% trocas 1
+Dynamo         none elo 4% jan 0.0 wpa -0.4 pts 0.0% trocas 0 | window elo 7% jan 0.6 wpa -0.6 pts -6.0% trocas 1 | wpa elo 3% jan -0.8 wpa -0.9 pts -5.1% trocas 1 | blend elo 5% jan 0.1 wpa -0.4 pts -5.5% trocas 1
+Graves         none elo 19% jan -1.9 wpa -1.5 pts 0.0% trocas 0 | window elo 18% jan 0.3 wpa -1.5 pts 1.0% trocas 3 | wpa elo 20% jan -1.0 wpa -1.3 pts -1.0% trocas 2 | blend elo 24% jan -0.4 wpa -0.5 pts -4.2% trocas 4
+Grey Talon     none elo 12% jan -0.6 wpa 0.3 pts 0.0% trocas 0 | window elo 16% jan -0.2 wpa 0.2 pts 1.4% trocas 1 | wpa elo 12% jan -0.6 wpa 0.3 pts 0.0% trocas 0 | blend elo 12% jan -0.6 wpa 0.3 pts 0.0% trocas 0
+Haze           none elo 28% jan 0.5 wpa -0.5 pts 0.0% trocas 0 | window elo 28% jan 1.1 wpa -0.8 pts -7.0% trocas 2 | wpa elo 28% jan 0.4 wpa -0.5 pts 0.0% trocas 0 | blend elo 28% jan 0.6 wpa -0.5 pts 0.0% trocas 0
+Holliday       none elo 10% jan 1.0 wpa 0.7 pts 0.0% trocas 0 | window elo 8% jan 1.5 wpa 0.8 pts -5.8% trocas 2 | wpa elo 10% jan 0.9 wpa 0.7 pts 0.0% trocas 0 | blend elo 10% jan 0.9 wpa 0.7 pts 0.0% trocas 0
+Infernus       none elo 12% jan 1.2 wpa 1.2 pts 0.0% trocas 0 | window elo 18% jan 1.5 wpa 0.9 pts -12.5% trocas 2 | wpa elo 13% jan 0.6 wpa 0.9 pts -7.6% trocas 1 | blend elo 13% jan 0.8 wpa 0.9 pts -7.6% trocas 1
+Ivy            none elo 20% jan -0.2 wpa 0.5 pts 0.0% trocas 0 | window elo 22% jan 1.1 wpa 0.3 pts -0.1% trocas 3 | wpa elo 21% jan 0.0 wpa 0.7 pts 4.6% trocas 2 | blend elo 21% jan -0.0 wpa 0.7 pts 4.6% trocas 2
+Kelvin         none elo 25% jan -1.3 wpa -2.5 pts 0.0% trocas 0 | window elo 26% jan -1.0 wpa -1.6 pts -7.2% trocas 4 | wpa elo 26% jan -1.1 wpa -1.6 pts -7.2% trocas 4 | blend elo 26% jan -1.1 wpa -1.6 pts -7.2% trocas 4
+Lady Geist     none elo 5% jan -4.3 wpa -5.9 pts 0.0% trocas 0 | window elo 7% jan -1.1 wpa -5.2 pts -7.0% trocas 2 | wpa elo 6% jan -2.0 wpa -5.6 pts -1.7% trocas 1 | blend elo 7% jan -0.9 wpa -5.4 pts -7.2% trocas 3
+Lash           none elo 2% jan -2.6 wpa -0.5 pts 0.0% trocas 0 | window elo 2% jan -0.5 wpa -0.3 pts -5.4% trocas 2 | wpa elo 2% jan 0.0 wpa -0.6 pts -6.1% trocas 3 | blend elo 2% jan -0.9 wpa -0.3 pts -5.4% trocas 2
+McGinnis       none elo 15% jan -3.7 wpa -1.4 pts 0.0% trocas 0 | window elo 16% jan -1.0 wpa -1.4 pts -3.5% trocas 3 | wpa elo 15% jan -0.9 wpa -1.4 pts -2.3% trocas 2 | blend elo 16% jan -1.4 wpa -1.4 pts -3.5% trocas 3
+Mina           none elo 5% jan 0.1 wpa 2.9 pts 0.0% trocas 0 | window elo 4% jan 1.6 wpa 2.8 pts -1.2% trocas 2 | wpa elo 5% jan 0.2 wpa 2.9 pts 0.0% trocas 0 | blend elo 5% jan 1.1 wpa 2.9 pts 0.0% trocas 0
+Mirage         none elo 8% jan -0.3 wpa 3.7 pts 0.0% trocas 0 | window elo 9% jan 0.6 wpa 3.6 pts -3.3% trocas 3 | wpa elo 9% jan -0.5 wpa 3.4 pts -2.3% trocas 2 | blend elo 9% jan 0.3 wpa 3.6 pts -3.3% trocas 3
+Mo & Krill     none elo 12% jan -2.7 wpa 0.3 pts 0.0% trocas 0 | window elo 12% jan -1.3 wpa 0.5 pts -0.8% trocas 1 | wpa elo 18% jan -2.3 wpa 0.5 pts -2.3% trocas 1 | blend elo 15% jan -2.2 wpa 0.6 pts 4.4% trocas 3
+Nurse Harrow   none elo 5% jan 0.5 wpa -0.8 pts 0.0% trocas 0 | window elo 5% jan 1.2 wpa -0.5 pts 1.2% trocas 3 | wpa elo 4% jan 0.3 wpa -0.2 pts 3.4% trocas 3 | blend elo 5% jan 1.9 wpa -0.4 pts -2.1% trocas 3
+Paige          none elo 3% jan -1.9 wpa -3.8 pts 0.0% trocas 0 | window elo 8% jan -1.2 wpa -3.4 pts 0.4% trocas 3 | wpa elo 3% jan -2.3 wpa -3.8 pts 0.0% trocas 0 | blend elo 8% jan -2.1 wpa -3.7 pts -5.7% trocas 4
+Paradox        none elo 8% jan -2.6 wpa 0.1 pts 0.0% trocas 0 | window elo 9% jan -0.1 wpa -0.4 pts -4.7% trocas 4 | wpa elo 8% jan -2.7 wpa 0.1 pts 0.0% trocas 0 | blend elo 8% jan -2.6 wpa 0.1 pts 0.0% trocas 0
+Pocket         none elo 11% jan -3.2 wpa 1.7 pts 0.0% trocas 0 | window elo 12% jan -1.0 wpa 2.2 pts 3.2% trocas 2 | wpa elo 12% jan -1.6 wpa 2.2 pts 3.2% trocas 2 | blend elo 12% jan -1.6 wpa 2.2 pts 3.2% trocas 2
+Rat King       none elo 10% jan -0.4 wpa -0.8 pts 0.0% trocas 0 | window elo 4% jan 0.1 wpa -0.8 pts -4.3% trocas 3 | wpa elo 9% jan -0.2 wpa -0.8 pts -4.9% trocas 2 | blend elo 4% jan 0.1 wpa -0.8 pts -4.3% trocas 3
+Rem            none elo 1% jan 1.0 wpa 3.3 pts 0.0% trocas 0 | window elo 1% jan 0.3 wpa 3.5 pts -0.6% trocas 1 | wpa elo 1% jan -0.0 wpa 3.5 pts -0.6% trocas 1 | blend elo 1% jan 0.1 wpa 3.5 pts -0.6% trocas 1
+Seven          none elo 22% jan -2.4 wpa -2.2 pts 0.0% trocas 0 | window elo 22% jan -2.4 wpa -2.2 pts 0.0% trocas 0 | wpa elo 22% jan -1.9 wpa -2.2 pts 0.0% trocas 0 | blend elo 22% jan -1.9 wpa -2.2 pts 0.0% trocas 0
+Shiv           none elo 7% jan -0.4 wpa 0.6 pts 0.0% trocas 0 | window elo 12% jan -0.9 wpa -0.0 pts -2.4% trocas 3 | wpa elo 7% jan 0.7 wpa 1.7 pts 0.1% trocas 2 | blend elo 12% jan 0.5 wpa 0.8 pts -0.6% trocas 3
+Silver         none elo 10% jan -0.5 wpa 1.4 pts 0.0% trocas 0 | window elo 11% jan -0.7 wpa 0.8 pts -5.6% trocas 1 | wpa elo 11% jan -1.0 wpa 0.7 pts -5.4% trocas 2 | blend elo 11% jan -0.8 wpa 0.7 pts -5.4% trocas 2
+Sinclair       none elo 2% jan -1.0 wpa 0.7 pts 0.0% trocas 0 | window elo 4% jan -0.0 wpa 1.1 pts -1.3% trocas 2 | wpa elo 2% jan 1.6 wpa 1.5 pts -4.7% trocas 2 | blend elo 2% jan 1.1 wpa 0.7 pts 0.0% trocas 0
+Solomon        none elo 15% jan 0.2 wpa 1.3 pts 0.0% trocas 0 | window elo 20% jan 0.9 wpa 0.6 pts -3.0% trocas 4 | wpa elo 14% jan 1.0 wpa 1.2 pts -0.9% trocas 3 | blend elo 14% jan 1.0 wpa 1.2 pts -0.9% trocas 3
+The Doorman    none elo 4% jan -0.8 wpa 1.4 pts 0.0% trocas 0 | window elo 4% jan -0.9 wpa 1.4 pts 0.0% trocas 0 | wpa elo 4% jan -0.9 wpa 1.7 pts -0.8% trocas 1 | blend elo 4% jan -0.8 wpa 1.4 pts 0.0% trocas 0
+Venator        none elo 17% jan -1.9 wpa 2.4 pts 0.0% trocas 0 | window elo 22% jan -0.1 wpa 2.1 pts 0.1% trocas 2 | wpa elo 18% jan -1.2 wpa 1.3 pts 2.1% trocas 1 | blend elo 17% jan -1.3 wpa 2.4 pts 0.0% trocas 0
+Victor         none elo 18% jan 0.2 wpa -1.2 pts 0.0% trocas 0 | window elo 16% jan -0.2 wpa -1.2 pts 6.4% trocas 2 | wpa elo 18% jan -0.1 wpa -1.1 pts 0.1% trocas 2 | blend elo 17% jan -0.1 wpa -1.3 pts 0.8% trocas 3
+Vindicta       none elo 15% jan 1.1 wpa 0.4 pts 0.0% trocas 0 | window elo 22% jan 1.1 wpa 0.3 pts -3.2% trocas 2 | wpa elo 16% jan 1.2 wpa 0.5 pts 1.8% trocas 1 | blend elo 22% jan 1.1 wpa 0.3 pts -3.2% trocas 2
+Violet         none elo 22% jan -0.6 wpa 0.9 pts 0.0% trocas 0 | window elo 20% jan 0.8 wpa 0.4 pts -5.0% trocas 6 | wpa elo 22% jan -0.9 wpa 0.5 pts -6.4% trocas 5 | blend elo 22% jan -0.6 wpa 0.5 pts -6.4% trocas 5
+Viscous        none elo 3% jan -0.4 wpa 1.4 pts 0.0% trocas 0 | window elo 2% jan 1.5 wpa 1.9 pts 2.6% trocas 2 | wpa elo 2% jan 1.5 wpa 1.9 pts 2.6% trocas 2 | blend elo 2% jan 1.5 wpa 1.9 pts 2.6% trocas 2
+Vyper          none elo 14% jan -0.5 wpa -0.5 pts 0.0% trocas 0 | window elo 18% jan 1.2 wpa -0.1 pts 0.6% trocas 3 | wpa elo 17% jan 0.5 wpa -0.1 pts 0.6% trocas 2 | blend elo 18% jan 0.8 wpa -0.1 pts 0.6% trocas 3
+Warden         none elo 20% jan 0.4 wpa 0.4 pts 0.0% trocas 0 | window elo 13% jan 0.6 wpa 0.5 pts -0.5% trocas 3 | wpa elo 20% jan 0.4 wpa 0.6 pts -4.3% trocas 3 | blend elo 18% jan 0.5 wpa 1.0 pts 4.4% trocas 3
+Wraith         none elo 15% jan 1.1 wpa -0.4 pts 0.0% trocas 0 | window elo 15% jan 1.7 wpa -0.4 pts 0.0% trocas 0 | wpa elo 15% jan 1.8 wpa -0.4 pts 0.0% trocas 0 | blend elo 15% jan 1.2 wpa -0.4 pts 0.0% trocas 0
+Yamato         none elo 10% jan -0.6 wpa 0.2 pts 0.0% trocas 0 | window elo 14% jan -0.1 wpa 0.2 pts 0.0% trocas 3 | wpa elo 10% jan -0.5 wpa 0.0 pts 4.6% trocas 1 | blend elo 10% jan -0.5 wpa 0.0 pts 4.6% trocas 1
+
+Média em 44 heróis (elo = taxa de compra no Ascendant+; jan/wpa = Δ médio em pp; pts = pontuação do modelo contra sem peso):
+  none    elo 11.6%  jan -0.74  wpa -0.05  pts 0.00%  trocas 0.0
+  window  elo 12.9%  jan 0.34  wpa 0.05  pts -2.53%  trocas 2.3
+  wpa     elo 11.8%  jan -0.33  wpa 0.04  pts -1.10%  trocas 1.5
+  blend   elo 12.3%  jan -0.14  wpa 0.10  pts -1.42%  trocas 1.9

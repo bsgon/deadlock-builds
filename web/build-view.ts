@@ -1,5 +1,6 @@
 import type { Ability, Item } from "../src/data/types.ts";
 import { badgeName, ELITE_PATH_MIN_RATE, eliteAbilityOrder, eliteMaxFirst, heroElite } from "../src/meta/elite.ts";
+import type { ItemWpa } from "../src/meta/wpa.ts";
 import { componentTree, heroAbilities, findHero, progressionFromSouls, MAX_ACTIVE_ITEMS } from "../src/engine/index.ts";
 import { heroItemFit, itemPairLinks, topLinks, type Link } from "../src/interactions/synergy.ts";
 import type { Metrics } from "../src/optimizer/metrics.ts";
@@ -586,10 +587,7 @@ function purchaseList(app: App, result: OptimizeResult, heroId: number): HTMLEle
                 "span",
                 {
                   class: `chip ${step.matchPrior.factor > 1 ? "chip-combo" : "chip-warn"}`,
-                  title: tr(
-                    `Comprado aos ${step.matchPrior.window}, vence ${fmt1(step.matchPrior.delta)} pp contra os outros itens do mesmo tier (± ${fmt1(step.matchPrior.margin)}, ${step.matchPrior.matches} partidas). O ganho por soul do modelo foi multiplicado por ${step.matchPrior.factor.toFixed(2)}.`,
-                    `Bought at ${step.matchPrior.window}, wins ${fmt1(step.matchPrior.delta)} pp against the other items of the same tier (± ${fmt1(step.matchPrior.margin)}, ${step.matchPrior.matches} matches). The model's gain per soul was multiplied by ${step.matchPrior.factor.toFixed(2)}.`,
-                  ),
+                  title: matchPriorText(step.matchPrior),
                 },
                 tr(`partidas ×${step.matchPrior.factor.toFixed(2)}`, `matches ×${step.matchPrior.factor.toFixed(2)}`),
               )
@@ -625,6 +623,32 @@ function purchaseList(app: App, result: OptimizeResult, heroId: number): HTMLEle
       h("div", { class: "buy-side" }, h("span", { class: "gain", title: tr("Ganho na pontuação do objetivo com esta compra", "Gain in the goal score from this purchase") }, `${gain >= 0 ? "+" : "−"}${fmt(Math.abs(gain) * 100)} pts`)),
     );
   }
+}
+
+/** Dica do chip "partidas ×N": de onde veio o Δ e quanto ele mudou o ganho por soul. */
+function matchPriorText(p: NonNullable<OptimizeResult["order"][number]["matchPrior"]>): string {
+  const d = `${signedPp(p.delta)} ± ${fmt1(p.margin)}`;
+  const factor = tr(` O ganho por soul do modelo foi multiplicado por ${p.factor.toFixed(2)}.`, ` The model's gain per soul was multiplied by ${p.factor.toFixed(2)}.`);
+  if (p.source === "wpa")
+    return (
+      tr(
+        `Vitória acima do esperado pelo placar de patrimônio na hora da compra: ${d} contra os outros itens do mesmo tier (${fmt(p.matches)} compras).`,
+        `Wins above expectation given the net worth score at purchase time: ${d} vs other items of the same tier (${fmt(p.matches)} purchases).`,
+      ) + factor
+    );
+  if (p.source === "blend")
+    return (
+      tr(
+        `Partidas, combinando o winrate comprado aos ${p.window} com a vitória acima do esperado pelo placar de patrimônio (que tira o viés de quem já está ganhando): ${d} contra os outros itens do mesmo tier.`,
+        `Matches, combining the winrate when bought at ${p.window} with wins above expectation given the net worth score (which removes the bias of players already winning): ${d} vs other items of the same tier.`,
+      ) + factor
+    );
+  return (
+    tr(
+      `Comprado aos ${p.window}, vence ${d} contra os outros itens do mesmo tier (${fmt(p.matches)} partidas).`,
+      `Bought at ${p.window}, wins ${d} against the other items of the same tier (${fmt(p.matches)} matches).`,
+    ) + factor
+  );
 }
 
 const confidenceHint = () => ({
@@ -673,6 +697,7 @@ function whyBlock(why: Recommendation): HTMLElement | null {
       ),
     ),
     why.observed ? observedLine(why.observed) : null,
+    why.observed?.wpa ? wpaLine(why.observed.wpa) : null,
     h(
       "details",
       { class: "why-details" },
@@ -702,6 +727,31 @@ function whyBlock(why: Recommendation): HTMLElement | null {
 }
 
 const signedPp = (x: number) => `${x >= 0 ? "+" : "−"}${fmt1(Math.abs(x))} pp`;
+
+/** Vitória acima do esperado pelo estado da partida na hora da compra, e se o item rende mais atrás ou à frente. */
+function wpaLine(w: ItemWpa): HTMLElement {
+  const lean =
+    w.lean === "comeback"
+      ? tr(
+          ` Rende mais comprado atrás (${signedPp(w.behind!)}) do que à frente (${signedPp(w.ahead!)}): item de virada.`,
+          ` Pays off more when bought behind (${signedPp(w.behind!)}) than ahead (${signedPp(w.ahead!)}): a comeback item.`,
+        )
+      : w.lean === "win-more"
+        ? tr(
+            ` Rende mais comprado à frente (${signedPp(w.ahead!)}) do que atrás (${signedPp(w.behind!)}): ajuda a fechar, pouco a virar.`,
+            ` Pays off more when bought ahead (${signedPp(w.ahead!)}) than behind (${signedPp(w.behind!)}): helps close out, little to turn things around.`,
+          )
+        : "";
+  return h(
+    "p",
+    { class: "why-facts" },
+    tr(
+      `Pelo placar de patrimônio na hora da compra: ${signedPp(w.relative)} ± ${fmt1(w.margin)} de vitória acima do esperado contra os outros itens do mesmo tier (${fmt(w.purchases)} compras).`,
+      `Given the net worth score at purchase time: ${signedPp(w.relative)} ± ${fmt1(w.margin)} wins above expectation vs other items of the same tier (${fmt(w.purchases)} purchases).`,
+    ),
+    lean,
+  );
+}
 
 /** O que as partidas dizem, no mesmo momento da compra (ou a média do herói, sem janela). */
 function observedLine(o: NonNullable<Recommendation["observed"]>): HTMLElement {

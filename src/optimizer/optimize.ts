@@ -11,6 +11,7 @@ import { type BuildResult, abilityPointsSpent, componentTree, equippedItems, eva
 import { MID_GAME_MINUTE, VITALITY_SPIKE_SOULS } from "../engine/rules.ts";
 import { heroMeta, midGameSouls, minuteForSouls, popularAtSouls, tierGates } from "../meta/stats.ts";
 import { compareInWindow, priorFactor, tierPrior, type TierPrior } from "../meta/windows.ts";
+import { blendPriors, wpaPrior } from "../meta/wpa.ts";
 import { SELL_REFUND } from "../engine/rules.ts";
 import { computeMetrics, DEFAULT_METRIC_OPTIONS, OBJECTIVES, score, type MetricOptions, type Metrics, type Objective, type Weights } from "./metrics.ts";
 import type { PlanId, ScenarioId } from "../combat/value.ts";
@@ -71,10 +72,21 @@ export interface OptimizeInput {
    * comprados na mesma janela (encolhido pela incerteza). 0 desliga.
    */
   matchWeight?: number;
+  /**
+   * De onde vem o Δ do peso das partidas: "window" = winrate na janela de compra
+   * (windows.json); "wpa" = vitória acima do esperado pelo placar de patrimônio na
+   * hora da compra (wpa.json), que tira o viés de quem compra já estar ganhando.
+   * "blend" = as duas pesadas pela precisão (src/meta/wpa.ts, blendPriors). Padrão:
+   * DEFAULT_MATCH_SOURCE quando o snapshot tem wpa.json; sem ele, "window".
+   */
+  matchSource?: "window" | "wpa" | "blend";
 }
 
 /** Peso padrão das partidas na escolha das compras (ver `matchWeight`). */
 export const DEFAULT_MATCH_WEIGHT = 1;
+
+/** Fonte padrão do peso das partidas quando o snapshot tem wpa.json (ver `matchSource`). */
+export const DEFAULT_MATCH_SOURCE: "window" | "wpa" | "blend" = "blend";
 
 export interface VitalitySpike {
   /** Souls em vitality que formam o pico. */
@@ -360,11 +372,23 @@ export function optimize(data: GameData, input: OptimizeInput, memo: EvaluationM
       return m;
     };
     const priorCache = new Map<string, TierPrior | null>();
+    const source = data.wpa ? (input.matchSource ?? DEFAULT_MATCH_SOURCE) : "window";
+    // O WPA já condiciona no estado da partida, então não depende do minuto.
+    const wpaCache = new Map<string, TierPrior | null>();
+    const wpaOf = (item: Item) => {
+      if (!wpaCache.has(item.className)) wpaCache.set(item.className, wpaPrior(data, hero.id, item));
+      return wpaCache.get(item.className)!;
+    };
     const priorOf = (item: Item, souls: number) => {
       if (matchWeight <= 0) return null;
       const minute = minuteAt(souls);
       const key = `${item.className}|${minute}`;
-      if (!priorCache.has(key)) priorCache.set(key, tierPrior(data, hero.id, item, minute));
+      if (!priorCache.has(key)) {
+        const window = source === "wpa" ? null : tierPrior(data, hero.id, item, minute);
+        // Sem dados da fonte pedida, cai para a outra.
+        const prior = source === "window" ? window : source === "wpa" ? (wpaOf(item) ?? tierPrior(data, hero.id, item, minute)) : blendPriors(window, wpaOf(item));
+        priorCache.set(key, prior);
+      }
       return priorCache.get(key)!;
     };
     const factorOf = (item: Item, souls: number) => priorFactor(priorOf(item, souls), matchWeight);
