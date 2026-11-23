@@ -1,4 +1,5 @@
-import type { Item } from "../src/data/types.ts";
+import type { Ability, Item } from "../src/data/types.ts";
+import { badgeName, ELITE_PATH_MIN_RATE, eliteAbilityOrder, eliteMaxFirst, heroElite } from "../src/meta/elite.ts";
 import { componentTree, heroAbilities, findHero, progressionFromSouls, MAX_ACTIVE_ITEMS } from "../src/engine/index.ts";
 import { heroItemFit, itemPairLinks, topLinks, type Link } from "../src/interactions/synergy.ts";
 import type { Metrics } from "../src/optimizer/metrics.ts";
@@ -898,10 +899,95 @@ function abilityPlan(app: App, result: OptimizeResult): HTMLElement {
         );
       }),
     ),
+    eliteAbilities(app, hero.id, abilities),
   );
 }
 
-function comparisonCard(c: BuildComparison, app: OptimizeResult): HTMLElement {
+/** O que o elo alto faz com as habilidades: qual maximiza primeiro e a ordem mais jogada. */
+function eliteAbilities(app: App, heroId: number, abilities: Ability[]): HTMLElement | null {
+  const elite = heroElite(app.data, heroId);
+  if (!elite) return null;
+  const nameOf = (slot: number) => abilities.find((a) => a.slot === slot)?.name ?? `#${slot}`;
+  const maxFirst = eliteMaxFirst(app.data, heroId).filter((m) => m.share >= 0.1);
+  const order = eliteAbilityOrder(app.data, heroId, abilities);
+  const rank = `${badgeName(elite.badge)}+`;
+  return h(
+    "div",
+    { class: "elite-abilities" },
+    h("h3", {}, tr(`No elo alto (${rank})`, `In high elo (${rank})`)),
+    maxFirst.length
+      ? h(
+          "p",
+          {},
+          tr("Maximizam primeiro: ", "Max first: "),
+          maxFirst.flatMap((m, i) => [i ? ", " : "", h("strong", {}, nameOf(m.slot)), ` ${fmt1(m.share * 100)}%`]),
+          ".",
+        )
+      : null,
+    order
+      ? h(
+          "div",
+          {},
+          h(
+            "ol",
+            { class: "ability-order", "aria-label": tr("Ordem dos pontos de habilidade", "Ability point order") },
+            order.abilities.map((a, i) => h("li", { title: `${i + 1}. ${a.name}` }, icon(a.image, a.name, "ability-icon small"))),
+          ),
+          h(
+            "p",
+            { class: "hint" },
+            tr(
+              `Ordem completa mais jogada (desbloqueios e upgrades), em ${fmt1(order.share * 100)}% das ${fmt(elite.matches)} partidas. Os jogadores variam muito na ordem; o "maximizam primeiro" resume melhor.`,
+              `Most played full order (unlocks and upgrades), in ${fmt1(order.share * 100)}% of ${fmt(elite.matches)} matches. Players vary a lot in the order; "max first" sums it up better.`,
+            ),
+          ),
+        )
+      : null,
+  );
+}
+
+function eliteComparison(app: App, payload: BuildPayload, input: OptimizeInput): HTMLElement | null {
+  const c = payload.elite;
+  const elite = heroElite(app.data, findHero(app.data, input.hero).id);
+  if (!c || !elite || !app.data.elite) return null;
+  const rank = `${badgeName(elite.badge)}+`;
+  const top = fmt1(app.data.elite.share * 100);
+  return h(
+    "section",
+    { class: "compare" },
+    h("h2", {}, tr("Comparado com o elo alto", "Compared with high elo")),
+    h(
+      "p",
+      { class: "hint" },
+      tr(
+        `Itens que os jogadores de ${input.hero} em partidas ${rank} (cerca do top ${top}%) compram em pelo menos ${Math.round(ELITE_PATH_MIN_RATE * 100)}% das partidas, na ordem do minuto médio de compra, nos últimos ${app.data.elite.days} dias. Cortados nos mesmos souls e medidos pelo mesmo motor.`,
+        `Items that ${input.hero} players in ${rank} matches (about the top ${top}%) buy in at least ${Math.round(ELITE_PATH_MIN_RATE * 100)}% of matches, in order of average purchase minute, over the last ${app.data.elite.days} days. Cut at the same souls and measured by the same engine.`,
+      ),
+    ),
+    h(
+      "ol",
+      { class: "compare-list" },
+      comparisonCard(c, payload.result, {
+        title: tr(`Caminho ${rank}`, `${rank} path`),
+        summary: tr(
+          `${fmt(c.build.matches)} partidas do herói nesse elo, ${fmt1(c.winrate * 100)}% de vitória.`,
+          `${fmt(c.build.matches)} matches of the hero at this elo, ${fmt1(c.winrate * 100)}% win rate.`,
+        ),
+        column: tr("Elo alto", "High elo"),
+        listLabel: tr("Itens do elo alto até esses souls", "High elo items up to these souls"),
+      }),
+    ),
+  );
+}
+
+interface CardText {
+  title: string;
+  summary: string;
+  column: string;
+  listLabel: string;
+}
+
+function comparisonCard(c: BuildComparison, app: OptimizeResult, text?: CardText): HTMLElement {
   const shared = new Set(c.shared.map((i) => i.className));
   const cm = c.result.metrics;
   const am = app.metrics;
@@ -914,11 +1000,11 @@ function comparisonCard(c: BuildComparison, app: OptimizeResult): HTMLElement {
   return h(
     "li",
     { class: "compare-card" },
-    h("h3", {}, c.build.name || tr("Build sem nome", "Unnamed build")),
-    h("p", { class: "buy-meta" }, tr(`${fmt(c.build.matches)} partidas, ${fmt1(c.winrate * 100)}% de vitória.${spikeNote}`, `${fmt(c.build.matches)} matches, ${fmt1(c.winrate * 100)}% win rate.${spikeNote}`)),
+    h("h3", {}, text?.title ?? (c.build.name || tr("Build sem nome", "Unnamed build"))),
+    h("p", { class: "buy-meta" }, (text?.summary ?? tr(`${fmt(c.build.matches)} partidas, ${fmt1(c.winrate * 100)}% de vitória.`, `${fmt(c.build.matches)} matches, ${fmt1(c.winrate * 100)}% win rate.`)) + spikeNote),
     h(
       "ul",
-      { class: "compare-items", "aria-label": tr("Itens da build publicada até esses souls", "Items of the published build up to these souls") },
+      { class: "compare-items", "aria-label": text?.listLabel ?? tr("Itens da build publicada até esses souls", "Items of the published build up to these souls") },
       c.items.map((i) =>
         h(
           "li",
@@ -930,7 +1016,7 @@ function comparisonCard(c: BuildComparison, app: OptimizeResult): HTMLElement {
     h(
       "table",
       { class: "metrics compact" },
-      h("thead", {}, h("tr", {}, h("th", { scope: "col" }, tr("Pelo motor", "By the engine")), h("th", { scope: "col" }, tr("Publicada", "Published")), h("th", { scope: "col" }, "App"))),
+      h("thead", {}, h("tr", {}, h("th", { scope: "col" }, tr("Pelo motor", "By the engine")), h("th", { scope: "col" }, text?.column ?? tr("Publicada", "Published")), h("th", { scope: "col" }, "App"))),
       h(
         "tbody",
         {},
@@ -1144,6 +1230,7 @@ function resultView(app: App, payload: BuildPayload, input: OptimizeInput, statu
       ),
     ),
     theoriesSection(app, hero.id),
+    eliteComparison(app, payload, input),
     comparison(app, payload, input),
   );
 }

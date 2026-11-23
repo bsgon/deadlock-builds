@@ -30,6 +30,7 @@
     "knowledge": "node scripts/knowledge.ts",
     "theory": "node scripts/theory.ts",
     "windows": "node scripts/windows.ts",
+    "elite": "node scripts/elite.ts",
     "fights": "node scripts/fights.ts"
   },
   "devDependencies": {

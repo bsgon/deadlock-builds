@@ -9,7 +9,7 @@ import type { GameData, Item } from "../src/data/types.ts";
 import { findHero } from "../src/engine/index.ts";
 import { buildPlay, situationalOptions, type Situational } from "../src/combat/explain.ts";
 import type { PlanId, PlayReport } from "../src/combat/value.ts";
-import { compareWithPopular, type BuildComparison } from "../src/meta/compare.ts";
+import { compareWithElite, compareWithPopular, type BuildComparison } from "../src/meta/compare.ts";
 import { heroMeta } from "../src/meta/stats.ts";
 import { optimize, type OptimizeInput, type OptimizeResult } from "../src/optimizer/optimize.ts";
 import { validateRoute, type RouteIssue } from "../src/optimizer/route.ts";
@@ -25,6 +25,8 @@ export interface BuildPayload {
   issues: RouteIssue[];
   /** Builds publicadas medidas pelo motor; null quando o herói não tem estatísticas. */
   comparisons: BuildComparison[] | null;
+  /** Caminho de itens do elo alto medido pelo motor; null sem elite.json ou sem itens que caibam. */
+  elite: BuildComparison | null;
 }
 
 export function computeBuild(data: GameData, input: OptimizeInput): BuildPayload {
@@ -36,7 +38,8 @@ export function computeBuild(data: GameData, input: OptimizeInput): BuildPayload
   const situational = plan === "control" ? situationalOptions(data, ctx, classes, data.items.filter((i) => i.isActive && i.tier <= 4 && i.cost <= result.souls / 4)) : [];
   const issues = validateRoute(data, result, input.itemSlots ?? 9);
   const comparisons = heroMeta(data, findHero(data, input.hero).id) ? compareWithPopular(data, result, input) : null;
-  return { result, plan, scenarios: report.scenarios, situational, issues, comparisons };
+  const elite = compareWithElite(data, result, input);
+  return { result, plan, scenarios: report.scenarios, situational, issues, comparisons, elite };
 }
 
 /** Os mesmos dados sem os ícones (na página publicada são data URIs: pesam e o worker não desenha nada). */

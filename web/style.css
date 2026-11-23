@@ -1004,6 +1004,33 @@ input[type="search"] {
   overflow-wrap: anywhere;
 }
 
+/* Habilidades no elo alto */
+.elite-abilities {
+  display: grid;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--line);
+}
+
+.elite-abilities h3 {
+  font-size: 1rem;
+}
+
+.ability-order {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+  list-style: none;
+  padding: 0;
+}
+
+.ability-icon.small {
+  width: 1.75rem;
+  height: 1.75rem;
+  padding: 0.125rem;
+}
+
 .compare-items {
   display: flex;
   flex-wrap: wrap;

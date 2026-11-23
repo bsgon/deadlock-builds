@@ -2,6 +2,7 @@
 import type { MetaStats } from "../meta/stats.ts";
 import type { PurchaseWindows } from "../meta/windows.ts";
 import type { FightProfile } from "../meta/fights.ts";
+import type { EliteStats } from "../meta/elite.ts";
 import type { Interaction } from "../knowledge/interactions.ts";
 import type { Theory } from "../knowledge/theories.ts";
 
@@ -168,6 +169,8 @@ export interface GameData {
   windows?: PurchaseWindows;
   /** Perfil das lutas medido nas partidas (data/snapshot/fights.json, `npm run fights`), se existir. */
   fights?: FightProfile;
+  /** Itens e ordem de habilidades do elo alto (data/snapshot/elite.json, `npm run elite`), se existir. */
+  elite?: EliteStats;
   /** Traduções para o inglês dos textos dos dados (português → inglês; data/snapshot/i18n-en.json), se existirem. */
   translations?: Record<string, string>;
 }

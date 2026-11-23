@@ -87,6 +87,9 @@ async function loadData(): Promise<GameData> {
   const fights = await fetch("./fights.json")
     .then((res) => (res.ok ? res.json() : undefined))
     .catch(() => undefined);
+  const elite = await fetch("./elite.json")
+    .then((res) => (res.ok ? res.json() : undefined))
+    .catch(() => undefined);
   // Traduções dos textos dos dados: só baixa quando a página está em inglês.
   const translations =
     lang() === "en"
@@ -94,7 +97,7 @@ async function loadData(): Promise<GameData> {
           .then((res) => (res.ok ? res.json() : undefined))
           .catch(() => undefined)
       : undefined;
-  return withoutBrawlItems({ meta, shared, heroes, abilities, items, ...(stats ? { stats } : {}), ...(knowledge ? { knowledge } : {}), ...(theories ? { theories } : {}), ...(windows ? { windows } : {}), ...(fights ? { fights } : {}), ...(translations ? { translations } : {}) });
+  return withoutBrawlItems({ meta, shared, heroes, abilities, items, ...(stats ? { stats } : {}), ...(knowledge ? { knowledge } : {}), ...(theories ? { theories } : {}), ...(windows ? { windows } : {}), ...(fights ? { fights } : {}), ...(elite ? { elite } : {}), ...(translations ? { translations } : {}) });
 }
 
 const root = document.getElementById("app")!;

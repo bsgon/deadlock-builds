@@ -22,6 +22,7 @@ npm run build-for -- Paige --objective control   # build pelo terminal
 npm run artifact     # página única em dist-artifact/index.html
 npm run update       # atualiza os dados depois de um patch
 npm run fights       # mede duração e tamanho das lutas em partidas recentes
+npm run elite        # itens e ordem de habilidades do elo alto (Ascendant 1+)
 ```
 
 Requer Node 22.18 ou mais novo.
