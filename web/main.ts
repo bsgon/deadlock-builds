@@ -7,6 +7,7 @@ import { BuildClient } from "./build-client.ts";
 import { renderBuildView } from "./build-view.ts";
 import { h } from "./dom.ts";
 import { renderSynergyView } from "./synergy-view.ts";
+import { hideTip } from "./tooltip.ts";
 
 /** Objetivos da tela: os do motor mais o "Padrão do arquétipo" (pesos tirados do arquétipo). */
 export type UiObjective = "optimized" | "weapon" | "spirit" | "survival" | "control" | "archetype";
@@ -125,6 +126,7 @@ function render(app: App): void {
     h("a", { href: "https://deadlock-api.com", target: "_blank", rel: "noopener" }, "deadlock-api.com"),
     ".",
   );
+  hideTip();
   root.replaceChildren(header, view, footer);
 }
 

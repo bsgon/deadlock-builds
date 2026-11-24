@@ -16,6 +16,7 @@ import type { Theory, TheoryKind } from "../src/knowledge/theories.ts";
 import { controlBreakdown, DEFAULT_METRIC_OPTIONS } from "../src/optimizer/metrics.ts";
 import { delta, fmt, fmt1, h, icon } from "./dom.ts";
 import type { App } from "./main.ts";
+import { abilityIcon, itemIcon, withItemTip } from "./tooltip.ts";
 import type { Recommendation } from "../src/combat/explain.ts";
 import { SCENARIO_LABEL, scenarioMix, type ScenarioId } from "../src/combat/value.ts";
 import { phaseLabel, phaseOf } from "../src/optimizer/route.ts";
@@ -275,19 +276,19 @@ function archetypeSection(app: App, heroId: number): HTMLElement | null {
 }
 
 /** Trilha de souls: cada compra ocupa uma fatia proporcional ao custo. */
-function soulTrack(result: OptimizeResult): HTMLElement {
+function soulTrack(app: App, result: OptimizeResult): HTMLElement {
   const total = Math.max(result.souls, 1);
   const segments = result.order.map((step, i) =>
-    h(
+    withItemTip(app, step.item, h(
       "li",
       {
         class: `seg seg-${step.item.slot}`,
         style: `flex-grow:${step.cost}`,
-        title: tr(`${i + 1}. ${step.item.name}: ${fmt(step.cost)} souls (acumulado ${fmt(step.spent)})`, `${i + 1}. ${step.item.name}: ${fmt(step.cost)} souls (total ${fmt(step.spent)})`),
+        "aria-label": tr(`${i + 1}. ${step.item.name}: ${fmt(step.cost)} souls (acumulado ${fmt(step.spent)})`, `${i + 1}. ${step.item.name}: ${fmt(step.cost)} souls (total ${fmt(step.spent)})`),
         "data-step": i,
       },
       icon(step.item.image, step.item.name, "seg-icon"),
-    ),
+    )),
   );
   const left = result.souls - result.spent;
   if (left > 0) segments.push(h("li", { class: "seg seg-left", style: `flex-grow:${left}`, title: tr(`${fmt(left)} souls sem uso`, `${fmt(left)} souls unused`) }));
@@ -378,7 +379,7 @@ function theoriesSection(app: App, heroId: number): HTMLElement | null {
       h(
         "ul",
         { class: "compare-items", "aria-label": tr("Itens da teoria", "Theory items") },
-        t.items.map((c) => byClass.get(c)).filter((i) => i !== undefined).map((i) => h("li", { title: i.name }, icon(i.image, i.name, `item-icon small buy-${i.slot}`))),
+        t.items.map((c) => byClass.get(c)).filter((i) => i !== undefined).map((i) => h("li", {}, itemIcon(app, i, `item-icon small buy-${i.slot}`))),
       ),
       h(
         "p",
@@ -456,7 +457,7 @@ function swapList(result: OptimizeResult): HTMLElement | null {
   );
 }
 
-function finalBuild(result: OptimizeResult, slots: number): HTMLElement {
+function finalBuild(app: App, result: OptimizeResult, slots: number): HTMLElement {
   const items = [...result.items].sort((a, b) => SLOT_ORDER[a.slot] - SLOT_ORDER[b.slot] || b.tier - a.tier || b.cost - a.cost);
   const actives = items.filter((i) => i.isActive).length;
   const sales = result.order.filter((s) => s.sold).length;
@@ -474,8 +475,8 @@ function finalBuild(result: OptimizeResult, slots: number): HTMLElement {
     ...items.map((item) =>
       h(
         "li",
-        { class: `final-item buy-${item.slot}`, title: `${item.name}: ${slotLabel()[item.slot]}, tier ${item.tier}, ${fmt(item.cost)} souls${item.isActive ? active : ""}` },
-        icon(item.image, item.name, `item-icon buy-${item.slot}`),
+        { class: `final-item buy-${item.slot}` },
+        itemIcon(app, item, `item-icon buy-${item.slot}`),
         h("span", { class: "final-name" }, item.name),
         h("span", { class: "final-meta" }, `T${item.tier}${item.isActive ? active : ""}`),
       ),
@@ -551,7 +552,7 @@ function purchaseList(app: App, result: OptimizeResult, heroId: number): HTMLEle
     return h(
       "li",
       { class: `buy buy-${step.item.slot}` },
-      icon(step.item.image, step.item.name, "item-icon"),
+      itemIcon(app, step.item, "item-icon"),
       h(
         "div",
         { class: "buy-main" },
@@ -939,7 +940,7 @@ function abilityPlan(app: App, result: OptimizeResult): HTMLElement {
         return h(
           "li",
           {},
-          icon(a.image, a.name, "ability-icon"),
+          abilityIcon(a, "ability-icon"),
           h("span", { class: "ability-name" }, a.name),
           h(
             "span",
@@ -981,7 +982,7 @@ function eliteAbilities(app: App, heroId: number, abilities: Ability[]): HTMLEle
           h(
             "ol",
             { class: "ability-order", "aria-label": tr("Ordem dos pontos de habilidade", "Ability point order") },
-            order.abilities.map((a, i) => h("li", { title: `${i + 1}. ${a.name}` }, icon(a.image, a.name, "ability-icon small"))),
+            order.abilities.map((a) => h("li", {}, abilityIcon(a, "ability-icon small"))),
           ),
           h(
             "p",
@@ -1017,7 +1018,7 @@ function eliteComparison(app: App, payload: BuildPayload, input: OptimizeInput):
     h(
       "ol",
       { class: "compare-list" },
-      comparisonCard(c, payload.result, {
+      comparisonCard(app, c, payload.result, {
         title: tr(`Caminho ${rank}`, `${rank} path`),
         summary: tr(
           `${fmt(c.build.matches)} partidas do herói nesse elo, ${fmt1(c.winrate * 100)}% de vitória.`,
@@ -1037,10 +1038,10 @@ interface CardText {
   listLabel: string;
 }
 
-function comparisonCard(c: BuildComparison, app: OptimizeResult, text?: CardText): HTMLElement {
+function comparisonCard(app: App, c: BuildComparison, ours: OptimizeResult, text?: CardText): HTMLElement {
   const shared = new Set(c.shared.map((i) => i.className));
   const cm = c.result.metrics;
-  const am = app.metrics;
+  const am = ours.metrics;
   const cell = (label: string, theirs: number, ours: number) => h("tr", {}, h("th", { scope: "row" }, label), h("td", {}, fmt(theirs)), h("td", {}, fmt(ours)));
   const v = c.result.vitality;
   const spikeNote =
@@ -1058,8 +1059,8 @@ function comparisonCard(c: BuildComparison, app: OptimizeResult, text?: CardText
       c.items.map((i) =>
         h(
           "li",
-          { class: shared.has(i.className) ? "in-both" : "", title: `${i.name}${shared.has(i.className) ? tr(" (também na build do app)", " (also in the app's build)") : ""}` },
-          icon(i.image, i.name, `item-icon small buy-${i.slot}`),
+          { class: shared.has(i.className) ? "in-both" : "" },
+          itemIcon(app, i, `item-icon small buy-${i.slot}`),
         ),
       ),
     ),
@@ -1072,7 +1073,7 @@ function comparisonCard(c: BuildComparison, app: OptimizeResult, text?: CardText
         {},
         cell(tr("Dano total/s", "Total damage/s"), cm.totalDps, am.totalDps),
         cell(tr("Vida efetiva", "Effective HP"), cm.ehp, am.ehp),
-        cell(tr("Pontos", "Points"), c.result.score * 100, app.score * 100),
+        cell(tr("Pontos", "Points"), c.result.score * 100, ours.score * 100),
       ),
     ),
     h(
@@ -1110,7 +1111,7 @@ function comparison(app: App, payload: BuildPayload, input: OptimizeInput): HTML
       ),
     ),
     cards.length
-      ? h("ol", { class: "compare-list" }, cards.map((c) => comparisonCard(c, result)))
+      ? h("ol", { class: "compare-list" }, cards.map((c) => comparisonCard(app, c, result)))
       : h("p", { class: "empty" }, tr("Nenhuma build publicada tem itens que caibam nesses souls.", "No published build has items that fit these souls.")),
   );
 }
@@ -1255,8 +1256,8 @@ function resultView(app: App, payload: BuildPayload, input: OptimizeInput, statu
         `Level ${progression.level} with ${fmt(input.souls)} souls. ${result.items.length} ${result.items.length === 1 ? "item" : "items"} in ${slots} slots, ${fmt1(result.score)}× the hero's score with no items.${defenseNote(result)}`,
       ),
     ),
-    soulTrack(result),
-    finalBuild(result, slots),
+    soulTrack(app, result),
+    finalBuild(app, result, slots),
     h(
       "div",
       { class: "columns" },

@@ -1153,3 +1153,65 @@ input[type="search"] {
     background: var(--brass);
   }
 }
+
+/* Mouse-over de itens e habilidades */
+.tip {
+  position: fixed;
+  z-index: 100;
+  width: max-content;
+  max-width: min(22rem, calc(100vw - 1rem));
+  max-height: calc(100vh - 1rem);
+  overflow: hidden;
+  padding: 0.75rem 0.875rem;
+  background: var(--panel);
+  border: 1px solid var(--brass);
+  border-radius: 0.375rem;
+  box-shadow: 0 0.5rem 1.5rem rgb(0 0 0 / 0.5);
+  font-size: 0.875rem;
+  line-height: 1.4;
+  pointer-events: none;
+}
+
+.tip[hidden] {
+  display: none;
+}
+
+.tip-title {
+  font: 700 1.125rem/1.2 var(--display);
+}
+
+.tip-meta {
+  color: var(--muted);
+}
+
+.tip-section,
+.tip-footer {
+  margin-top: 0.5rem;
+  padding-top: 0.5rem;
+  border-top: 1px solid var(--line);
+}
+
+.tip-label,
+.tip-footer {
+  color: var(--brass);
+}
+
+.tip dl {
+  margin: 0.25rem 0 0;
+}
+
+.tip dl > div {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.tip dt {
+  color: var(--muted);
+}
+
+.tip dd {
+  margin: 0;
+  font-weight: 600;
+  text-align: right;
+}

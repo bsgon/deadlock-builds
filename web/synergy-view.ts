@@ -5,6 +5,7 @@ import { reasonItem } from "./build-view.ts";
 import { fmt, fmt1, h, icon } from "./dom.ts";
 import type { App } from "./main.ts";
 import { tr } from "../src/i18n.ts";
+import { itemIcon, withItemTip } from "./tooltip.ts";
 
 const slotLabel = (): Record<Slot, string> => ({ weapon: tr("Arma", "Weapon"), vitality: tr("Vitalidade", "Vitality"), spirit: "Spirit" });
 const SLOTS: Slot[] = ["weapon", "vitality", "spirit"];
@@ -28,13 +29,13 @@ function picker(app: App, selected: Item): HTMLElement {
               h(
                 "li",
                 {},
-                h(
+                withItemTip(app, item, h(
                   "button",
                   { class: `pick pick-${slot}`, "aria-current": String(item.name === selected.name), onclick: () => app.update({ item: item.name }) },
                   icon(item.image, item.name, "item-icon small"),
                   h("span", {}, item.name),
                   h("span", { class: "cost" }, fmt(item.cost)),
-                ),
+                )),
               ),
             ),
           ),
@@ -65,7 +66,7 @@ export function renderSynergyView(app: App): HTMLElement {
     h(
       "li",
       { class: `buy buy-${p.item.slot}` },
-      icon(p.item.image, p.item.name, "item-icon"),
+      itemIcon(app, p.item, "item-icon"),
       h(
         "div",
         { class: "buy-main" },
@@ -111,7 +112,7 @@ export function renderSynergyView(app: App): HTMLElement {
     h(
       "header",
       { class: "result-head" },
-      icon(item.image, item.name, `item-icon big buy-${item.slot}`),
+      itemIcon(app, item, `item-icon big buy-${item.slot}`),
       h("div", {}, h("h1", {}, item.name), h("p", {}, `${slotLabel()[item.slot]}, tier ${item.tier}, ${fmt(item.cost)} souls. ${effect}`)),
     ),
     h(
