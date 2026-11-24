@@ -1,5 +1,5 @@
 import type { Ability, Item } from "../src/data/types.ts";
-import { badgeName, ELITE_PATH_MIN_RATE, eliteAbilityOrder, eliteMaxFirst, heroElite } from "../src/meta/elite.ts";
+import { abilityPoints, badgeName, ELITE_PATH_MIN_RATE, eliteMaxFirst, heroElite } from "../src/meta/elite.ts";
 import type { ItemWpa } from "../src/meta/wpa.ts";
 import { componentTree, heroAbilities, findHero, progressionFromSouls, MAX_ACTIVE_ITEMS } from "../src/engine/index.ts";
 import { heroItemFit, itemPairLinks, topLinks, type Link } from "../src/interactions/synergy.ts";
@@ -933,75 +933,63 @@ function metricsTable(result: OptimizeResult, ref: ReferenceBuild | null, notes:
   );
 }
 
-function abilityPlan(app: App, result: OptimizeResult): HTMLElement {
-  const hero = findHero(app.data, result.hero);
-  const abilities = heroAbilities(app.data, hero);
+/** Ordem de desbloqueio e upgrades no elo alto: uma linha por habilidade, uma coluna por ponto. */
+function abilityPlan(app: App, heroId: number): HTMLElement | null {
+  const elite = heroElite(app.data, heroId);
+  const order = abilityPoints(elite);
+  if (!elite || !order) return null;
+  const abilities = heroAbilities(app.data, findHero(app.data, app.data.heroes.find((x) => x.id === heroId)!.name));
+  const nameOf = (slot: number) => abilities.find((a) => a.slot === slot)?.name ?? `#${slot}`;
+  const maxFirst = eliteMaxFirst(app.data, heroId).filter((m) => m.share >= 0.1);
+  const rank = `${badgeName(elite.badge)}+`;
+  const title = tr("Ordem das habilidades", "Ability order");
+  const what = (tier: number) => (tier === 0 ? tr("desbloqueio", "unlock") : `upgrade ${tier}`);
+  const row = (a: Ability) =>
+    h(
+      "tr",
+      {},
+      h("th", { scope: "row" }, abilityIcon(a, "ability-icon"), h("span", {}, a.name)),
+      order.points.map((p, i) => {
+        if (p.slot !== a.slot) return h("td", {});
+        const label = tr(`Ponto ${i + 1}: ${what(p.tier)} de ${a.name}`, `Point ${i + 1}: ${a.name} ${what(p.tier)}`);
+        const cell = h("button", { class: p.tier === 0 ? "point unlock" : "point", type: "button", "aria-label": label }, p.tier === 0 ? "+" : String(p.tier));
+        const facts = [
+          p.minute === null ? "" : tr(`Por volta de ${fmt1(p.minute)} min.`, `Around ${fmt1(p.minute)} min.`),
+          p.share === null ? "" : tr(`Escolha de ${fmt(p.share * 100)}% de quem fez os mesmos pontos antes.`, `Picked by ${fmt(p.share * 100)}% of those with the same earlier points.`),
+        ].filter(Boolean);
+        return h("td", {}, withTip(cell, () => tipBody({ title: label, sections: facts.map((text) => ({ text })) })));
+      }),
+    );
   return h(
     "section",
     { class: "abilities" },
-    h("h2", {}, tr("Upgrades de habilidade", "Ability upgrades")),
     h(
-      "ul",
+      "h2",
       {},
-      abilities.map((a) => {
-        const tier = result.abilityTiers[a.slot - 1] ?? 0;
-        return h(
-          "li",
-          {},
-          abilityIcon(a, "ability-icon"),
-          h("span", { class: "ability-name" }, a.name),
-          h(
-            "span",
-            { class: "pips", role: "img", "aria-label": tr(`${tier} de 3 upgrades`, `${tier} of 3 upgrades`) },
-            [1, 2, 3].map((t) => h("i", { class: t <= tier ? "pip on" : "pip" })),
-          ),
-        );
-      }),
+      title,
+      " ",
+      infoTip(
+        title,
+        order.source === "path"
+          ? tr(
+              `O ponto mais jogado a cada passo entre ${fmt(elite.matches)} partidas ${rank}, seguindo o caminho até ali. O último ponto vem de ${fmt(elite.path?.at(-1)?.matches ?? 0)} partidas: no fim da ordem os jogadores variam mais.`,
+              `The most played point at each step among ${fmt(elite.matches)} ${rank} matches, following the path so far. The last point comes from ${fmt(elite.path?.at(-1)?.matches ?? 0)} matches: players vary more late in the order.`,
+            )
+          : tr(`A sequência completa mais jogada em partidas ${rank}.`, `The most played full sequence in ${rank} matches.`),
+      ),
     ),
-    eliteAbilities(app, hero.id, abilities),
-  );
-}
-
-/** O que o elo alto faz com as habilidades: qual maximiza primeiro e a ordem mais jogada. */
-function eliteAbilities(app: App, heroId: number, abilities: Ability[]): HTMLElement | null {
-  const elite = heroElite(app.data, heroId);
-  if (!elite) return null;
-  const nameOf = (slot: number) => abilities.find((a) => a.slot === slot)?.name ?? `#${slot}`;
-  const maxFirst = eliteMaxFirst(app.data, heroId).filter((m) => m.share >= 0.1);
-  const order = eliteAbilityOrder(app.data, heroId, abilities);
-  const rank = `${badgeName(elite.badge)}+`;
-  return h(
-    "div",
-    { class: "elite-abilities" },
-    h("h3", {}, tr(`No elo alto (${rank})`, `In high elo (${rank})`)),
-    maxFirst.length
-      ? h(
-          "p",
-          {},
-          tr("Maximizam primeiro: ", "Max first: "),
-          maxFirst.flatMap((m, i) => [i ? ", " : "", h("strong", {}, nameOf(m.slot)), ` ${fmt1(m.share * 100)}%`]),
-          ".",
-        )
-      : null,
-    order
-      ? h(
-          "div",
-          {},
-          h(
-            "ol",
-            { class: "ability-order", "aria-label": tr("Ordem dos pontos de habilidade", "Ability point order") },
-            order.abilities.map((a) => h("li", {}, abilityIcon(a, "ability-icon small"))),
-          ),
-          h(
-            "p",
-            { class: "hint" },
-            tr(
-              `Ordem completa mais jogada (desbloqueios e upgrades), em ${fmt1(order.share * 100)}% das ${fmt(elite.matches)} partidas. Os jogadores variam muito na ordem; o "maximizam primeiro" resume melhor.`,
-              `Most played full order (unlocks and upgrades), in ${fmt1(order.share * 100)}% of ${fmt(elite.matches)} matches. Players vary a lot in the order; "max first" sums it up better.`,
-            ),
-          ),
-        )
-      : null,
+    maxFirst.length ? h("p", { class: "buy-meta" }, tr("Maximizam primeiro: ", "Max first: "), maxFirst.flatMap((m, i) => [i ? ", " : "", h("strong", {}, nameOf(m.slot)), ` ${fmt(m.share * 100)}%`])) : null,
+    h(
+      "div",
+      { class: "ability-scroll" },
+      h(
+        "table",
+        { class: "ability-grid" },
+        h("thead", {}, h("tr", {}, h("th", { scope: "col" }, h("span", { class: "point unlock legend" }, "+"), tr(" desbloqueia", " unlocks")), order.points.map((_, i) => h("th", { scope: "col" }, String(i + 1))))),
+        h("tbody", {}, abilities.map(row)),
+        order.source === "path" ? h("tfoot", {}, h("tr", {}, h("th", { scope: "row" }, tr("minuto", "minute")), order.points.map((p) => h("td", {}, p.minute === null ? "" : fmt(p.minute))))) : null,
+      ),
+    ),
   );
 }
 
@@ -1247,6 +1235,7 @@ function resultView(app: App, payload: BuildPayload, input: OptimizeInput, statu
     ),
     soulTrack(app, result),
     finalBuild(app, result, slots),
+    abilityPlan(app, hero.id),
     h(
       "div",
       { class: "columns" },
@@ -1263,7 +1252,6 @@ function resultView(app: App, payload: BuildPayload, input: OptimizeInput, statu
         ]),
         objective === "control" ? controlPanel(result, input.metric?.uptime ?? UPTIME) : null,
         playPanel(app, payload, input),
-        abilityPlan(app, result),
       ),
     ),
     theoriesSection(app, hero.id),

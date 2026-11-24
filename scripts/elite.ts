@@ -6,16 +6,18 @@
  *   npm run elite                 usa o cache de data/raw/elite quando existe
  *   npm run elite -- --refresh    baixa tudo de novo
  *   npm run elite -- --days 30    janela das partidas (padrão 30 dias)
+ *   npm run elite -- --orders     só refaz a ordem das habilidades, na mesma janela do elite.json atual
  *
  * Elo alto = badge médio da partida >= 101 (Ascendant 1, cerca do top 3%). Herói
  * com menos de MIN_MATCHES partidas nesse elo usa >= 91 (Phantom 1, cerca do top 10%).
- * Três chamadas por herói; leva por volta de um minuto sem cache.
+ * Quatro chamadas por herói; leva por volta de um minuto sem cache.
  */
 import { existsSync } from "node:fs";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { loadSnapshot } from "../src/data/load.ts";
+import { consensusPath, type OrderNode } from "../src/meta/elite.ts";
 import type { EliteAbilityOrder, EliteAbilityPick, EliteStats, HeroElite } from "../src/meta/elite.ts";
 import type { ItemUsage } from "../src/meta/stats.ts";
 
@@ -36,7 +38,12 @@ const GAP_MS = 350; // ~170 por minuto, abaixo do limite de 200
 const data = loadSnapshot();
 const itemById = new Map(data.items.map((i) => [i.id, i]));
 const slotByAbility = new Map(data.abilities.map((a) => [a.id, a.slot]));
-const since = Math.floor(Date.now() / 86_400_000) * 86400 - days * 86400;
+const outFile = join(root, "data", "snapshot", "elite.json");
+const ordersOnly = args.includes("--orders");
+const previous = ordersOnly ? (JSON.parse(await readFile(outFile, "utf8")) as EliteStats) : null;
+const since = previous
+  ? Math.floor(Date.parse(previous.fetchedAt) / 86_400_000) * 86400 - previous.days * 86400
+  : Math.floor(Date.now() / 86_400_000) * 86400 - days * 86400;
 await mkdir(cacheDir, { recursive: true });
 
 let lastCall = 0;
@@ -87,6 +94,19 @@ interface BadgeRow {
 }
 
 const range = `min_unix_timestamp=${since}&game_mode=normal`;
+const filterFor = (heroId: number, badge: number) => `${range}&hero_id=${heroId}&min_average_badge=${badge}`;
+const pathFor = async (heroId: number, badge: number) => consensusPath(await get<OrderNode[]>(`/v1/analytics/ability-order-tree?${filterFor(heroId, badge)}&min_matches=20`), (id) => slotByAbility.get(id));
+
+if (previous) {
+  for (const elite of Object.values(previous.heroes)) {
+    elite.path = await pathFor(elite.heroId, elite.badge);
+    console.log(`${data.heroes.find((h) => h.id === elite.heroId)?.name}: ${elite.path.length} pontos, ${elite.path.at(-1)?.matches ?? 0} partidas no último`);
+  }
+  await writeFile(outFile, JSON.stringify(previous));
+  console.log(`\nOrdem de habilidades refeita em data/snapshot/elite.json, ${calls} chamadas à API.`);
+  process.exit(0);
+}
+
 const badges = await get<BadgeRow[]>(`/v1/analytics/badge-distribution?${range}`);
 const allMatches = badges.reduce((s, r) => s + r.total_matches, 0);
 const share = badges.filter((r) => r.badge_level >= BADGE).reduce((s, r) => s + r.total_matches, 0) / Math.max(1, allMatches);
@@ -101,7 +121,7 @@ async function collect(hero: (typeof data.heroes)[number]): Promise<void> {
     return;
   }
   const total = totalsAt.get(badge)!.find((r) => r.hero_id === hero.id)!;
-  const filter = `${range}&hero_id=${hero.id}&min_average_badge=${badge}`;
+  const filter = filterFor(hero.id, badge);
 
   const items: Record<string, ItemUsage> = {};
   for (const row of await get<ItemStatRow[]>(`/v1/analytics/item-stats?${filter}&min_matches=20`)) {
@@ -127,7 +147,9 @@ async function collect(hero: (typeof data.heroes)[number]): Promise<void> {
     }
   }
 
-  heroes[String(hero.id)] = { heroId: hero.id, badge, matches: total.matches, wins: total.wins, items, maxFirst, order };
+  const path = await pathFor(hero.id, badge);
+
+  heroes[String(hero.id)] = { heroId: hero.id, badge, matches: total.matches, wins: total.wins, items, maxFirst, order, path };
   console.log(`${hero.name}: ${total.matches} partidas (badge ${badge}+), ${Object.keys(items).length} itens, ordem ${order ? `${order.matches} partidas` : "sem amostra"}`);
 }
 
@@ -143,5 +165,5 @@ for (const hero of data.heroes) {
 if (failed.length) console.log(`Sem dados por falha da API: ${failed.join(", ")}. Rode de novo para completar.`);
 
 const out: EliteStats = { fetchedAt: new Date().toISOString(), days, badge: BADGE, fallbackBadge: FALLBACK_BADGE, share, heroes };
-await writeFile(join(root, "data", "snapshot", "elite.json"), JSON.stringify(out));
+await writeFile(outFile, JSON.stringify(out));
 console.log(`\nGravado data/snapshot/elite.json: ${Object.keys(heroes).length} heróis, top ${(share * 100).toFixed(1)}% das partidas, ${calls} chamadas à API.`);

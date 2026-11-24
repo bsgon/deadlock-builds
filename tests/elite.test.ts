@@ -3,7 +3,7 @@ import { loadSnapshot } from "../src/data/load.ts";
 import type { GameData } from "../src/data/types.ts";
 import { findHero, heroAbilities } from "../src/engine/index.ts";
 import { compareWithElite } from "../src/meta/compare.ts";
-import { badgeName, eliteAbilityOrder, eliteMaxFirst, elitePath, type EliteStats } from "../src/meta/elite.ts";
+import { abilityPoints, badgeName, consensusPath, eliteAbilityOrder, eliteMaxFirst, elitePath, heroElite, type EliteStats } from "../src/meta/elite.ts";
 import { optimize } from "../src/optimizer/optimize.ts";
 
 const base = loadSnapshot();
@@ -79,5 +79,40 @@ describe("elo alto", () => {
     expect(cmp).not.toBeNull();
     expect(cmp.items.length).toBeGreaterThan(3);
     expect(cmp.items.reduce((s, i) => s + i.cost, 0)).toBeLessThanOrEqual(15_000);
+  });
+});
+
+describe("ordem de habilidades por consenso", () => {
+  const node = (abilities: number[], matches: number) => ({ abilities, matches, avg_upgrade_time_s: 60 * abilities.length });
+  const slotOf = (id: number) => (id <= 4 ? id : undefined);
+
+  it("segue o ramo mais jogado e guarda a fatia de cada ponto", () => {
+    const path = consensusPath([node([3], 800), node([1], 200), node([3, 3], 300), node([3, 2], 500), node([1, 1], 200), node([3, 2, 1], 40)], slotOf);
+    expect(path.map((p) => p.slot)).toEqual([3, 2]); // o terceiro ponto tem amostra pequena
+    expect(path.map((p) => p.share)).toEqual([0.8, 0.625]);
+    expect(path[1]!.minute).toBe(2);
+  });
+
+  it("para em habilidade fora do kit", () => {
+    expect(consensusPath([node([1], 500), node([1, 99], 400)], slotOf).map((p) => p.slot)).toEqual([1]);
+  });
+
+  it("caminho curto cai para a sequência completa; só uma habilidade em aberto é completada", () => {
+    const elite = heroElite(withElite(), hero.id)!;
+    expect(abilityPoints(elite)!.source).toBe("order");
+    const slots = [1, 1, 2, 2, 3, 3, 4, 1, 1, 2, 2, 3, 3, 4, 4];
+    const full = abilityPoints({ ...elite, path: slots.map((slot) => ({ slot, matches: 100, share: 1, minute: 1 })) })!;
+    expect(full.source).toBe("path");
+    expect(full.points).toHaveLength(16);
+    expect(full.points.at(-1)).toMatchObject({ slot: 4, tier: 3 });
+  });
+
+  it("no snapshot, todo herói começa desbloqueando e nunca passa de três upgrades", () => {
+    for (const elite of Object.values(base.elite?.heroes ?? {})) {
+      const points = abilityPoints(elite)?.points ?? [];
+      expect(points[0]?.tier).toBe(0);
+      expect(points.length).toBeGreaterThanOrEqual(12);
+      expect(Math.max(...points.map((p) => p.tier))).toBeLessThanOrEqual(3);
+    }
   });
 });
