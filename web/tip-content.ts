@@ -91,7 +91,7 @@ function upgradeLine(ability: Ability, u: PropertyUpgrade): [string, string][] {
     case "addScale":
       return [[label, `${signed(u.bonus)} × ${stat}`]];
     case "mulBase":
-      // Vem em porcentagem: 33,33 ao lado de um mulScale de 1,3333 na mesma habilidade.
+      // Porcentagem somada à base; mulScale é fator.
       return [[label, `${signed(u.bonus)}%`]];
     case "mulScale":
       return [[label, `${stat} ×${num(u.bonus)}`]];

@@ -84,7 +84,8 @@ function applyUpgrade(prop: Property, coef: number | null, up: PropertyUpgrade):
     case "addBase":
       return { base: prop.value + up.bonus, coef };
     case "mulBase":
-      return { base: prop.value * up.bonus, coef };
+      // Porcentagem somada à base (Ground Strike T3: "Damage Per Meter +120%"). Já mulScale é fator.
+      return { base: prop.value * (1 + up.bonus / 100), coef };
     case "addScale":
       return { base: prop.value, coef: (coef ?? 0) + up.bonus };
     case "mulScale":

@@ -210,3 +210,21 @@ describe("validação de build", () => {
     }
   });
 });
+
+describe("upgrades que multiplicam", () => {
+  const prop = (hero: string, ability: string, property: string, tier: number) =>
+    evaluateBuild(data, { hero, souls: 50_000, items: [], abilityTiers: [tier, tier, tier, tier] }).abilities.find((a) => a.name === ability)!.properties[property]!.value;
+
+  it("multiplicar a base é porcentagem: Brew Effectiveness +33,33%", () => {
+    expect(prop("Baba", "Baba's Brew", "SilenceDuration", 3)).toBeCloseTo(2.75 * 1.3333, 3);
+    expect(prop("Baba", "Baba's Brew", "SpiritResistReduction", 3)).toBeCloseTo(-15 * 1.3333, 2);
+    // Base (+33,33%) e escala (×1,3333) crescem juntas.
+    expect(prop("Baba", "Baba's Brew", "DamagePerSecond", 3) / prop("Baba", "Baba's Brew", "DamagePerSecond", 2)).toBeCloseTo(1.3333, 3);
+  });
+
+  it("Ground Strike: Damage Per Meter +120%, com a escala melhorada somada", () => {
+    const t2 = prop("Lash", "Ground Strike", "StompDamagePerMeterPrimary", 2);
+    // A escala soma 0,04 por ponto de Spirit, igual à base: o dobro da parte de Spirit.
+    expect(prop("Lash", "Ground Strike", "StompDamagePerMeterPrimary", 3)).toBeCloseTo(5.5 * 2.2 + (t2 - 5.5) * 2, 3);
+  });
+});
