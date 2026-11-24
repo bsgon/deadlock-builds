@@ -105,7 +105,7 @@ if (command === "fetch") {
               const item = byId.get(m.ability_id);
               if (!item) return null; // tier 5 (Brawl) ou removido
               const note = m.annotation && !/^Pick Rate/i.test(m.annotation) ? ` — "${m.annotation.replace(/\s+/g, " ").trim()}"` : "";
-              const sell = m.sell_priority != null ? ` [vender: prioridade ${m.sell_priority}]` : "";
+              const sell = (m.sell_priority ?? 0) > 0 ? ` [vender: prioridade ${m.sell_priority}]` : "";
               return `${item.name}${sell}${note}`;
             })
             .filter(Boolean);

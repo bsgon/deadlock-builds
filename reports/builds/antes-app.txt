@@ -1,0 +1,56 @@
+App: 44 heróis, Otimizada, 50000 souls, 12 slots (patch 6861)
+  vendas por build            1.52  (67 no total, 31 heróis)
+  souls perdidos por build    1145
+  posse < 10 min              9
+  vende o que entrou por troca 3
+  trocas com ganho < 5%       18
+  trocas que perdem os 4.800  0
+  tier vendido T1/T2/T3/T4    12/53/2/0
+  itens finais < 5% de compra 236 de 527 (45%)
+  itens em mais heróis        Blood Tribute 36, Diviner's Kevlar 30, Bullet Resilience 29, Frenzy 26, Battle Vest 23, Alchemical Fire 22, Weighted Shots 22, Capacitor 21
+  souls sem gastar por build  838
+  slots vazios por build      0.02
+  itens equipados por minuto  5: 2/2  10: 4/4  15: 6/6  20: 7/8  25: 9/10  30: 10/11  35: 11/12  40: 12/12  (p50/p90)
+  pontuação final média       7.7585
+  J médio                     0.9262
+  tempo                       56 s
+
+Vendas fora das regras: 24
+  Lady Geist: Torment Pulse (3200) -> Metal Skin, 1.0 min, 1.5%, entrou por troca
+  Graves: Active Reload (1600) -> Burst Fire, 1.5 min, 2.0%
+  Lady Geist: Recharging Rush (1600) -> Torment Pulse, 1.5 min, 5.9%, entrou por troca
+  Rat King: Opening Rounds (1600) -> Hollow Point, 1.5 min, 2.7%, entrou por troca
+  Holliday: Bullet Lifesteal (1600) -> Frenzy, 4.0 min, 22.2%
+  Vindicta: Extended Magazine (800) -> Frenzy, 4.5 min, 22.2%
+  Paige: Improved Spirit (1600) -> Diviner's Kevlar, 5.0 min, 14.2%
+  Baba: Reactive Barrier (1600) -> Frenzy, 5.5 min, 24.4%
+  Apollo: Cold Front (1600) -> Mercurial Magnum, 7.8 min, 14.3%
+  Vindicta: Opening Rounds (1600) -> Titanic Magazine, 13.3 min, 4.4%
+  The Doorman: Healbane (1600) -> Bullet Resilience, 17.3 min, 3.6%
+  Baba: Swift Striker (1600) -> Toxic Bullets, 17.5 min, 2.1%
+  Rat King: Bullet Lifesteal (1600) -> Opening Rounds, 25.3 min, 2.1%
+  Celeste: Swift Striker (1600) -> Opening Rounds, 30.0 min, 0.7%
+  Infernus: Spirit Shielding (1600) -> Reactive Barrier, 34.0 min, 0.3%
+  Vindicta: Bullet Resist Shredder (1600) -> Burst Fire, 34.3 min, 0.9%
+  Graves: Mystic Shot (1600) -> Enchanter's Emblem, 34.5 min, 0.9%
+  Violet: Spirit Shielding (1600) -> Reactive Barrier, 34.8 min, 0.6%
+  Lady Geist: Monster Rounds (800) -> Recharging Rush, 35.0 min, 2.9%
+  Deadman Danny: Enchanter's Emblem (1600) -> Metal Skin, 35.3 min, 4.3%
+  Apollo: Spirit Shielding (1600) -> Weighted Shots, 36.8 min, 2.9%
+  Rem: Opening Rounds (1600) -> Hollow Point, 37.5 min, 3.0%
+  Paige: Opening Rounds (1600) -> Fury Trance, 38.5 min, 3.6%
+  Deadman Danny: Opening Rounds (1600) -> Superior Cooldown, 39.3 min, 2.2%
+
+Jogadores, todos os elos: 1000 partidas (2026-11-24)
+  todos    12000 jogadores: 0.94 vendas, 645 souls perdidos, posse p10 11.4, < 10 min 8.2%, tiers 51%/40%/9%/1%
+  30-40k    3619 jogadores: 0.69 vendas, 388 souls perdidos, posse p10 10.9, < 10 min 8.6%, tiers 69%/28%/3%/0%
+  40-50k    2283 jogadores: 1.28 vendas, 822 souls perdidos, posse p10 12.9, < 10 min 6.7%, tiers 53%/41%/6%/1%
+  50k+      1475 jogadores: 2.95 vendas, 2490 souls perdidos, posse p10 13.5, < 10 min 6.1%, tiers 30%/53%/15%/2%
+  itens equipados por minuto  5: 2/3  10: 4/6  15: 6/8  20: 8/9  25: 9/10  30: 10/11  35: 11/12  40: 11/12  (p50/p90)
+
+Jogadores, elo alto: 998 partidas (2026-11-24)
+  todos    11976 jogadores: 0.91 vendas, 525 souls perdidos, posse p10 12.6, < 10 min 5.6%, tiers 65%/31%/3%/0%
+  30-40k    3932 jogadores: 1.02 vendas, 550 souls perdidos, posse p10 13.0, < 10 min 4.7%, tiers 71%/27%/2%/0%
+  40-50k    1601 jogadores: 1.78 vendas, 1120 souls perdidos, posse p10 13.8, < 10 min 4.1%, tiers 52%/45%/3%/0%
+  50k+       359 jogadores: 3.09 vendas, 2251 souls perdidos, posse p10 14.7, < 10 min 2.8%, tiers 33%/60%/7%/0%
+  itens equipados por minuto  5: 2/3  10: 5/6  15: 7/9  20: 9/10  25: 10/11  30: 11/12  35: 11/12  40: 12/12  (p50/p90)

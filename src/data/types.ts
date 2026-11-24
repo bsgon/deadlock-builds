@@ -5,6 +5,7 @@ import type { FightProfile } from "../meta/fights.ts";
 import type { EliteStats } from "../meta/elite.ts";
 import type { WpaStats } from "../meta/wpa.ts";
 import type { PaceStats } from "../meta/timing.ts";
+import type { SalesStats } from "../meta/sales.ts";
 import type { Interaction } from "../knowledge/interactions.ts";
 import type { Theory } from "../knowledge/theories.ts";
 
@@ -177,6 +178,8 @@ export interface GameData {
   wpa?: WpaStats;
   /** Ritmo real das compras (data/snapshot/timing.json, `npm run timing`), se existir. */
   timing?: PaceStats;
+  /** Vendas, slots e trocas nas partidas (data/snapshot/sales.json, `npm run sales`), se existir. */
+  sales?: SalesStats;
   /** Traduções para o inglês dos textos dos dados (português → inglês; data/snapshot/i18n-en.json), se existirem. */
   translations?: Record<string, string>;
 }

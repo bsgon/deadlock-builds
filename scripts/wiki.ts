@@ -1,6 +1,6 @@
 /**
- * Baixa as páginas da wiki da comunidade (deadlock.wiki) dos itens (até tier 4) e
- * dos heróis, e grava o texto por seção em data/raw/wiki/<página>.json.
+ * Baixa as páginas da wiki da comunidade (deadlock.wiki) dos itens (até tier 4),
+ * dos heróis e das regras da loja, e grava o texto por seção em data/raw/wiki/<página>.json.
  *
  *   npm run wiki [-- --refresh]
  *
@@ -79,7 +79,9 @@ async function fetchPage(title: string): Promise<WikiPage | null> {
 }
 
 const data = loadSnapshot();
-const titles = [...data.items.map((i) => i.name), ...data.heroes.map((h) => h.name)];
+/** Regras gerais (loja, venda, componentes, investimento). */
+const RULE_PAGES = ["Items", "The Curiosity Shop"];
+const titles = [...data.items.map((i) => i.name), ...data.heroes.map((h) => h.name), ...RULE_PAGES];
 let fetched = 0;
 const missing: string[] = [];
 for (const title of titles) {

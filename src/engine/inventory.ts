@@ -33,11 +33,12 @@ export function componentTree(data: GameData, item: Item): Set<string> {
  * presente (em qualquer nível) e cópias repetidas, mantendo a primeira.
  */
 export function equippedItems(data: GameData, items: Item[]): Item[] {
-  const absorbed = new Set(items.flatMap((i) => [...componentTree(data, i)]));
-  const seen = new Set<string>();
-  return items.filter((i) => {
-    if (absorbed.has(i.className) || seen.has(i.className)) return false;
-    seen.add(i.className);
+  // Chamada dezenas de milhares de vezes pela busca: compara direto, sem montar conjuntos.
+  const trees = items.map((i) => componentTree(data, i)).filter((t) => t.size > 0);
+  return items.filter((item, n) => {
+    const cls = item.className;
+    for (const t of trees) if (t.has(cls)) return false;
+    for (let k = 0; k < n; k++) if (items[k]!.className === cls) return false;
     return true;
   });
 }

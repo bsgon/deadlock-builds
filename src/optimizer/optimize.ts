@@ -13,8 +13,13 @@ import { heroMeta, midGameSouls, minuteForSouls, popularAtSouls, soulsAtMinute, 
 import { compareInWindow, priorFactor, tierPrior, type TierPrior } from "../meta/windows.ts";
 import { blendPriors, wpaPrior } from "../meta/wpa.ts";
 import { unusedItems } from "../meta/useful.ts";
+import { DEFAULT_USAGE_WEIGHT, usageCosts } from "../meta/usage.ts";
+import { MIN_SWAP_SAMPLE } from "../meta/sales.ts";
 import { heroPace, maxWaitMinutes } from "../meta/timing.ts";
 import { SELL_REFUND } from "../engine/rules.ts";
+import { searchRoute } from "./plan/search.ts";
+import { routeValue as planValue, type Cell, type Intent, type PlanContext } from "./plan/simulate.ts";
+import { canSell, holdAfter, keepsInvestment, MIN_SALE_GAIN, type Holdings } from "./sales.ts";
 import { computeMetrics, DEFAULT_METRIC_OPTIONS, OBJECTIVES, score, type MetricOptions, type Metrics, type Objective, type Weights } from "./metrics.ts";
 import type { PlanId, ScenarioId } from "../combat/value.ts";
 import { analyzePurchase, type Recommendation } from "../combat/explain.ts";
@@ -58,7 +63,18 @@ export interface OptimizeInput {
    * menos rende é vendido. "final": escolhe a melhor build para os souls finais
    * e só depois ordena as compras.
    */
-  mode?: "progressive" | "final";
+  /**
+   * "plan": a rota inteira é planejada para valer o máximo na partida toda (src/optimizer/plan),
+   * partindo da progressiva e das rotas dos marcos de 15 e 30 min.
+   */
+  mode?: "progressive" | "final" | "plan";
+  /** Avaliações de build que a busca do modo "plan" pode gastar (padrão: PLAN_BUDGET). */
+  planBudget?: number;
+  /**
+   * Travas de venda (sales.ts): posse mínima, sem vender o que entrou por troca, ganho
+   * mínimo e degrau de investimento. Padrão: true; false serve para comparar.
+   */
+  saleRules?: boolean;
   /**
    * Plano das jogadas simuladas (métrica `play`). Padrão: "control" quando o
    * objetivo pesa `play`.
@@ -87,6 +103,11 @@ export interface OptimizeInput {
    * sinergia forte com o kit (src/meta/useful.ts). Padrão: true.
    */
   pruneUnused?: boolean;
+  /**
+   * Peso do uso real em todos os tiers (src/meta/usage.ts): desconto por item raro com o
+   * herói. 0 desliga. Itens obrigatórios não pagam.
+   */
+  usageWeight?: number;
   /** Estende a poda aos tiers 3 e 4, com esta taxa mínima de compra (0 = não poda). */
   expensiveMinPick?: number;
 }
@@ -141,6 +162,8 @@ export interface PurchaseStep {
   community?: { title: string; builds: number };
   /** Segunda melhor compra viável no mesmo momento (ganho por soul). */
   alternative?: { item: Item; perSoul: number };
+  /** Quanto esta compra rende por soul a mais que a alternativa, em fração (0,1 = 10%). */
+  margin?: number;
   /** Compra escolhida porque abre uma interação com a próxima (busca em pares). */
   opensCombo?: string[];
   /**
@@ -167,6 +190,8 @@ export interface OptimizeResult {
   score: number;
   spent: number;
   order: PurchaseStep[];
+  /** J da rota (src/optimizer/plan): força ao longo da partida. Null nos modos sem rota. */
+  routeValue: number | null;
   vitality: VitalitySpike | null;
   /** Avaliações de build feitas (custo da busca). */
   evaluations: number;
@@ -175,10 +200,24 @@ export interface OptimizeResult {
 const MAX_SWAP_PASSES = 3;
 /** Sem timing.json: quantos souls além do preço o herói junta esperando um tier liberar antes de comprar outra coisa. */
 const MAX_WAIT_SOULS = 2500;
+/** Marcos do modo "plan", em minutos: rotas planejadas para a partida que acaba neles. */
+const PLAN_MARK_MINUTES = [15, 30];
+/** Trecho da partida em que a força é medida, em minutos. */
+const PLAN_CELL_MINUTES = 5;
+/** Duração assumida da última faixa de partidas (45+ min). */
+const LAST_BUCKET_MINUTES = 15;
+/** Itens fora das rotas iniciais que a busca considera. */
+const PLAN_CANDIDATES = 40;
+const PLAN_SEARCH = { width: 4, moves: 30 };
+/** Avaliações da busca; com jogadas simuladas cada uma custa ~5x mais. */
+export const PLAN_BUDGET = 20_000;
+export const PLAN_BUDGET_PLAY = 2_000;
+/** Log da pontuação por 1.000 souls de um item que as partidas favorecem (fator e). */
+const MATCH_BONUS = 0.03;
+/** Fração das compras que os jogadores acabam vendendo para um T3+ contar como vendável. */
+const HIGH_TIER_SALE_SHARE = 0.1;
 /** Trocas de fim de jogo (vender um item para comprar outro) avaliadas no fim da montagem. */
 const MAX_LATE_SWAPS = 6;
-/** Ganho mínimo de pontuação para uma troca valer a venda (abaixo disso é ruído). */
-const MIN_SWAP_GAIN = 0.02;
 /** Desconto no custo de itens da build-alvo (puxa a montagem para ela). */
 const TARGET_PULL = 0.7;
 /** Bônus de uma troca que a comunidade faz, por build que a sustenta (fração da pontuação atual). */
@@ -212,6 +251,7 @@ export function optimize(data: GameData, input: OptimizeInput, memo: EvaluationM
   );
   const byClass = new Map(data.items.map((i) => [i.className, i]));
   let evaluations = 0;
+  let misses = 0;
 
   const context = JSON.stringify([hero.name, slots, options]);
   const run = (items: Item[], tiers: number[], souls = input.souls) => {
@@ -220,6 +260,7 @@ export function optimize(data: GameData, input: OptimizeInput, memo: EvaluationM
     const key = `${context}|${souls}|${tiers.join(",")}|${classNames.join(",")}`;
     let hit = memo.get(key);
     if (!hit) {
+      misses++;
       const build = evaluateBuild(data, { hero: hero.name, souls, items: classNames, abilityTiers: tiers, itemSlots: slots, uptime: options.uptime });
       memo.set(key, (hit = { build, metrics: computeMetrics(build, options) }));
     }
@@ -276,7 +317,11 @@ export function optimize(data: GameData, input: OptimizeInput, memo: EvaluationM
     const floor = popularFloor(input.souls, baseTiers, baseline, 3);
     if (floor !== null) weights = { ...weights, ehpFloor: Math.max(1.1, floor) };
   }
-  const scoreOf = (items: Item[], tiers: number[]) => score(run(items, tiers).metrics, baseline, weights);
+  // Desconto dos itens raros: vale nas escolhas, não na pontuação mostrada.
+  const rareCosts = usageCosts(data, hero, input.fixedItems ? 0 : (input.usageWeight ?? DEFAULT_USAGE_WEIGHT));
+  for (const cls of requiredClasses) rareCosts.delete(cls);
+  const usageFactor = (items: Item[]) => Math.exp(-equippedItems(data, items).reduce((sum, i) => sum + (rareCosts.get(i.className) ?? 0), 0));
+  const scoreOf = (items: Item[], tiers: number[]) => score(run(items, tiers).metrics, baseline, weights) * usageFactor(items);
 
   // --- Restrições ---
   /** Remove componentes absorvidos por um upgrade presente (em qualquer nível) e itens repetidos. */
@@ -298,9 +343,10 @@ export function optimize(data: GameData, input: OptimizeInput, memo: EvaluationM
   let current = scoreOf(chosen, baseTiers);
   /** O item já está no inventário, sozinho ou dentro de um upgrade: o jogo não deixa ter dois iguais. */
   const has = (list: Item[], item: Item) => owns(data, list, item);
-  const progressive = !input.fixedItems && (input.mode ?? "progressive") === "progressive";
+  const progressive = !input.fixedItems && (input.mode ?? "progressive") !== "final";
   let progressiveOrder: PurchaseStep[] | null = null;
   let progressiveReached: number | null = null;
+  let routeJ: number | null = null;
 
   if (progressive) {
     const gates = tierGates(data, hero.id);
@@ -342,17 +388,66 @@ export function optimize(data: GameData, input: OptimizeInput, memo: EvaluationM
       }
       return w;
     };
-    const scoreAt = (items: Item[], souls: number) => {
+    /** Pontuação mostrada na rota. */
+    const rawScoreAt = (items: Item[], souls: number) => {
       const w = weightsAt(souls);
       return score(run(items, tiersAt(souls), souls).metrics, baseline, w, w.ehpFloor ? baselineAt(souls) : baseline);
     };
+    /** Pontuação usada nas escolhas: com o desconto dos itens raros. */
+    const scoreAt = (items: Item[], souls: number) => rawScoreAt(items, souls) * usageFactor(items);
+    /** Pontuação e ganho mostrados de uma compra. */
+    const shown = (before: Item[], after: Item[], at: number) => {
+      const s = rawScoreAt(after, at);
+      return { score: s, gain: s - rawScoreAt(before, Math.max(at, 1)) };
+    };
 
+    // Só as que os jogadores de fato fazem e que as partidas não contrariam (npm run sales).
     // Trocas de fim de jogo da comunidade (teorias "late-swap": vender items[0], comprar items[1..]).
-    const communitySwaps = (data.theories ?? []).filter((th) => th.heroId === hero.id && th.kind === "late-swap" && th.items.length >= 2);
+    const communitySwaps = (data.theories ?? []).filter((th) => th.heroId === hero.id && th.kind === "late-swap" && th.items.length >= 2 && (th.evidence?.matches ?? 0) >= MIN_SWAP_SAMPLE && th.evidence?.verdict !== "contradicted");
     const swapTheory = (sold: Item, bought: Item) =>
       communitySwaps.find((th) => th.items[0] === sold.className && th.items.slice(1).includes(bought.className)) ?? null;
     const sellTheory = (item: Item) => communitySwaps.find((th) => th.items[0] === item.className) ?? null;
     const communityBonus = (builds: number) => COMMUNITY_SWAP_BONUS * Math.min(COMMUNITY_MAX_BUILDS, builds);
+
+    /** Souls em que cabem n itens: 9 no começo, os extras no minuto mediano em que os jogadores do herói os usam. */
+    const slotSoulsOf = (max: number): number[] => {
+      const minutes = data.sales?.heroes[String(hero.id)]?.slots ?? [];
+      return Array.from({ length: max + 1 }, (_, n) => (n <= BASE_ITEM_SLOTS ? 0 : soulsAtMinute(data, hero.id, minutes[n - BASE_ITEM_SLOTS - 1] ?? 0)));
+    };
+    /** Trechos da partida até os souls da build, com a chance de ela durar até lá. */
+    const cellsOf = (): Cell[] => {
+      const buckets = heroMeta(data, hero.id)?.byDuration ?? [];
+      const total = buckets.reduce((s, b) => s + b.matches, 0);
+      const alive = (minute: number) => {
+        if (total === 0) return 1;
+        let sum = 0;
+        for (const b of buckets) {
+          const end = b.toMin ?? b.fromMin + LAST_BUCKET_MINUTES;
+          sum += b.matches * Math.min(1, Math.max(0, (end - minute) / (end - b.fromMin)));
+        }
+        return sum / total;
+      };
+      const cells: Cell[] = [];
+      for (let m = 0; ; m += PLAN_CELL_MINUTES) {
+        const from = soulsAtMinute(data, hero.id, m);
+        if (from >= input.souls || m > 90) return cells;
+        const end = soulsAtMinute(data, hero.id, m + PLAN_CELL_MINUTES);
+        const to = Math.min(input.souls, end);
+        // Trecho cortado pelos souls da build pesa só a parte que existe.
+        if (to > from) cells.push({ from, to, souls: Math.round((from + to) / 2), alive: (alive(m + PLAN_CELL_MINUTES / 2) * (to - from)) / (end - from) });
+      }
+    };
+    /** Ajuste (log) de cada item pelas partidas, na mesma escala do desconto por raridade. */
+    const matchBonus = (): Map<string, number> => {
+      const out = new Map<string, number>();
+      for (const item of pool) {
+        const usage = heroMeta(data, hero.id)?.items[item.className];
+        if (!usage) continue;
+        const f = factorOf(item, soulsAtMinute(data, hero.id, usage.buyMinute));
+        if (f !== 1) out.set(item.className, (Math.log(f) * MATCH_BONUS * item.cost) / 1000);
+      }
+      return out;
+    };
 
     // Ritmo dos jogadores: quanto esperar pela próxima compra, em minutos.
     const pace = heroPace(data, hero.id);
@@ -378,6 +473,24 @@ export function optimize(data: GameData, input: OptimizeInput, memo: EvaluationM
     };
 
     let owned: Item[] = [];
+    let held: Holdings = new Map(); // desde quando cada item está equipado
+    const saleRules = input.saleRules ?? true;
+    /** Minuto como aparece na rota: é por ele que a posse é contada. */
+    const stepMinutes = new Map<number, number>();
+    const stepMinute = (souls: number) => {
+      let m = stepMinutes.get(souls);
+      if (m === undefined) stepMinutes.set(souls, (m = minuteForSouls(data, hero.id, souls)));
+      return m;
+    };
+    /** Vender `victim` em `at` e ficar com `next` respeita a posse e o degrau de investimento. */
+    const saleAllowed = (victim: Item, at: number, next: Item[]) => !saleRules || (canSell(held, victim, stepMinute(at)) && keepsInvestment(equipped(owned), next));
+    /** A troca rende o bastante para pagar a venda. */
+    const saleWorth = (before: number, after: number) => !saleRules || after - before >= MIN_SALE_GAIN * before;
+    /** O mesmo na pontuação mostrada (a escolhida já pode descontar um vendido raro). */
+    const saleShown = (next: Item[], at: number) => {
+      const x = shown(owned, next, at);
+      return saleWorth(x.score - x.gain, x.score);
+    };
     const soldOnce = new Set<string>(); // item vendido não volta: recomprar só desperdiça souls
     let earned = 0; // souls ganhos até a última compra (o que foi gasto, já descontadas as vendas)
     type Step = {
@@ -456,47 +569,62 @@ export function optimize(data: GameData, input: OptimizeInput, memo: EvaluationM
       }
       return pairCache.get(key)!;
     };
-    const steps: Step[] = [];
+    let steps: Step[] = [];
     const communityOf = (sold: Item | null, bought: Item) => {
       const th = sold ? swapTheory(sold, bought) : null;
       return th ? { title: th.title, builds: th.builds.length } : undefined;
     };
     for (;;) {
       const missing = spike ? spike.souls - vitalityOf(owned) : 0;
-      // Item que menos rende hoje: é o vendido quando os slots enchem.
+      // Vendidos possíveis com os slots cheios, do que menos rende hoje ao que mais rende.
       // Não vende obrigatórios nem o que desfaria o pico de vitality já alcançado.
       const sellable = owned.filter((i) => !requiredClasses.has(i.className) && keepsSpike(owned, owned.filter((o) => o !== i)));
       const nowScore = scoreAt(owned, Math.max(earned, 1));
-      let victim: Item | null = null;
+      let victims: Item[] = [];
       if (equipped(owned).length >= slots && sellable.length > 0) {
-        let least = Infinity;
-        for (const item of sellable) {
+        const losses = sellable.map((item) => {
           // Item que a comunidade manda vender perde menos ao sair.
           const hint = sellTheory(item);
-          const loss = nowScore - scoreAt(owned.filter((i) => i !== item), Math.max(earned, 1)) - (hint ? nowScore * communityBonus(hint.builds.length) : 0);
-          if (loss < least) [least, victim] = [loss, item];
-        }
+          return { item, loss: nowScore - scoreAt(owned.filter((i) => i !== item), Math.max(earned, 1)) - (hint ? nowScore * communityBonus(hint.builds.length) : 0) };
+        });
+        victims = losses.sort((a, b) => a.loss - b.loss).map((x) => x.item);
       }
 
       type Option = { item: Item; next: Item[]; pay: number; at: number; sold: Item | null; required: boolean };
       const options2: Option[] = [];
       for (const candidate of pool) {
         if (has(owned, candidate) || soldOnce.has(candidate.className)) continue;
-        let next = equipped([...owned, candidate]);
-        let sold: Item | null = null;
-        if (next.length > slots) {
-          if (!victim || componentTree(data, candidate).has(victim.className)) continue;
-          sold = victim;
-          next = equipped([...owned.filter((i) => i !== victim), candidate]);
-        }
-        if (next.filter((i) => i.isActive).length > MAX_ACTIVE_ITEMS) continue;
-        const pay = cost(next) - cost(owned) + (sold ? sold.cost - Math.round(sold.cost * SELL_REFUND) : 0);
-        if (pay <= 0) continue;
-        // A compra acontece quando o herói junta o preço, mas não antes de o tier costumar aparecer.
         const isRequired = requiredClasses.has(candidate.className);
-        const at = Math.max(earned + pay, isRequired ? 0 : (gates[candidate.tier] ?? Infinity));
-        if (at > input.souls) continue;
-        options2.push({ item: candidate, next, pay, at, sold, required: isRequired });
+        const optionFor = (sold: Item | null): Option | null => {
+          const next = equipped([...owned.filter((i) => i !== sold), candidate]);
+          if (next.length > slots || next.filter((i) => i.isActive).length > MAX_ACTIVE_ITEMS) return null;
+          const pay = cost(next) - cost(owned) + (sold ? sold.cost - Math.round(sold.cost * SELL_REFUND) : 0);
+          if (pay <= 0) return null;
+          // A compra acontece quando o herói junta o preço, mas não antes de o tier costumar aparecer.
+          const at = Math.max(earned + pay, isRequired ? 0 : (gates[candidate.tier] ?? Infinity));
+          return at > input.souls ? null : { item: candidate, next, pay, at, sold, required: isRequired };
+        };
+        if (equipped([...owned, candidate]).length <= slots) {
+          const option = optionFor(null);
+          if (option) options2.push(option);
+          continue;
+        }
+        const tree = componentTree(data, candidate);
+        let fallback: Option | null = null;
+        let found: Option | null = null;
+        for (const victim of saleRules ? victims : victims.slice(0, 1)) {
+          if (tree.has(victim.className)) continue;
+          const option = optionFor(victim);
+          if (!option) continue;
+          fallback ??= option;
+          if (saleAllowed(victim, option.at, option.next)) {
+            found = option;
+            break;
+          }
+        }
+        // Item obrigatório entra mesmo sem venda que respeite as travas.
+        const option = found ?? (isRequired ? fallback : null);
+        if (option) options2.push(option);
       }
       // Enquanto o pico de vitality não vem, só entra compra fora de vitality que ainda deixe tempo para ele.
       // Vale também para itens de vitality: o que falta depois deles ainda precisa caber no prazo.
@@ -516,7 +644,8 @@ export function optimize(data: GameData, input: OptimizeInput, memo: EvaluationM
         const bonus = th ? before * communityBonus(th.builds.length) : 0;
         const raw = (s - before + bonus) / (o.at - earned - o.pay + effectivePay(o.item, o.pay));
         // As partidas só ajustam compras que o modelo já vê como ganho (não transformam perda em ganho).
-        const perSoul = raw > 0 ? raw * factorOf(o.item, o.at) : raw;
+        const worth = !o.sold || o.required || (saleWorth(before, s) && saleShown(o.next, o.at));
+        const perSoul = !worth ? -Infinity : raw > 0 ? raw * factorOf(o.item, o.at) : raw;
         return { ...o, score: s, perSoul, gain: s - before, before };
       };
       let ranked: Scored[] = [];
@@ -528,7 +657,7 @@ export function optimize(data: GameData, input: OptimizeInput, memo: EvaluationM
           ranked.push(x);
           // Vitality que fecha o pico entra mesmo sem ganho medido no objetivo (ex.: objetivo de arma).
           const forcedVitality = enforce && missing > 0 && o.item.slot === "vitality";
-          if ((o.required || forcedVitality || x.perSoul > 1e-9) && (!best || (o.required && !best.required) || x.perSoul > best.perSoul)) best = x;
+          if ((o.required || (forcedVitality && x.perSoul > -Infinity) || x.perSoul > 1e-9) && (!best || (o.required && !best.required) || x.perSoul > best.perSoul)) best = x;
         }
         ranked.sort((a, b) => b.perSoul - a.perSoul);
         return best;
@@ -544,7 +673,7 @@ export function optimize(data: GameData, input: OptimizeInput, memo: EvaluationM
       let opensCombo: string[] | undefined;
       if (plan && !best.required) {
         const byMechanism = ranked.filter((o) => mechanismItems.has(o.item.className)).slice(0, COMBO_BEAM);
-        const firsts = [...new Map([...ranked.slice(0, COMBO_BEAM), ...byMechanism].map((o) => [o.item.className, o])).values()];
+        const firsts = [...new Map([...ranked.slice(0, COMBO_BEAM), ...byMechanism].filter((o) => o.perSoul > -Infinity).map((o) => [o.item.className, o])).values()];
         let bestPair: { first: Scored; second: Item; perSoul: number } | null = null;
         for (const a of firsts) {
           for (const b of firsts) {
@@ -590,13 +719,13 @@ export function optimize(data: GameData, input: OptimizeInput, memo: EvaluationM
       const matchPrior = prior ? { ...prior, factor: priorFactor(prior, matchWeight) } : undefined;
       owned = best.next;
       earned = best.at;
+      held = holdAfter(data, held, best.item, stepMinute(earned), best.sold, owned);
       steps.push({
         ...(matchPrior ? { matchPrior } : {}),
         item: best.item,
         pay: best.pay,
         earned,
-        score: best.score,
-        gain: best.gain,
+        ...shown(ownedBefore, best.next, best.at),
         sold: best.sold,
         upgradeFrom,
         community: communityOf(best.sold, best.item),
@@ -627,12 +756,12 @@ export function optimize(data: GameData, input: OptimizeInput, memo: EvaluationM
           if (next.length > slots || next.filter((i) => i.isActive).length > MAX_ACTIVE_ITEMS || !keepsSpike(owned, next)) continue;
           const pay = candidate.cost - Math.round(victim.cost * SELL_REFUND);
           const at = Math.max(earned + Math.max(pay, 0), gates[candidate.tier] ?? Infinity);
-          if (at > input.souls) continue;
+          if (at > input.souls || !saleAllowed(victim, at, next)) continue;
           const before = at === earned ? nowAt : scoreAt(owned, at);
           const s = scoreAt(next, at);
           const th = swapTheory(victim, candidate);
           const value = s - before + (th ? before * communityBonus(th.builds.length) : 0);
-          if (value > MIN_SWAP_GAIN && (!best || value > best.value)) best = { item: candidate, sold: victim, next, pay: Math.max(pay, 0), at, score: s, gain: s - before, value };
+          if (value > 0 && saleWorth(before, s) && saleShown(next, at) && (!best || value > best.value)) best = { item: candidate, sold: victim, next, pay: Math.max(pay, 0), at, score: s, gain: s - before, value };
         }
       }
       if (!best) break;
@@ -640,7 +769,8 @@ export function optimize(data: GameData, input: OptimizeInput, memo: EvaluationM
       const ownedBefore = owned;
       owned = best.next;
       earned = best.at;
-      steps.push({ item: best.item, pay: best.pay, earned, score: best.score, gain: best.gain, sold: best.sold, upgradeFrom: null, community: communityOf(best.sold, best.item), before: ownedBefore, after: owned });
+      held = holdAfter(data, held, best.item, stepMinute(earned), best.sold, owned);
+      steps.push({ item: best.item, pay: best.pay, earned, ...shown(ownedBefore, owned, best.at), sold: best.sold, upgradeFrom: null, community: communityOf(best.sold, best.item), before: ownedBefore, after: owned });
     }
 
     // Itens obrigatórios que nunca ficaram baratos o bastante: entram no fim, se couberem.
@@ -652,10 +782,94 @@ export function optimize(data: GameData, input: OptimizeInput, memo: EvaluationM
       const ownedBefore = owned;
       owned = next;
       earned += pay;
-      const before = scoreAt(owned.filter((i) => i !== item), earned);
-      const after = scoreAt(owned, earned);
+      const before = rawScoreAt(owned.filter((i) => i !== item), earned);
+      const after = rawScoreAt(owned, earned);
       steps.push({ item, pay, earned, score: after, gain: after - before, sold: null, upgradeFrom: null, before: ownedBefore, after: owned });
     }
+
+    // --- Plano da partida inteira ---
+    // A busca mede dezenas de milhares de inventários: guarda só a nota (não a build), pela
+    // lista em ordem fixa, para a mesma build em outra ordem de compra não ser medida de novo.
+    const planNotes = new Map<number, Map<string, number>>();
+    const planIndex = new Map(data.items.map((i, n) => [i, n]));
+    const planCode = new WeakMap<Item[], string>();
+    const codeOf = (items: Item[]) => {
+      let code = planCode.get(items);
+      if (code === undefined) planCode.set(items, (code = items.map((i) => planIndex.get(i)!).sort((a, b) => a - b).join()));
+      return code;
+    };
+    const planRaw = (items: Item[], souls: number): number => {
+      let notes = planNotes.get(souls);
+      if (!notes) planNotes.set(souls, (notes = new Map()));
+      const code = codeOf(items);
+      let note = notes.get(code);
+      if (note === undefined) {
+        misses++;
+        evaluations++;
+        const w = weightsAt(souls);
+        const sorted = [...items].sort((a, b) => planIndex.get(a)! - planIndex.get(b)!).map((i) => i.className);
+        const build = evaluateBuild(data, { hero: hero.name, souls, items: sorted, abilityTiers: tiersAt(souls), itemSlots: slots, uptime: options.uptime });
+        note = score(computeMetrics(build, options), baseline, w, w.ehpFloor ? baselineAt(souls) : baseline);
+        notes.set(code, note);
+      }
+      return note;
+    };
+    const planRare = new WeakMap<Item[], number>();
+    const planScore = (items: Item[], souls: number) => {
+      let rare = planRare.get(items);
+      if (rare === undefined) planRare.set(items, (rare = usageFactor(items)));
+      return planRaw(items, souls) * rare;
+    };
+    const ctx: PlanContext = {
+      data,
+      souls: input.souls,
+      required: requiredClasses,
+      gates,
+      slotSouls: slotSoulsOf(slots),
+      cells: cellsOf(),
+      scoreAt: planScore,
+      rawScoreAt: planRaw,
+      bonus: matchBonus(),
+      minuteAt: stepMinute,
+      patient,
+      spike: enforce ? spike : null,
+      sellsHighTier: (item) => {
+        const sold = data.sales?.heroes[String(hero.id)]?.items[item.className];
+        return sold !== undefined && sold.sales >= HIGH_TIER_SALE_SHARE * sold.bought;
+      },
+      saleRules,
+    };
+    if (input.mode === "plan") {
+      const toIntents = (list: { item: Item; sold: Item | null }[]): Intent[] => list.map((s) => ({ item: s.item, sold: s.sold }));
+      const base = toIntents(steps);
+      // Marcos: o que seria a rota se a partida acabasse antes, seguida da rota completa.
+      const marks = PLAN_MARK_MINUTES.map((m) => soulsAtMinute(data, hero.id, m)).filter((s) => s < input.souls);
+      const partial = marks.map((souls) => toIntents(optimize(data, { ...input, souls, mode: "progressive", explain: false }, memo).order));
+      const starts = [base, ...partial.map((p) => [...p, ...base]), [...partial.flat(), ...base]];
+      const hot = [...starts.flat().flatMap((s) => [s.item, ...[...componentTree(data, s.item)].map((c) => byClass.get(c)!)]), ...steps.flatMap((s) => (s.alternative ? [s.alternative.item] : [])), ...target.items];
+      // Os outros itens, pelo que rendem por soul no meio da rota.
+      const mid = steps.filter((s) => s.earned <= input.souls / 2).at(-1)?.after ?? [];
+      const midSouls = Math.max(1, Math.round(input.souls / 2));
+      const midScore = scoreAt(mid, midSouls);
+      const others = pool
+        .filter((i) => !has(mid, i))
+        .map((item) => ({ item, gain: (scoreAt(equipped([...mid, item]), midSouls) - midScore) / item.cost }))
+        .sort((a, b) => b.gain - a.gain)
+        .slice(0, PLAN_CANDIDATES)
+        .map((x) => x.item);
+      const usable = new Set([...pool, ...required]);
+      const candidates = [...new Set([...hot, ...others])].filter((i) => usable.has(i));
+      const budget = input.planBudget ?? (weights.play ? PLAN_BUDGET_PLAY : PLAN_BUDGET);
+      const route = searchRoute(ctx, starts, candidates, { ...PLAN_SEARCH, budget, seed: hero.id, spent: () => misses });
+      steps = route.steps.map((s) => {
+        const prior = priorOf(s.item, s.earned);
+        return { ...s, ...shown(s.before, s.after, s.earned), community: communityOf(s.sold, s.item), ...(prior ? { matchPrior: { ...prior, factor: priorFactor(prior, matchWeight) } } : {}) };
+      });
+      owned = route.steps.at(-1)?.after ?? [];
+      earned = route.steps.at(-1)?.earned ?? 0;
+      progressiveReached = spike ? (route.steps.find((s) => vitalityOf(s.after) >= spike.souls)?.earned ?? null) : null;
+    }
+    routeJ = planValue(ctx, steps);
 
     chosen = owned;
     const consumed = new Set(owned.flatMap((i) => [...componentTree(data, i)]));
@@ -673,6 +887,7 @@ export function optimize(data: GameData, input: OptimizeInput, memo: EvaluationM
       soldLater: steps.slice(i + 1).some((later) => later.sold === s.item),
       ...(s.community ? { community: s.community } : {}),
       ...(s.alternative ? { alternative: { item: s.alternative.item, perSoul: s.alternative.perSoul } } : {}),
+      ...(s.scoreMargin !== undefined ? { margin: s.scoreMargin } : {}),
       ...(s.opensCombo ? { opensCombo: s.opensCombo } : {}),
       ...(s.tieBreak ? { tieBreak: s.tieBreak } : {}),
       ...(s.matchPrior ? { matchPrior: s.matchPrior } : {}),
@@ -832,6 +1047,7 @@ export function optimize(data: GameData, input: OptimizeInput, memo: EvaluationM
     score: score(final.metrics, baseline, weights),
     spent: progressiveOrder ? (progressiveOrder.at(-1)?.earned ?? 0) : cost(chosen),
     order,
+    routeValue: routeJ,
     vitality: spike
       ? {
           target: spike.souls,

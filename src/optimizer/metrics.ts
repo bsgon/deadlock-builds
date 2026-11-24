@@ -208,7 +208,7 @@ function itemDamagePerSecond(item: Item, build: BuildResult, hitsPerSecond: numb
   return itemDamageMemo(all, context, () => itemDamagePerSecondUncached(item, all, build, hitsPerSecond, uptime, firing, targetHealth, fight));
 }
 
-/** Lê da build só clipSize, bulletsPerShot, bulletDamage e meleeShare (que entram no contexto). */
+/** Lê da build só clipSize, bulletsPerShot, bulletDamage, weaponDamagePct e meleeShare (que entram no contexto). */
 function itemDamagePerSecondUncached(item: Item, all: Record<string, ResolvedProperty>, build: BuildResult, hitsPerSecond: number, uptime: number, firing: number, targetHealth: number, fight: number): ItemDamage[] {
   const out: ItemDamage[] = [];
 
@@ -258,9 +258,9 @@ function itemDamagePerSecondUncached(item: Item, all: Record<string, ResolvedPro
     const bulletKey = perBullet ? Object.keys(props).find((k) => BULLET_DAMAGE_KEY.test(k) && (props[k]?.value ?? 0) > 0) : undefined;
     if (bulletKey) {
       const itemCooldown = all.AbilityCooldown?.value ?? 0;
-      // Com unidade "%", o bônus é uma fração do dano da bala, não dano fixo (ex.: Mercurial Magnum).
+      // Com unidade "%", o bônus é uma fração do dano BASE da bala (sem o dano de arma %), não dano fixo (Mercurial Magnum, deadlock.wiki).
       const raw = props[bulletKey]!.value;
-      const perHit = item.properties[bulletKey]?.unit === "%" ? (raw / 100) * build.stats.bulletDamage : raw;
+      const perHit = item.properties[bulletKey]?.unit === "%" ? (raw / 100) * (build.stats.bulletDamage / (1 + build.stats.weaponDamagePct / 100)) : raw;
       const once = itemCooldown > 0 && d.burst > raw ? d.burst / itemCooldown : 0;
       out.push({ perSecond: (perHit * procsPerSecond + once) * opportunity, perBullet });
       continue;
@@ -410,7 +410,7 @@ export function computeMetrics(build: BuildResult, options: MetricOptions = DEFA
   const hitsPerSecond = stats.shotsPerSecond * stats.bulletsPerShot;
   let itemDps = 0;
   let bulletItemDps = 0;
-  const itemContext = contextId([hitsPerSecond, options.uptime, firing, options.targetHealth, fight, stats.clipSize, stats.bulletsPerShot, stats.bulletDamage, build.meleeShare]);
+  const itemContext = contextId([hitsPerSecond, options.uptime, firing, options.targetHealth, fight, stats.clipSize, stats.bulletsPerShot, stats.bulletDamage, stats.weaponDamagePct, build.meleeShare]);
   for (const item of build.items) {
     for (const dmg of itemDamagePerSecond(item, build, hitsPerSecond, options.uptime, firing, options.targetHealth, fight, itemContext)) {
       itemDps += dmg.perSecond * spiritMult;

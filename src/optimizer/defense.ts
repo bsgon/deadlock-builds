@@ -12,12 +12,11 @@
  * Os pesos são escolhas do projeto, para comparar builds; não são números do jogo.
  */
 import type { Item } from "../data/types.ts";
-import { resolveProperties, type BuildResult, type ResolvedProperty } from "../engine/index.ts";
+import { FIGHT_EVERY_SECONDS, resolveProperties, triggersOnUltimate, ultimateReady, type BuildResult, type ResolvedProperty } from "../engine/index.ts";
 import { tr } from "../i18n.ts";
 
 /** Duração de uma luta e intervalo entre lutas, em segundos. */
 export const FIGHT_SECONDS = 20;
-const FIGHT_EVERY = 60;
 /** Quanto vale estar 100% protegido de controle, em vida efetiva extra. */
 const CC_VALUE = 0.35;
 /** Proteção de um ativo que limpa debuffs, por uso. */
@@ -44,7 +43,7 @@ export interface Defense {
 
 const M = "MODIFIER_VALUE_";
 /** Fração das lutas em que um efeito com esse cooldown está disponível. */
-const perFight = (cooldown: number) => (cooldown > 0 ? Math.min(1, FIGHT_EVERY / cooldown) : 1);
+const perFight = (cooldown: number) => (cooldown > 0 ? Math.min(1, FIGHT_EVERY_SECONDS / cooldown) : 1);
 
 // Só depende do item e das propriedades resolvidas, que vêm de um cache (mesmo objeto
 // para os mesmos stats) e não mudam. As fontes devolvidas são compartilhadas: não altere.
@@ -87,7 +86,13 @@ function itemDefenseUncached(item: Item, p: Record<string, ResolvedProperty>): D
 }
 
 export function defenseOf(build: BuildResult): Defense {
-  const sources = build.items.flatMap((i) => itemDefense(i, build));
+  const ultimate = build.abilities.find((a) => a.slot === 4)?.properties.AbilityCooldown?.value ?? 0;
+  const sources = build.items.flatMap((i) => {
+    const own = itemDefense(i, build);
+    if (!triggersOnUltimate(i)) return own;
+    // Barreira ao lançar a ultimate (Diviner's Kevlar): só quando ela está pronta.
+    return own.map((s) => ({ ...s, value: s.value * ultimateReady(ultimate) }));
+  });
   const status = (build.stats.itemTotals[`${M}STATUS_RESISTANCE`] ?? 0) / 100;
   if (status > 0) sources.push({ name: tr("Resistência a status", "Status resistance"), kind: "cc", value: status });
   const sum = (kind: DefenseSource["kind"]) => sources.filter((s) => s.kind === kind).reduce((t, s) => t + s.value, 0);
@@ -104,5 +109,8 @@ export function effectiveHealth(build: BuildResult, defense: Defense = defenseOf
   const base = (bullet + stats.ehpSpirit) / 2;
   // Barreira é vida extra, protegida pelas mesmas resistências.
   const withBarrier = base + defense.barrier * (base / Math.max(1, stats.health));
-  return withBarrier * (1 + defense.time) * (1 + CC_VALUE * defense.cc);
+  // Vida que o próprio herói sacrifica (Blood Tribute): não é reduzida por resistência.
+  const drained = build.items.reduce((sum, i) => sum + (i.properties.HealthDrainedPerSecond?.value ?? 0), 0) * build.uptime * FIGHT_SECONDS;
+  const kept = Math.max(0.2, 1 - drained / Math.max(1, stats.health));
+  return withBarrier * kept * (1 + defense.time) * (1 + CC_VALUE * defense.cc);
 }

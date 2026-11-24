@@ -1,0 +1,43 @@
+Validação: 7372 partidas (holdout), todas depois da última usada no modelo de vitória.
+
+Minuto 15: 87512 jogadores, Brier do modelo de vitória 0.2165
+  rota         semelhança   pp por desvio-padrão          descontado o uso
+  atual           11.9%       0.40 [0.11; 0.72]         0.30 [-0.00; 0.64]
+  plan            12.8%       0.40 [0.11; 0.71]         0.29 [0.01; 0.62]
+  original        11.4%       0.45 [0.16; 0.73]         0.35 [0.05; 0.64]
+  placebo          6.2%       0.29 [-0.00; 0.62]        0.28 [-0.01; 0.61]
+  uso             -0.76       0.68 [0.34; 1.03]      
+  plan − atual: -0.00 pp [-0.20; 0.19]; descontado o uso -0.01 [-0.21; 0.19]
+  original − atual: 0.05 pp [-0.22; 0.32]; descontado o uso 0.04 [-0.23; 0.32]
+  original − plan: 0.05 pp [-0.16; 0.31]; descontado o uso 0.05 [-0.16; 0.32]
+  placebo − atual: -0.11 pp [-0.50; 0.26]; descontado o uso -0.02 [-0.42; 0.36]
+  placebo − plan: -0.11 pp [-0.46; 0.28]; descontado o uso -0.01 [-0.36; 0.35]
+  placebo − original: -0.16 pp [-0.52; 0.26]; descontado o uso -0.07 [-0.43; 0.34]
+
+Minuto 25 (principal): 80966 jogadores, Brier do modelo de vitória 0.1874
+  rota         semelhança   pp por desvio-padrão          descontado o uso
+  atual           14.0%       0.40 [0.08; 0.67]         0.34 [0.04; 0.61]
+  plan            14.7%       0.24 [-0.07; 0.51]        0.16 [-0.12; 0.45]
+  original         9.8%       0.15 [-0.13; 0.45]        0.09 [-0.19; 0.37]
+  placebo          6.9%       0.06 [-0.25; 0.38]        0.03 [-0.27; 0.36]
+  uso             -0.91       0.37 [0.07; 0.68]      
+  plan − atual: -0.17 pp [-0.33; -0.01]; descontado o uso -0.18 [-0.35; -0.01]
+  original − atual: -0.25 pp [-0.50; -0.00]; descontado o uso -0.25 [-0.51; 0.01]
+  original − plan: -0.08 pp [-0.30; 0.13]; descontado o uso -0.07 [-0.30; 0.16]
+  placebo − atual: -0.35 pp [-0.70; 0.05]; descontado o uso -0.31 [-0.67; 0.10]
+  placebo − plan: -0.18 pp [-0.50; 0.17]; descontado o uso -0.12 [-0.48; 0.21]
+  placebo − original: -0.09 pp [-0.49; 0.31]; descontado o uso -0.05 [-0.46; 0.36]
+
+Minuto 35: 42682 jogadores, Brier do modelo de vitória 0.1817
+  rota         semelhança   pp por desvio-padrão          descontado o uso
+  atual           15.7%       0.59 [0.20; 1.03]         0.55 [0.15; 1.01]
+  plan            15.5%       0.56 [0.17; 0.97]         0.51 [0.13; 0.92]
+  original         9.6%       0.38 [0.01; 0.80]         0.34 [-0.03; 0.77]
+  placebo          8.4%       0.51 [0.14; 0.95]         0.48 [0.12; 0.92]
+  uso             -1.14       0.33 [-0.16; 0.71]     
+  plan − atual: -0.04 pp [-0.28; 0.24]; descontado o uso -0.04 [-0.29; 0.25]
+  original − atual: -0.22 pp [-0.54; 0.09]; descontado o uso -0.21 [-0.55; 0.10]
+  original − plan: -0.18 pp [-0.56; 0.10]; descontado o uso -0.17 [-0.55; 0.13]
+  placebo − atual: -0.09 pp [-0.49; 0.37]; descontado o uso -0.07 [-0.48; 0.40]
+  placebo − plan: -0.05 pp [-0.48; 0.38]; descontado o uso -0.03 [-0.45; 0.42]
+  placebo − original: 0.13 pp [-0.28; 0.65]; descontado o uso 0.14 [-0.26; 0.66]

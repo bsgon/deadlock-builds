@@ -53,6 +53,8 @@ export interface BuildResult {
   conditional: ConditionalBonus;
   /** Uso de melee do herói considerado nos efeitos de corpo a corpo (0 a 1). */
   meleeShare: number;
+  /** Fração do tempo com efeitos condicionais ativos usada no cálculo. */
+  uptime: number;
   /** Problemas da build (souls insuficientes, slots, pontos de habilidade...). */
   warnings: string[];
 }
@@ -130,9 +132,10 @@ export function evaluateBuild(data: GameData, input: BuildInput): BuildResult {
   }
 
   const melee = input.meleeShare ?? meleeShare(data, hero.id);
-  const conditional = conditionalBonus(equipped, input.uptime ?? 0, hero.weapon.shotsPerSecond, melee);
+  const ultimate = abilities.find((a) => a.slot === 4)?.properties.AbilityCooldown?.value ?? 0;
+  const conditional = conditionalBonus(equipped, input.uptime ?? 0, hero.weapon.shotsPerSecond, melee, ultimate);
   const stats = computeStats(hero, equipped, progression, spend, conditional);
   const resolved = abilities.map((a) => resolveAbility(a, stats, progression.boons, tiers[a.slot - 1] ?? 0));
 
-  return { hero, items: equipped, souls: input.souls, progression, spending: spend, stats, abilities: resolved, conditional, meleeShare: melee, warnings };
+  return { hero, items: equipped, souls: input.souls, progression, spending: spend, stats, abilities: resolved, conditional, meleeShare: melee, uptime: input.uptime ?? 0, warnings };
 }

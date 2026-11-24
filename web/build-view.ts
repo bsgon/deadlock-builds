@@ -19,8 +19,9 @@ import type { App } from "./main.ts";
 import { abilityIcon, infoTip, itemIcon, tipBody, withItemTip, withTip } from "./tooltip.ts";
 import type { Recommendation } from "../src/combat/explain.ts";
 import { SCENARIO_LABEL, scenarioMix, type ScenarioId } from "../src/combat/value.ts";
-import { phaseLabel, phaseOf } from "../src/optimizer/route.ts";
+import { phaseOf } from "../src/optimizer/route.ts";
 import { inputKey } from "./build-client.ts";
+import { flexOptions, longMatchShare, LONG_MATCH_MINUTE, routeStages, situationalPicks, temporaries } from "./stages.ts";
 import type { BuildPayload } from "./compute.ts";
 import { tr, trData, locale } from "../src/i18n.ts";
 
@@ -341,7 +342,6 @@ const theoryGroups = (): { kind: TheoryKind; title: string; hint: string }[] => 
   { kind: "combo", title: "Combos", hint: tr("Itens que os autores juntam, e por quê.", "Items the authors pair, and why.") },
   { kind: "timing", title: tr("Prioridades", "Priorities"), hint: tr("O que comprar cedo ou tarde.", "What to buy early or late.") },
   { kind: "late-swap", title: tr("Trocas de fim de jogo", "Late-game swaps"), hint: tr("O que vender, e o que entra no lugar.", "What to sell, and what replaces it.") },
-  { kind: "situational", title: tr("Situacionais", "Situational"), hint: tr("Respostas a situações da partida.", "Answers to match situations.") },
 ];
 const verdictLabel = () =>
   ({
@@ -466,16 +466,32 @@ function finalBuild(app: App, result: OptimizeResult, slots: number): HTMLElemen
   const active = tr(", ativo", ", active");
   const free = tr("Slot livre", "Empty slot");
 
+  const stages = routeStages(app.data, result.order);
+  const sold = temporaries(result.order);
+  const sorted = (list: Item[]) => [...list].sort((a, b) => SLOT_ORDER[a.slot] - SLOT_ORDER[b.slot] || b.tier - a.tier || b.cost - a.cost);
+  const cell = (item: Item, note = "") =>
+    h(
+      "li",
+      { class: `final-item buy-${item.slot}${sold.has(item.className) ? " final-temporary" : ""}` },
+      itemIcon(app, item, `item-icon buy-${item.slot}`),
+      h("span", { class: "final-name" }, item.name),
+      h("span", { class: "final-meta" }, `T${item.tier}${item.isActive ? active : ""}${note ? ` · ${note}` : ""}`),
+    );
+  const kept = new Set(result.items.map((i) => i.className));
+  const coreNote = (item: Item) => {
+    const t = sold.get(item.className);
+    if (t) return tr(`temporário, sai aos ${Math.round(t.minute)} min`, `temporary, leaves at ${Math.round(t.minute)} min`);
+    const upgrade = result.order.find((s) => s.upgradeFrom === item);
+    return !kept.has(item.className) && upgrade ? tr(`vira ${upgrade.item.name}`, `becomes ${upgrade.item.name}`) : "";
+  };
+  const extension = result.items.filter((i) => !stages.coreItems.includes(i));
+  const long = longMatchShare(app.data, findHero(app.data, result.hero).id);
+  // Sem compras depois (ou antes) dos 30 min, um bloco só.
+  const split = stages.coreItems.length > 0 && extension.length > 0;
+  const coreValue = stages.coreItems.reduce((sum, i) => sum + i.cost, 0);
+
   const cells = [
-    ...items.map((item) =>
-      h(
-        "li",
-        { class: `final-item buy-${item.slot}` },
-        itemIcon(app, item, `item-icon buy-${item.slot}`),
-        h("span", { class: "final-name" }, item.name),
-        h("span", { class: "final-meta" }, `T${item.tier}${item.isActive ? active : ""}`),
-      ),
-    ),
+    ...items.map((item) => cell(item)),
     ...Array.from({ length: Math.max(0, slots - items.length) }, () => h("li", { class: "final-item final-empty", "aria-label": free }, h("span", { class: "final-slot" }), h("span", { class: "final-name" }, free))),
   ];
 
@@ -492,8 +508,62 @@ function finalBuild(app: App, result: OptimizeResult, slots: number): HTMLElemen
       ),
       defenseLine(result),
     )),
-    h("ul", { class: "final-grid", "aria-label": tr(`Itens no fim: ${items.length} de ${slots} slots`, `Final items: ${items.length} of ${slots} slots`) }, cells),
+    ...(split
+      ? [
+          h("h3", { class: "stage-title" }, tr("Core, até 30 min", "Core, up to 30 min"), h("span", { class: "final-meta" }, tr(`${stages.coreItems.length} itens, ${fmt(coreValue)} souls`, `${stages.coreItems.length} items, ${fmt(coreValue)} souls`))),
+          h("ul", { class: "final-grid", "aria-label": tr("Itens do core", "Core items") }, sorted(stages.coreItems).map((i) => cell(i, coreNote(i)))),
+          h(
+            "h3",
+            { class: "stage-title" },
+            tr("Extensão, se a partida alongar", "Extension, if the match runs long"),
+            long === null ? null : h("span", { class: "final-meta" }, tr(`${Math.round(long * 100)}% das partidas passam de ${LONG_MATCH_MINUTE} min`, `${Math.round(long * 100)}% of matches go past ${LONG_MATCH_MINUTE} min`)),
+          ),
+          h("ul", { class: "final-grid", "aria-label": tr(`Itens da extensão; no fim, ${items.length} de ${slots} slots`, `Extension items; at the end, ${items.length} of ${slots} slots`) }, sorted(extension).map((i) => cell(i))),
+        ]
+      : [h("ul", { class: "final-grid", "aria-label": tr(`Itens no fim: ${items.length} de ${slots} slots`, `Final items: ${items.length} of ${slots} slots`) }, cells)]),
     swapList(result),
+  );
+}
+
+/** Nome da fase da rota, com o limite. */
+function stageTitle(phase: ReturnType<typeof phaseOf>): string {
+  return phase === "início"
+    ? tr("Início, até 15 min", "Early, up to 15 min")
+    : phase === "meio"
+      ? tr("Core, até 30 min", "Core, up to 30 min")
+      : tr("Extensão, se a partida alongar", "Extension, if the match runs long");
+}
+
+/** Vagas em que outro item renderia quase o mesmo, e respostas a situações da partida. */
+function optionsSection(app: App, result: OptimizeResult, heroId: number): HTMLElement | null {
+  const byClass = new Map(app.data.items.map((i) => [i.className, i]));
+  const flex = flexOptions(app.data, heroId, result);
+  const situational = situationalPicks(app.data, heroId, result);
+  if (!flex.length && !situational.length) return null;
+  const row = (item: Item, text: string, meta: string) => h("li", { class: "option" }, itemIcon(app, item, `item-icon small buy-${item.slot}`), h("div", {}, h("strong", {}, item.name), h("p", { class: "buy-meta" }, text), meta ? h("p", { class: "buy-meta" }, meta) : null));
+  return h(
+    "section",
+    { class: "options" },
+    flex.length
+      ? h(
+          "div",
+          {},
+          h("h2", {}, "Flex", " ", infoTip("Flex", tr("Itens que rendem por soul quase o mesmo que a compra da rota no mesmo momento (menos de 15% de diferença) e que os jogadores do herói usam.", "Items that yield almost the same per soul as the route's purchase at that moment (under 15% difference) and that the hero's players use."))),
+          h("ul", {}, flex.map((f) => row(f.item, tr(`no lugar de ${f.insteadOf.name}`, `instead of ${f.insteadOf.name}`), tr(`${fmt1(f.margin * 100)}% a menos por soul`, `${fmt1(f.margin * 100)}% less per soul`)))),
+        )
+      : null,
+    situational.length
+      ? h(
+          "div",
+          {},
+          h("h2", {}, tr("Situacionais", "Situational"), " ", infoTip(tr("Situacionais", "Situational"), tr("Respostas a situações, tiradas das builds publicadas. São a opinião dos autores, não uma conta do modelo.", "Answers to situations, taken from published builds. They are the authors' opinion, not a model calculation."))),
+          h(
+            "ul",
+            {},
+            situational.map((t) => row(byClass.get(t.items[0]!)!, trData(t.condition!), `${t.builds.length} ${t.builds.length === 1 ? tr("build publicada", "published build") : tr("builds publicadas", "published builds")}`)),
+          ),
+        )
+      : null,
   );
 }
 
@@ -506,9 +576,7 @@ function purchaseList(app: App, result: OptimizeResult, heroId: number): HTMLEle
   let lastPhase = "";
   const rows = result.order.flatMap((step) => {
     const phase = phaseOf(step.minute);
-    const label = phaseLabel(step.minute);
-    const title = `${label[0]!.toUpperCase()}${label.slice(1)}`;
-    const header = phase !== lastPhase ? h("li", { class: "phase", "aria-hidden": "true" }, tr(`${title} da partida`, `${title} game`)) : null;
+    const header = phase !== lastPhase ? h("li", { class: "phase" }, stageTitle(phase)) : null;
     lastPhase = phase;
     return header ? [header, buyRow(step)] : [buyRow(step)];
   });
@@ -519,13 +587,14 @@ function purchaseList(app: App, result: OptimizeResult, heroId: number): HTMLEle
     const pinned = state.required.includes(item.name);
     const upgrade = result.order.find((later) => later.upgradeFrom === item);
     const sale = result.order.find((later) => later.sold === item);
+    const temporary = temporaries(result.order).get(item.className);
     // Um selo só: o que esta compra faz com outro item da build.
     const badge = step.sold
       ? tr(`vende ${step.sold.name}`, `sells ${step.sold.name}`)
       : step.upgradeFrom
         ? tr(`melhora ${step.upgradeFrom.name}`, `upgrades ${step.upgradeFrom.name}`)
         : sale
-          ? tr(`vendido por ${sale.item.name}`, `sold for ${sale.item.name}`)
+          ? tr(`temporário, sai aos ${Math.round(sale.minute)} min`, `temporary, leaves at ${Math.round(sale.minute)} min`)
           : upgrade
             ? tr(`vira ${upgrade.item.name}`, `becomes ${upgrade.item.name}`)
             : step.isComponent
@@ -562,6 +631,9 @@ function purchaseList(app: App, result: OptimizeResult, heroId: number): HTMLEle
       if (open && !more.hasChildNodes())
         more.append(
           h("p", { class: "buy-meta" }, when),
+          ...(temporary
+            ? [h("p", { class: "buy-meta" }, tr(`Temporário: vendido por volta do minuto ${Math.round(temporary.minute)} para dar lugar a ${temporary.replacedBy.name}. Custo líquido: ${fmt(temporary.net)} souls.`, `Temporary: sold around minute ${Math.round(temporary.minute)} to make room for ${temporary.replacedBy.name}. Net cost: ${fmt(temporary.net)} souls.`))]
+            : []),
           ...matches.map((m) => h("p", { class: "buy-meta" }, m)),
           ...[step.why ? whyBlock(step.why) : null, links.length ? h("ul", { class: "reasons" }, links.map(reasonItem)) : null, step.isComponent ? null : actions()].filter((n) => n !== null),
         );
@@ -1234,6 +1306,7 @@ function resultView(app: App, payload: BuildPayload, input: OptimizeInput, statu
     ),
     soulTrack(app, result),
     finalBuild(app, result, slots),
+    optionsSection(app, result, hero.id),
     abilityPlan(app, hero.id),
     h(
       "div",

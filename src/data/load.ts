@@ -27,6 +27,7 @@ export function loadSnapshot(dir: string = defaultDir): GameData {
     ...(existsSync(join(dir, "elite.json")) ? { elite: read("elite.json") } : {}),
     ...(existsSync(join(dir, "wpa.json")) ? { wpa: read("wpa.json") } : {}),
     ...(existsSync(join(dir, "timing.json")) ? { timing: read("timing.json") } : {}),
+    ...(existsSync(join(dir, "sales.json")) ? { sales: read("sales.json") } : {}),
     ...(existsSync(join(dir, "i18n-en.json")) ? { translations: read("i18n-en.json") } : {}),
   });
   // Duração e tipos de luta medidos nas partidas valem para todo o cálculo.

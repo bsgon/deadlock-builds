@@ -24,6 +24,9 @@ export const SELL_REFUND = 0.5;
  */
 export const VITALITY_SPIKE_SOULS = 4800;
 
+/** Intervalo entre lutas, em segundos: um efeito com cooldown até isto sai em toda luta. Escolha do projeto. */
+export const FIGHT_EVERY_SECONDS = 60;
+
 /** Minuto em que o mid game começa (prazo para o pico de vitality). */
 export const MID_GAME_MINUTE = 15;
 
@@ -78,6 +81,21 @@ export const ASSUMPTIONS: Assumption[] = [
     id: "conditional-excluded",
     rule: "Stats de itens que dependem de condição, proc ou ativação não entram no cálculo base; só os da seção 'innate' do item.",
     source: "Decisão de escopo da Fase 1; as condições serão modeladas na Fase 2.",
+  },
+  {
+    id: "health-condition",
+    rule: "Com a própria vida caindo em linha reta até um ponto qualquer (uniforme de 0 a 100%), um efeito 'abaixo de X% de vida' vale X + (1-X)·ln(1-X) da luta, e 'acima de X%', o resto (50%: 15% e 85%).",
+    source: "Escolha de projeto: um uptime único para as duas condições fazia Frenzy (abaixo de 50%) render metade da luta.",
+  },
+  {
+    id: "ultimate-trigger",
+    rule: "Efeito ao lançar a ultimate só sai nas lutas em que ela está pronta: 60 s / cooldown da ultimate.",
+    source: "Texto do item (Diviner's Kevlar) e deadlock.wiki/Diviner's_Kevlar; o intervalo entre lutas é escolha do projeto.",
+  },
+  {
+    id: "health-drain",
+    rule: "Vida sacrificada por um ativo (Blood Tribute, 50/s) sai da vida efetiva, pelo tempo ativo, numa luta de 20 s.",
+    source: "deadlock.wiki/Blood_Tribute: dreno de 50/s, sem duração; não mata o usuário.",
   },
   {
     id: "target-health",

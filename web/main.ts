@@ -97,6 +97,9 @@ async function loadData(): Promise<GameData> {
   const timing = await fetch("./timing.json")
     .then((res) => (res.ok ? res.json() : undefined))
     .catch(() => undefined);
+  const sales = await fetch("./sales.json")
+    .then((res) => (res.ok ? res.json() : undefined))
+    .catch(() => undefined);
   // Traduções dos textos dos dados: só baixa quando a página está em inglês.
   const translations =
     lang() === "en"
@@ -104,7 +107,7 @@ async function loadData(): Promise<GameData> {
           .then((res) => (res.ok ? res.json() : undefined))
           .catch(() => undefined)
       : undefined;
-  return withoutBrawlItems({ meta, shared, heroes, abilities, items, ...(stats ? { stats } : {}), ...(knowledge ? { knowledge } : {}), ...(theories ? { theories } : {}), ...(windows ? { windows } : {}), ...(fights ? { fights } : {}), ...(elite ? { elite } : {}), ...(wpa ? { wpa } : {}), ...(timing ? { timing } : {}), ...(translations ? { translations } : {}) });
+  return withoutBrawlItems({ meta, shared, heroes, abilities, items, ...(stats ? { stats } : {}), ...(knowledge ? { knowledge } : {}), ...(theories ? { theories } : {}), ...(windows ? { windows } : {}), ...(fights ? { fights } : {}), ...(elite ? { elite } : {}), ...(wpa ? { wpa } : {}), ...(timing ? { timing } : {}), ...(sales ? { sales } : {}), ...(translations ? { translations } : {}) });
 }
 
 const root = document.getElementById("app")!;

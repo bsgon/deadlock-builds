@@ -37,12 +37,15 @@ describe("theorycraft das builds publicadas", () => {
     expect(sale).toBeDefined();
     const theory: Theory = {
       hero: "Haze", heroId: hero("Haze").id, kind: "late-swap", items: [sale.sold!.className, sale.item.className],
-      itemNames: [sale.sold!.name, sale.item.name], title: "troca de teste", claim: "troca usada só no teste", builds: [1, 2, 3], favorites: 0,
+      itemNames: [sale.sold!.name, sale.item.name], title: "troca de teste", evidence: { verdict: "unclear" as const, lift: 0, matches: 200 }, claim: "troca usada só no teste", builds: [1, 2, 3], favorites: 0,
     };
     const r = optimize({ ...data, theories: [theory] }, { hero: "Haze", objective: "optimized", souls: 40000 });
     const marked = r.order.find((s) => s.community);
     expect(marked?.community).toEqual({ title: "troca de teste", builds: 3 });
     expect(marked?.sold?.className).toBe(sale.sold!.className);
+    // Sem trocas vistas nas partidas, a opinião da build não pesa nem é mostrada na rota.
+    const unseen = optimize({ ...data, theories: [{ ...theory, evidence: { verdict: "unclear", lift: 0, matches: 5 } }] }, { hero: "Haze", objective: "optimized", souls: 40000 });
+    expect(unseen.order.some((s) => s.community)).toBe(false);
   }, 60_000);
 
   it("teoria contrariada pelos dados não soma; confirmada soma mais que sem conclusão", () => {

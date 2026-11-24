@@ -16,6 +16,7 @@
  *                         (padrão: mistura, mostrada como cenário assumido)
  *   --no-explain          não explica cada compra (mais rápido)
  *   --situational         lista alternativas situacionais também fora do objetivo control
+ *   --plan                planeja a rota inteira para valer o máximo na partida toda (src/optimizer/plan)
  *   --final               escolhe a melhor build para os souls finais e só depois ordena
  *                         (o padrão monta a build compra a compra, como na partida)
  *
@@ -64,7 +65,7 @@ const input: OptimizeInput = {
   required: list("with"),
   banned: list("without"),
   metric: option("uptime") ? { uptime: Number(option("uptime")) } : undefined,
-  mode: flag("final") ? "final" : "progressive",
+  mode: flag("final") ? "final" : flag("plan") ? "plan" : "progressive",
   explain: !flag("no-explain"),
   ...(list("fight").length ? { fights: list("fight") as ScenarioId[] } : {}),
   vitalitySpike: flag("no-vit")

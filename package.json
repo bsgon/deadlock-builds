@@ -35,6 +35,9 @@
     "timing": "node scripts/timing.ts",
     "order-report": "node scripts/order-report.ts",
     "priors": "node scripts/priors.ts",
+    "build-report": "node scripts/build-report.ts",
+    "sales": "node scripts/sales.ts",
+    "validate-routes": "node --max-old-space-size=8192 scripts/validate-routes.ts",
     "fights": "node scripts/fights.ts"
   },
   "devDependencies": {

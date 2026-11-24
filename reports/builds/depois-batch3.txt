@@ -1,0 +1,30 @@
+App: 44 heróis, Otimizada, 50000 souls, 12 slots (patch 6861)
+  vendas por build            1.23  (54 no total, 28 heróis)
+  souls perdidos por build    936
+  posse < 10 min              0
+  vende o que entrou por troca 0
+  trocas com ganho < 5%       0
+  trocas que perdem os 4.800  0
+  tier vendido T1/T2/T3/T4    11/40/3/0
+  itens finais < 5% de compra 229 de 527 (43%)
+  itens em mais heróis        Blood Tribute 36, Diviner's Kevlar 30, Bullet Resilience 27, Frenzy 25, Battle Vest 23, Alchemical Fire 22, Capacitor 21, Boundless Spirit 21
+  souls sem gastar por build  1337
+  slots vazios por build      0.02
+  itens equipados por minuto  5: 2/2  10: 4/4  15: 6/7  20: 7/8  25: 9/10  30: 10/11  35: 11/12  40: 12/12  (p50/p90)
+  pontuação final média       7.6893
+  J médio                     0.9334
+  tempo                       38 s
+
+Jogadores, todos os elos: 1000 partidas (2026-11-24)
+  todos    12000 jogadores: 0.94 vendas, 645 souls perdidos, posse p10 11.4, < 10 min 8.2%, tiers 51%/40%/9%/1%
+  30-40k    3619 jogadores: 0.69 vendas, 388 souls perdidos, posse p10 10.9, < 10 min 8.6%, tiers 69%/28%/3%/0%
+  40-50k    2283 jogadores: 1.28 vendas, 822 souls perdidos, posse p10 12.9, < 10 min 6.7%, tiers 53%/41%/6%/1%
+  50k+      1475 jogadores: 2.95 vendas, 2490 souls perdidos, posse p10 13.5, < 10 min 6.1%, tiers 30%/53%/15%/2%
+  itens equipados por minuto  5: 2/3  10: 4/6  15: 6/8  20: 8/9  25: 9/10  30: 10/11  35: 11/12  40: 11/12  (p50/p90)
+
+Jogadores, elo alto: 998 partidas (2026-11-24)
+  todos    11976 jogadores: 0.91 vendas, 525 souls perdidos, posse p10 12.6, < 10 min 5.6%, tiers 65%/31%/3%/0%
+  30-40k    3932 jogadores: 1.02 vendas, 550 souls perdidos, posse p10 13.0, < 10 min 4.7%, tiers 71%/27%/2%/0%
+  40-50k    1601 jogadores: 1.78 vendas, 1120 souls perdidos, posse p10 13.8, < 10 min 4.1%, tiers 52%/45%/3%/0%
+  50k+       359 jogadores: 3.09 vendas, 2251 souls perdidos, posse p10 14.7, < 10 min 2.8%, tiers 33%/60%/7%/0%
+  itens equipados por minuto  5: 2/3  10: 5/6  15: 7/9  20: 9/10  25: 10/11  30: 11/12  35: 11/12  40: 12/12  (p50/p90)

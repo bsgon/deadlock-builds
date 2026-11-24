@@ -335,7 +335,12 @@
   "itemNames": [
    "Bullet Resist Shredder",
    "Superior Duration"
-  ]
+  ],
+  "evidence": {
+   "verdict": "contradicted",
+   "lift": -23.5,
+   "matches": 35
+  }
  },
  {
   "hero": "Abrams",
@@ -437,7 +442,12 @@
   "itemNames": [
    "Healbane",
    "Spirit Burn"
-  ]
+  ],
+  "evidence": {
+   "verdict": "unclear",
+   "lift": -3.7,
+   "matches": 80
+  }
  },
  {
   "hero": "Apollo",
@@ -642,7 +652,12 @@
   "itemNames": [
    "Torment Pulse",
    "Mystic Reverb"
-  ]
+  ],
+  "evidence": {
+   "verdict": "unclear",
+   "lift": 59.8,
+   "matches": 1
+  }
  },
  {
   "hero": "Baba",
@@ -939,7 +954,12 @@
   "itemNames": [
    "Healbane",
    "Spirit Burn"
-  ]
+  ],
+  "evidence": {
+   "verdict": "unclear",
+   "lift": -13.2,
+   "matches": 23
+  }
  },
  {
   "hero": "Baba",
@@ -958,7 +978,12 @@
   "itemNames": [
    "Battle Vest",
    "Juggernaut"
-  ]
+  ],
+  "evidence": {
+   "verdict": "unclear",
+   "lift": 0,
+   "matches": 0
+  }
  },
  {
   "hero": "Bebop",
@@ -1348,7 +1373,12 @@
   "itemNames": [
    "Mystic Burst",
    "Improved Spirit"
-  ]
+  ],
+  "evidence": {
+   "verdict": "unclear",
+   "lift": 11.2,
+   "matches": 10
+  }
  },
  {
   "hero": "Bebop",
@@ -1367,7 +1397,12 @@
   "itemNames": [
    "Extended Magazine",
    "Spiritual Overflow"
-  ]
+  ],
+  "evidence": {
+   "verdict": "unclear",
+   "lift": 0,
+   "matches": 0
+  }
  },
  {
   "hero": "Billy",
@@ -1653,7 +1688,12 @@
   "itemNames": [
    "Stalker",
    "Colossus"
-  ]
+  ],
+  "evidence": {
+   "verdict": "unclear",
+   "lift": 3.1,
+   "matches": 113
+  }
  },
  {
   "hero": "Billy",
@@ -1813,7 +1853,12 @@
   "itemNames": [
    "Close Quarters",
    "Point Blank"
-  ]
+  ],
+  "evidence": {
+   "verdict": "unclear",
+   "lift": 0,
+   "matches": 7
+  }
  },
  {
   "hero": "Calico",
@@ -2200,7 +2245,12 @@
   "itemNames": [
    "Stalker",
    "Transcendent Cooldown"
-  ]
+  ],
+  "evidence": {
+   "verdict": "unclear",
+   "lift": 9.4,
+   "matches": 45
+  }
  },
  {
   "hero": "Calico",
@@ -2619,7 +2669,12 @@
   "itemNames": [
    "Extra Charge",
    "Mystic Burst"
-  ]
+  ],
+  "evidence": {
+   "verdict": "unclear",
+   "lift": 0,
+   "matches": 0
+  }
  },
  {
   "hero": "Deadman Danny",
@@ -2996,7 +3051,12 @@
   "itemNames": [
    "Restorative Shot",
    "Point Blank"
-  ]
+  ],
+  "evidence": {
+   "verdict": "unclear",
+   "lift": 0,
+   "matches": 0
+  }
  },
  {
   "hero": "Drifter",
@@ -3436,7 +3496,12 @@
   "itemNames": [
    "Trophy Collector",
    "Juggernaut"
-  ]
+  ],
+  "evidence": {
+   "verdict": "unclear",
+   "lift": -7.3,
+   "matches": 27
+  }
  },
  {
   "hero": "Drifter",
@@ -3455,7 +3520,12 @@
   "itemNames": [
    "Stalker",
    "Hunter's Aura"
-  ]
+  ],
+  "evidence": {
+   "verdict": "unclear",
+   "lift": -7.4,
+   "matches": 105
+  }
  },
  {
   "hero": "Drifter",
@@ -3899,7 +3969,12 @@
   "itemNames": [
    "Surge of Power",
    "Scourge"
-  ]
+  ],
+  "evidence": {
+   "verdict": "unclear",
+   "lift": -21.8,
+   "matches": 1
+  }
  },
  {
   "hero": "Dynamo",
@@ -3918,7 +3993,12 @@
   "itemNames": [
    "Fortitude",
    "Diviner's Kevlar"
-  ]
+  ],
+  "evidence": {
+   "verdict": "unclear",
+   "lift": -38,
+   "matches": 1
+  }
  },
  {
   "hero": "Dynamo",
@@ -4330,7 +4410,12 @@
   "itemNames": [
    "Healbane",
    "Spirit Burn"
-  ]
+  ],
+  "evidence": {
+   "verdict": "unclear",
+   "lift": 0.9,
+   "matches": 29
+  }
  },
  {
   "hero": "Grey Talon",
@@ -4659,7 +4744,12 @@
   "itemNames": [
    "Enchanter's Emblem",
    "Indomitable"
-  ]
+  ],
+  "evidence": {
+   "verdict": "unclear",
+   "lift": 3.8,
+   "matches": 32
+  }
  },
  {
   "hero": "Grey Talon",
@@ -4678,7 +4768,12 @@
   "itemNames": [
    "Opening Rounds",
    "Spiritual Overflow"
-  ]
+  ],
+  "evidence": {
+   "verdict": "unclear",
+   "lift": -4.2,
+   "matches": 30
+  }
  },
  {
   "hero": "Haze",
@@ -5066,7 +5161,12 @@
   "itemNames": [
    "Quicksilver Reload",
    "Mercurial Magnum"
-  ]
+  ],
+  "evidence": {
+   "verdict": "unclear",
+   "lift": 0,
+   "matches": 0
+  }
  },
  {
   "hero": "Haze",
@@ -5102,7 +5202,12 @@
   "itemNames": [
    "Golden Goose Egg",
    "Ricochet"
-  ]
+  ],
+  "evidence": {
+   "verdict": "unclear",
+   "lift": -15,
+   "matches": 9
+  }
  },
  {
   "hero": "Haze",
@@ -5121,7 +5226,12 @@
   "itemNames": [
    "Burst Fire",
    "Blood Tribute"
-  ]
+  ],
+  "evidence": {
+   "verdict": "unclear",
+   "lift": 0,
+   "matches": 0
+  }
  },
  {
   "hero": "Holliday",
@@ -5475,7 +5585,12 @@
   "itemNames": [
    "Trophy Collector",
    "Counterspell"
-  ]
+  ],
+  "evidence": {
+   "verdict": "unclear",
+   "lift": -82.3,
+   "matches": 2
+  }
  },
  {
   "hero": "Holliday",
@@ -5495,7 +5610,12 @@
   "itemNames": [
    "Surge of Power",
    "Spiritual Overflow"
-  ]
+  ],
+  "evidence": {
+   "verdict": "unclear",
+   "lift": 19.6,
+   "matches": 1
+  }
  },
  {
   "hero": "Holliday",
@@ -5538,7 +5658,12 @@
   "itemNames": [
    "Recharging Rush",
    "Witchmail"
-  ]
+  ],
+  "evidence": {
+   "verdict": "unclear",
+   "lift": -39.8,
+   "matches": 2
+  }
  },
  {
   "hero": "Holliday",
@@ -5557,7 +5682,12 @@
   "itemNames": [
    "Trophy Collector",
    "Restorative Locket"
-  ]
+  ],
+  "evidence": {
+   "verdict": "unclear",
+   "lift": 0,
+   "matches": 0
+  }
  },
  {
   "hero": "Infernus",
@@ -5694,7 +5824,12 @@
   "itemNames": [
    "Quicksilver Reload",
    "Mercurial Magnum"
-  ]
+  ],
+  "evidence": {
+   "verdict": "unclear",
+   "lift": 0,
+   "matches": 0
+  }
  },
  {
   "hero": "Infernus",
@@ -6026,7 +6161,12 @@
   "itemNames": [
    "Swift Striker",
    "Ricochet"
-  ]
+  ],
+  "evidence": {
+   "verdict": "unclear",
+   "lift": -4.6,
+   "matches": 150
+  }
  },
  {
   "hero": "Infernus",
@@ -6045,7 +6185,12 @@
   "itemNames": [
    "Enchanter's Emblem",
    "Spirit Resilience"
-  ]
+  ],
+  "evidence": {
+   "verdict": "unclear",
+   "lift": 20.1,
+   "matches": 20
+  }
  },
  {
   "hero": "Infernus",
@@ -6064,7 +6209,12 @@
   "itemNames": [
    "Spirit Burn",
    "Toxic Bullets"
-  ]
+  ],
+  "evidence": {
+   "verdict": "unclear",
+   "lift": 0,
+   "matches": 0
+  }
  },
  {
   "hero": "Infernus",
@@ -6083,7 +6233,12 @@
   "itemNames": [
    "Juggernaut",
    "Healbane"
-  ]
+  ],
+  "evidence": {
+   "verdict": "unclear",
+   "lift": 0,
+   "matches": 0
+  }
  },
  {
   "hero": "Infernus",
@@ -6102,7 +6257,12 @@
   "itemNames": [
    "Duration Extender",
    "Superior Duration"
-  ]
+  ],
+  "evidence": {
+   "verdict": "unclear",
+   "lift": 0,
+   "matches": 0
+  }
  },
  {
   "hero": "Infernus",
@@ -6662,7 +6822,12 @@
   "itemNames": [
    "Toxic Bullets",
    "Spirit Burn"
-  ]
+  ],
+  "evidence": {
+   "verdict": "unclear",
+   "lift": 0,
+   "matches": 0
+  }
  },
  {
   "hero": "Kelvin",
@@ -6999,7 +7164,12 @@
   "itemNames": [
    "Healbane",
    "Spirit Burn"
-  ]
+  ],
+  "evidence": {
+   "verdict": "contradicted",
+   "lift": -12.1,
+   "matches": 128
+  }
  },
  {
   "hero": "Kelvin",
@@ -7249,7 +7419,12 @@
   "itemNames": [
    "Healbane",
    "Spirit Burn"
-  ]
+  ],
+  "evidence": {
+   "verdict": "unclear",
+   "lift": -4.9,
+   "matches": 152
+  }
  },
  {
   "hero": "Lady Geist",
@@ -7635,7 +7810,12 @@
   "itemNames": [
    "Healbane",
    "Spirit Burn"
-  ]
+  ],
+  "evidence": {
+   "verdict": "contradicted",
+   "lift": -12.1,
+   "matches": 113
+  }
  },
  {
   "hero": "Lash",
@@ -7972,7 +8152,12 @@
   "itemNames": [
    "Healbane",
    "Spirit Burn"
-  ]
+  ],
+  "evidence": {
+   "verdict": "unclear",
+   "lift": 10.5,
+   "matches": 31
+  }
  },
  {
   "hero": "McGinnis",
@@ -8423,7 +8608,12 @@
   "itemNames": [
    "Healing Rite",
    "Extra Health"
-  ]
+  ],
+  "evidence": {
+   "verdict": "unclear",
+   "lift": 0,
+   "matches": 0
+  }
  },
  {
   "hero": "Mina",
@@ -8461,7 +8651,12 @@
   "itemNames": [
    "Healbane",
    "Infuser"
-  ]
+  ],
+  "evidence": {
+   "verdict": "unclear",
+   "lift": 0,
+   "matches": 0
+  }
  },
  {
   "hero": "Mina",
@@ -8813,7 +9008,12 @@
   "itemNames": [
    "Mystic Regeneration",
    "Radiant Regeneration"
-  ]
+  ],
+  "evidence": {
+   "verdict": "unclear",
+   "lift": 0,
+   "matches": 0
+  }
  },
  {
   "hero": "Mo & Krill",
@@ -9217,7 +9417,12 @@
   "itemNames": [
    "Healbane",
    "Spirit Burn"
-  ]
+  ],
+  "evidence": {
+   "verdict": "unclear",
+   "lift": 9.4,
+   "matches": 59
+  }
  },
  {
   "hero": "Mo & Krill",
@@ -9236,7 +9441,12 @@
   "itemNames": [
    "Quicksilver Reload",
    "Mercurial Magnum"
-  ]
+  ],
+  "evidence": {
+   "verdict": "unclear",
+   "lift": 0,
+   "matches": 0
+  }
  },
  {
   "hero": "Mo & Krill",
@@ -9255,7 +9465,12 @@
   "itemNames": [
    "Trophy Collector",
    "Enduring Speed"
-  ]
+  ],
+  "evidence": {
+   "verdict": "unclear",
+   "lift": 3.6,
+   "matches": 7
+  }
  },
  {
   "hero": "Nurse Harrow",
@@ -9534,7 +9749,12 @@
   "itemNames": [
    "Recharging Rush",
    "Mercurial Magnum"
-  ]
+  ],
+  "evidence": {
+   "verdict": "unclear",
+   "lift": 0,
+   "matches": 0
+  }
  },
  {
   "hero": "Nurse Harrow",
@@ -9553,7 +9773,12 @@
   "itemNames": [
    "Healbane",
    "Spirit Burn"
-  ]
+  ],
+  "evidence": {
+   "verdict": "unclear",
+   "lift": 21,
+   "matches": 9
+  }
  },
  {
   "hero": "Paige",
@@ -9886,7 +10111,12 @@
   "itemNames": [
    "Trophy Collector",
    "Witchmail"
-  ]
+  ],
+  "evidence": {
+   "verdict": "unclear",
+   "lift": -35,
+   "matches": 8
+  }
  },
  {
   "hero": "Paige",
@@ -9905,7 +10135,12 @@
   "itemNames": [
    "Knockdown",
    "Echo Shard"
-  ]
+  ],
+  "evidence": {
+   "verdict": "unclear",
+   "lift": -49.7,
+   "matches": 2
+  }
  },
  {
   "hero": "Paige",
@@ -9924,7 +10159,12 @@
   "itemNames": [
    "Arcane Surge",
    "Refresher"
-  ]
+  ],
+  "evidence": {
+   "verdict": "unclear",
+   "lift": 3.6,
+   "matches": 14
+  }
  },
  {
   "hero": "Paige",
@@ -9943,7 +10183,12 @@
   "itemNames": [
    "Healbane",
    "Spirit Burn"
-  ]
+  ],
+  "evidence": {
+   "verdict": "unclear",
+   "lift": -9.1,
+   "matches": 60
+  }
  },
  {
   "hero": "Paige",
@@ -10509,7 +10754,12 @@
   "itemNames": [
    "Mystic Shot",
    "Mercurial Magnum"
-  ]
+  ],
+  "evidence": {
+   "verdict": "unclear",
+   "lift": -1.8,
+   "matches": 32
+  }
  },
  {
   "hero": "Paradox",
@@ -10528,7 +10778,12 @@
   "itemNames": [
    "Opening Rounds",
    "Express Shot"
-  ]
+  ],
+  "evidence": {
+   "verdict": "unclear",
+   "lift": 3.6,
+   "matches": 4
+  }
  },
  {
   "hero": "Paradox",
@@ -10547,7 +10802,12 @@
   "itemNames": [
    "Mystic Shot",
    "Spirit Burn"
-  ]
+  ],
+  "evidence": {
+   "verdict": "unclear",
+   "lift": -11.3,
+   "matches": 73
+  }
  },
  {
   "hero": "Paradox",
@@ -10566,7 +10826,12 @@
   "itemNames": [
    "Compress Cooldown",
    "Duration Extender"
-  ]
+  ],
+  "evidence": {
+   "verdict": "unclear",
+   "lift": 0,
+   "matches": 0
+  }
  },
  {
   "hero": "Pocket",
@@ -11038,7 +11303,12 @@
   "itemNames": [
    "Enchanter's Emblem",
    "Diviner's Kevlar"
-  ]
+  ],
+  "evidence": {
+   "verdict": "unclear",
+   "lift": -14.3,
+   "matches": 34
+  }
  },
  {
   "hero": "Pocket",
@@ -11057,7 +11327,12 @@
   "itemNames": [
    "Superior Duration",
    "Witchmail"
-  ]
+  ],
+  "evidence": {
+   "verdict": "unclear",
+   "lift": 0,
+   "matches": 0
+  }
  },
  {
   "hero": "Pocket",
@@ -11076,7 +11351,12 @@
   "itemNames": [
    "Cold Front",
    "Ethereal Shift"
-  ]
+  ],
+  "evidence": {
+   "verdict": "unclear",
+   "lift": 11.3,
+   "matches": 29
+  }
  },
  {
   "hero": "Pocket",
@@ -11095,7 +11375,12 @@
   "itemNames": [
    "Cold Front",
    "Refresher"
-  ]
+  ],
+  "evidence": {
+   "verdict": "unclear",
+   "lift": 16.4,
+   "matches": 10
+  }
  },
  {
   "hero": "Pocket",
@@ -11114,7 +11399,12 @@
   "itemNames": [
    "Restorative Locket",
    "Divine Barrier"
-  ]
+  ],
+  "evidence": {
+   "verdict": "unclear",
+   "lift": 0,
+   "matches": 0
+  }
  },
  {
   "hero": "Rat King",
@@ -11643,7 +11933,12 @@
   "itemNames": [
    "Kinetic Dash",
    "Silencer"
-  ]
+  ],
+  "evidence": {
+   "verdict": "unclear",
+   "lift": 37,
+   "matches": 3
+  }
  },
  {
   "hero": "Rat King",
@@ -11662,7 +11957,12 @@
   "itemNames": [
    "High-Velocity Rounds",
    "Tesla Bullets"
-  ]
+  ],
+  "evidence": {
+   "verdict": "unclear",
+   "lift": 0,
+   "matches": 0
+  }
  },
  {
   "hero": "Rat King",
@@ -11997,7 +12297,12 @@
   "itemNames": [
    "Healing Booster",
    "Healing Tempo"
-  ]
+  ],
+  "evidence": {
+   "verdict": "unclear",
+   "lift": 0,
+   "matches": 0
+  }
  },
  {
   "hero": "Rem",
@@ -12017,7 +12322,12 @@
   "itemNames": [
    "Compress Cooldown",
    "Superior Cooldown"
-  ]
+  ],
+  "evidence": {
+   "verdict": "unclear",
+   "lift": 0,
+   "matches": 0
+  }
  },
  {
   "hero": "Rem",
@@ -12365,7 +12675,12 @@
   "itemNames": [
    "Healbane",
    "Spirit Burn"
-  ]
+  ],
+  "evidence": {
+   "verdict": "unclear",
+   "lift": -8.2,
+   "matches": 116
+  }
  },
  {
   "hero": "Shiv",
@@ -13062,7 +13377,12 @@
   "itemNames": [
    "Stalker",
    "Indomitable"
-  ]
+  ],
+  "evidence": {
+   "verdict": "unclear",
+   "lift": -11.7,
+   "matches": 22
+  }
  },
  {
   "hero": "Sinclair",
@@ -13396,7 +13716,12 @@
   "itemNames": [
    "Mystic Burst",
    "Tankbuster"
-  ]
+  ],
+  "evidence": {
+   "verdict": "unclear",
+   "lift": 0,
+   "matches": 0
+  }
  },
  {
   "hero": "Sinclair",
@@ -13746,7 +14071,12 @@
   "itemNames": [
    "Golden Goose Egg",
    "Spirit Burn"
-  ]
+  ],
+  "evidence": {
+   "verdict": "unclear",
+   "lift": -16,
+   "matches": 1
+  }
  },
  {
   "hero": "The Doorman",
@@ -14054,7 +14384,12 @@
   "itemNames": [
    "Guardian Ward",
    "Divine Barrier"
-  ]
+  ],
+  "evidence": {
+   "verdict": "unclear",
+   "lift": 0,
+   "matches": 0
+  }
  },
  {
   "hero": "Venator",
@@ -14105,7 +14440,12 @@
   "itemNames": [
    "Restorative Shot",
    "Vampiric Burst"
-  ]
+  ],
+  "evidence": {
+   "verdict": "unclear",
+   "lift": -5.6,
+   "matches": 217
+  }
  },
  {
   "hero": "Venator",
@@ -14440,7 +14780,12 @@
   "itemNames": [
    "Intensifying Magazine",
    "Rapid Recharge"
-  ]
+  ],
+  "evidence": {
+   "verdict": "unclear",
+   "lift": -34.4,
+   "matches": 3
+  }
  },
  {
   "hero": "Victor",
@@ -14879,7 +15224,12 @@
   "itemNames": [
    "Healing Booster",
    "Healing Tempo"
-  ]
+  ],
+  "evidence": {
+   "verdict": "unclear",
+   "lift": 0,
+   "matches": 0
+  }
  },
  {
   "hero": "Victor",
@@ -14979,7 +15329,12 @@
   "itemNames": [
    "Healing Booster",
    "Witchmail"
-  ]
+  ],
+  "evidence": {
+   "verdict": "unclear",
+   "lift": 1.1,
+   "matches": 22
+  }
  },
  {
   "hero": "Victor",
@@ -14998,7 +15353,12 @@
   "itemNames": [
    "Melee Lifesteal",
    "Healbane"
-  ]
+  ],
+  "evidence": {
+   "verdict": "unclear",
+   "lift": -6.7,
+   "matches": 3
+  }
  },
  {
   "hero": "Vindicta",
@@ -15414,7 +15774,12 @@
   "itemNames": [
    "Swift Striker",
    "Spiritual Overflow"
-  ]
+  ],
+  "evidence": {
+   "verdict": "unclear",
+   "lift": -10.1,
+   "matches": 51
+  }
  },
  {
   "hero": "Vindicta",
@@ -15433,7 +15798,12 @@
   "itemNames": [
    "Rapid Recharge",
    "Crippling Headshot"
-  ]
+  ],
+  "evidence": {
+   "verdict": "unclear",
+   "lift": -5.8,
+   "matches": 30
+  }
  },
  {
   "hero": "Vindicta",
@@ -15452,7 +15822,12 @@
   "itemNames": [
    "Opening Rounds",
    "Unstoppable"
-  ]
+  ],
+  "evidence": {
+   "verdict": "unclear",
+   "lift": -20.4,
+   "matches": 13
+  }
  },
  {
   "hero": "Violet",
@@ -15909,7 +16284,12 @@
   "itemNames": [
    "Rusted Barrel",
    "Decay"
-  ]
+  ],
+  "evidence": {
+   "verdict": "unclear",
+   "lift": 19.9,
+   "matches": 4
+  }
  },
  {
   "hero": "Viscous",
@@ -16395,7 +16775,12 @@
   "itemNames": [
    "Torment Pulse",
    "Spirit Burn"
-  ]
+  ],
+  "evidence": {
+   "verdict": "unclear",
+   "lift": 0,
+   "matches": 0
+  }
  },
  {
   "hero": "Vyper",
@@ -16672,7 +17057,12 @@
   "itemNames": [
    "Swift Striker",
    "Ricochet"
-  ]
+  ],
+  "evidence": {
+   "verdict": "unclear",
+   "lift": 0.5,
+   "matches": 11
+  }
  },
  {
   "hero": "Vyper",
@@ -16691,7 +17081,12 @@
   "itemNames": [
    "Spirit Shielding",
    "Silencer"
-  ]
+  ],
+  "evidence": {
+   "verdict": "unclear",
+   "lift": -0.4,
+   "matches": 9
+  }
  },
  {
   "hero": "Warden",
@@ -16960,7 +17355,12 @@
   "itemNames": [
    "Titanic Magazine",
    "Ricochet"
-  ]
+  ],
+  "evidence": {
+   "verdict": "unclear",
+   "lift": 4.8,
+   "matches": 2
+  }
  },
  {
   "hero": "Warden",
@@ -16979,7 +17379,12 @@
   "itemNames": [
    "Kinetic Dash",
    "Frenzy"
-  ]
+  ],
+  "evidence": {
+   "verdict": "unclear",
+   "lift": -84.5,
+   "matches": 2
+  }
  },
  {
   "hero": "Warden",
@@ -16998,7 +17403,12 @@
   "itemNames": [
    "Arcane Surge",
    "Unstoppable"
-  ]
+  ],
+  "evidence": {
+   "verdict": "unclear",
+   "lift": 0,
+   "matches": 0
+  }
  },
  {
   "hero": "Warden",
@@ -17017,7 +17427,12 @@
   "itemNames": [
    "Battle Vest",
    "Witchmail"
-  ]
+  ],
+  "evidence": {
+   "verdict": "unclear",
+   "lift": -6.4,
+   "matches": 23
+  }
  },
  {
   "hero": "Wraith",
@@ -17342,7 +17757,12 @@
   "itemNames": [
    "Titanic Magazine",
    "Suppressor"
-  ]
+  ],
+  "evidence": {
+   "verdict": "unclear",
+   "lift": 0,
+   "matches": 0
+  }
  },
  {
   "hero": "Wraith",
@@ -17361,7 +17781,12 @@
   "itemNames": [
    "Tesla Bullets",
    "Ricochet"
-  ]
+  ],
+  "evidence": {
+   "verdict": "unclear",
+   "lift": -32.4,
+   "matches": 3
+  }
  },
  {
   "hero": "Wraith",
@@ -17380,7 +17805,12 @@
   "itemNames": [
    "Spirit Shredder",
    "Spirit Rend"
-  ]
+  ],
+  "evidence": {
+   "verdict": "unclear",
+   "lift": 0,
+   "matches": 0
+  }
  },
  {
   "hero": "Yamato",
@@ -17510,7 +17940,12 @@
   "itemNames": [
    "Healbane",
    "Spirit Burn"
-  ]
+  ],
+  "evidence": {
+   "verdict": "unclear",
+   "lift": -4.1,
+   "matches": 115
+  }
  },
  {
   "hero": "Yamato",
@@ -17690,7 +18125,12 @@
   "itemNames": [
    "Hunter's Aura",
    "Spiritual Overflow"
-  ]
+  ],
+  "evidence": {
+   "verdict": "unclear",
+   "lift": 0,
+   "matches": 0
+  }
  },
  {
   "hero": "Yamato",
@@ -17709,6 +18149,11 @@
   "itemNames": [
    "Healbane",
    "Witchmail"
-  ]
+  ],
+  "evidence": {
+   "verdict": "unclear",
+   "lift": -4.6,
+   "matches": 38
+  }
  }
 ]
