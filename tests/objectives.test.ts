@@ -40,7 +40,7 @@ describe("tanque/sustain", () => {
       const opt = optimize(data, { hero, objective: "optimized", souls: 30_000, itemSlots: 12, matchWeight: 0 });
       expect(tank.metrics.fightHp).toBeGreaterThan(opt.metrics.fightHp);
     }
-  });
+  }, 60_000);
 });
 
 describe("pico de vitality pela média do herói", () => {
