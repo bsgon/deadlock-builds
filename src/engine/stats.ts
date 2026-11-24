@@ -18,6 +18,9 @@ export interface HeroStats {
   /** DPS de arma contando o tempo de recarga. */
   sustainedDps: number;
   headshotMultiplier: number;
+  /** Dano de um golpe corpo a corpo leve e de um pesado, com nível, itens e dano de arma. */
+  lightMelee: number;
+  heavyMelee: number;
   health: number;
   healthRegen: number;
   bulletResist: number;
@@ -43,6 +46,8 @@ export interface HeroStats {
 }
 
 const M = "MODIFIER_VALUE_";
+/** Parte do bônus de dano de arma que vale para o corpo a corpo (deadlock.wiki/Melee_Damage). */
+const MELEE_WEAPON_SHARE = 0.5;
 
 /** Soma os stats inatos dos itens; resistências ficam em listas para empilhar multiplicativamente. */
 function collect(items: Item[]) {
@@ -92,6 +97,12 @@ export function computeStats(hero: Hero, items: Item[], prog: Progression, spend
   const burstDps = perShot * shotsPerSecond;
   const sustainedDps = shotsPerSecond > 0 ? (perShot * clipSize) / (clipSize / shotsPerSecond + reloadTime) : 0;
 
+  // O ganho por boon é fixo e se refere ao golpe leve (63 + 1,58 por boon); o pesado cresce
+  // na mesma proporção (116 + 2,91 = 1,58 × 116 ÷ 63).
+  const lightBase = start("light_melee_damage");
+  const meleeGrowth = lightBase > 0 ? 1 + boon("BASE_MELEE_DAMAGE_FROM_LEVEL") / lightBase : 1;
+  const meleeBonus = 1 + (t("MELEE_DAMAGE_INCREASE") + weaponDamagePct * MELEE_WEAPON_SHARE) / 100;
+
   const baseHealth = start("max_health") + boon("BASE_HEALTH_FROM_LEVEL");
   const health =
     (baseHealth * (1 + (spend.bonus.vitality + t("BASE_HEALTH_PERCENT")) / 100) + t("HEALTH_MAX")) *
@@ -116,6 +127,8 @@ export function computeStats(hero: Hero, items: Item[], prog: Progression, spend
     burstDps,
     sustainedDps,
     headshotMultiplier: hero.weapon.headshotMultiplier,
+    lightMelee: lightBase * meleeGrowth * meleeBonus,
+    heavyMelee: start("heavy_melee_damage") * meleeGrowth * meleeBonus,
     health,
     healthRegen: start("base_health_regen") + t("HEALTH_REGEN_PER_SECOND") + scaled("EBaseHealthRegen"),
     bulletResist,

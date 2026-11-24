@@ -120,6 +120,8 @@ const DEFAULT_DOT_DURATION = 4;
 
 interface DamageParts {
   burst: number;
+  /** Dano corpo a corpo do uso (some ao `burst`, mas é reduzido pela resistência a bala). */
+  melee: number;
   dotPerSecond: number;
   duration: number;
   cooldown: number;
@@ -133,24 +135,39 @@ interface DamageParts {
 function damageParts(props: Record<string, ResolvedProperty>): DamageParts {
   let burst = 0;
   let dotPerSecond = 0;
+  let melee = 0;
   for (const [key, p] of Object.entries(props)) {
+    if (p.melee) {
+      // Golpe leve e pesado da mesma habilidade são alternativos; o maior vale.
+      melee = Math.max(melee, p.value);
+      continue;
+    }
     if (!DAMAGE_KEY.test(key) || NOT_DEALT.test(key) || p.value <= 0) continue;
     if (DOT_KEY.test(key)) dotPerSecond = Math.max(dotPerSecond, p.value);
     else burst = Math.max(burst, p.value);
   }
   const duration = DURATION_KEYS.map((k) => props[k]?.value ?? 0).find((v) => v > 0) ?? DEFAULT_DOT_DURATION;
-  return { burst, dotPerSecond, duration, cooldown: props.AbilityCooldown?.value ?? 0 };
+  return { burst, melee, dotPerSecond, duration, cooldown: props.AbilityCooldown?.value ?? 0 };
 }
 
 // Contas por habilidade e por item que só dependem das propriedades resolvidas (objeto
 // de cache, imutável) e de poucos números da build, guardados no contexto.
 const abilityDamageMemo = memoByObject<Record<string, ResolvedProperty>, number>();
+const abilityMeleeMemo = memoByObject<Record<string, ResolvedProperty>, number>();
 const itemDamageMemo = memoByObject<Record<string, ResolvedProperty>, ItemDamage[]>();
 const itemHealMemo = memoByObject<Record<string, ResolvedProperty>, number>();
 
 /** Dano por segundo de uma habilidade numa luta que começa com ela pronta, usada sempre que volta. */
 function abilityDamagePerSecond(props: Record<string, ResolvedProperty>, uptime: number, fight: number): number {
   return abilityDamageMemo(props, contextId([uptime, fight]), () => abilityDamagePerSecondUncached(props, uptime, fight));
+}
+
+/** Parte corpo a corpo da habilidade: um golpe por uso (some ao dano de bala). */
+function abilityMeleePerSecond(props: Record<string, ResolvedProperty>, fight: number): number {
+  return abilityMeleeMemo(props, contextId([fight]), () => {
+    const d = damageParts(props);
+    return d.cooldown > 0 ? fightDamagePerSecond(d.melee, 0, 0, d.cooldown, fight) : 0;
+  });
 }
 
 function abilityDamagePerSecondUncached(props: Record<string, ResolvedProperty>, uptime: number, fight: number): number {
@@ -283,11 +300,8 @@ interface MeleeParts {
  * (`build.meleeShare`, das estatísticas de compra dos itens de melee).
  */
 function meleeParts(build: BuildResult): MeleeParts {
-  const { hero, stats, progression } = build;
   const share = build.meleeShare;
-  const pct = ((hero.perBoon[`${M}BASE_MELEE_DAMAGE_FROM_LEVEL`] ?? 0) * progression.boons + (stats.itemTotals[`${M}MELEE_DAMAGE_INCREASE`] ?? 0)) / 100;
-  const light = (hero.start.light_melee_damage ?? 0) * (1 + pct);
-  const heavy = (hero.start.heavy_melee_damage ?? 0) * (1 + pct);
+  const { lightMelee: light, heavyMelee: heavy } = build.stats;
   let dps = light * LIGHT_MELEE_PER_SECOND + heavy / HEAVY_MELEE_EVERY;
   let heal = 0;
   for (const item of build.items) {
@@ -389,10 +403,11 @@ export function computeMetrics(build: BuildResult, options: MetricOptions = DEFA
   const fight = options.fightSeconds ?? fightSeconds();
   const weaponDps = stats.burstDps * firing * bulletMult;
   // Só habilidades já desbloqueadas no nível (a ultimate chega por último).
-  const abilityDps =
-    build.abilities
-      .filter((a) => a.slot <= build.progression.abilityUnlocks)
-      .reduce((sum, a) => sum + abilityDamagePerSecond(a.properties, options.uptime, fight), 0) * spiritMult;
+  const unlocked = build.abilities.filter((a) => a.slot <= build.progression.abilityUnlocks);
+  const abilitySpirit = unlocked.reduce((sum, a) => sum + abilityDamagePerSecond(a.properties, options.uptime, fight), 0) * spiritMult;
+  // Dano corpo a corpo de habilidade (Puddle Punch, Bashdown) conta como arma: resistência e vulnerabilidade de bala.
+  const abilityMelee = unlocked.reduce((sum, a) => sum + abilityMeleePerSecond(a.properties, fight), 0) * bulletMult;
+  const abilityDps = abilitySpirit + abilityMelee;
   const hitsPerSecond = stats.shotsPerSecond * stats.bulletsPerShot;
   let itemDps = 0;
   let bulletItemDps = 0;
@@ -408,8 +423,8 @@ export function computeMetrics(build: BuildResult, options: MetricOptions = DEFA
   const meleeDps = melee.dps * bulletMult;
   // Vulnerabilidade no alvo: multiplica o seu dano de bala e de spirit (média na luta).
   const amp = amplification(build, fight, options.uptime);
-  const gunBase = weaponDps + bulletItemDps + meleeDps;
-  const spiritBase = abilityDps + itemDps - bulletItemDps;
+  const gunBase = weaponDps + bulletItemDps + meleeDps + abilityMelee;
+  const spiritBase = abilitySpirit + itemDps - bulletItemDps;
   const gun = gunBase * amp.bullet;
   const spirit = spiritBase * amp.spirit;
   const ampDps = gun + spirit - gunBase - spiritBase;
@@ -420,9 +435,9 @@ export function computeMetrics(build: BuildResult, options: MetricOptions = DEFA
   const sustain =
     stats.healthRegen +
     melee.heal +
-    itemHealPerSecond(build, options.uptime, firing, abilityDps + itemDps - bulletItemDps) +
+    itemHealPerSecond(build, options.uptime, firing, abilitySpirit + itemDps - bulletItemDps) +
     (stats.bulletLifestealPct / 100) * weaponDps +
-    (stats.spiritLifestealPct / 100) * (abilityDps + itemDps);
+    (stats.spiritLifestealPct / 100) * (abilitySpirit + itemDps);
 
   return {
     weaponDps,

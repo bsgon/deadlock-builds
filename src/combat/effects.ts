@@ -178,9 +178,10 @@ export function effectsFromSource(src: EffectSource, patch: number): EffectDef[]
   });
 
   const out: EffectDef[] = [];
-  const dmg = read("Damage", "DamagePerChain", "ProcBonusMagicDamage");
+  const dmg = read("Damage", "DamageHeavyMelee", "DamagePerChain", "ProcBonusMagicDamage");
+  const meleeHit = [p.Damage, p.DamageHeavyMelee].some((x) => (x as { melee?: boolean } | undefined)?.melee);
   if (dmg > 0 && (src.kind === "ability" || src.isActive || /damage/i.test(text))) {
-    const e = base("damage", dmg, { damageType: /bullet damage/i.test(text) && !/spirit/i.test(text) ? "bullet" : "spirit" });
+    const e = base("damage", dmg, { damageType: meleeHit || (/bullet damage/i.test(text) && !/spirit/i.test(text)) ? "bullet" : "spirit" });
     e.rules.scaling = scaleOf(p, "Damage");
     out.push(e);
   }

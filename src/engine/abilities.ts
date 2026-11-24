@@ -10,6 +10,8 @@ export interface ResolvedProperty {
   value: number;
   /** Coeficiente de escala depois dos upgrades (null se a propriedade não escala). */
   coef: number | null;
+  /** True quando o valor é dano corpo a corpo (escala com o golpe leve ou pesado). */
+  melee: boolean;
   /** Stats de escala que o motor ainda não sabe aplicar (o valor final os ignora). */
   unresolved: string[];
 }
@@ -34,10 +36,16 @@ function powerStat(stat: string, stats: HeroStats, boons: number): number | null
     case "EWeaponPower":
     case "EBaseWeaponDamageIncrease":
       return stats.weaponDamagePct;
+    case "ELightMeleeDamage":
+      return stats.lightMelee;
+    case "EHeavyMeleeDamage":
+      return stats.heavyMelee;
     default:
       return null;
   }
 }
+
+const MELEE_STATS = new Set(["ELightMeleeDamage", "EHeavyMeleeDamage"]);
 
 /** Stats que multiplicam o valor depois da soma. */
 function multiplier(stat: string, stats: HeroStats): number | null {
@@ -131,7 +139,7 @@ function resolveProperty(prop: Property, coef: number | null, stats: HeroStats, 
     if (isCharges && scale.fn === "scale_function_ability_charges" && prop.value >= 1) value += stats.bonusCharges;
   }
 
-  return { label: prop.label, unit: prop.unit, base: prop.value, value, coef, unresolved };
+  return { label: prop.label, unit: prop.unit, base: prop.value, value, coef, melee: scale?.stats.some((s) => MELEE_STATS.has(s)) ?? false, unresolved };
 }
 
 /**
@@ -154,14 +162,16 @@ const resolvedCache = new WeakMap<Record<string, Property>, ResolvedCache>();
 const RESOLVED_CACHE_LIMIT = 4000;
 
 /** Valores que a resolução pode ler: campos dos stats e os boons. */
-type Dep = "spiritPower" | "boons" | "weaponDamagePct" | "cooldownReductionPct" | "itemCooldownReductionPct" | "durationPct" | "rangePct" | "radiusPct" | "healingOutputPct" | "bonusCharges";
-const DEP_ORDER: Dep[] = ["spiritPower", "boons", "weaponDamagePct", "cooldownReductionPct", "itemCooldownReductionPct", "durationPct", "rangePct", "radiusPct", "healingOutputPct", "bonusCharges"];
+type Dep = "spiritPower" | "boons" | "weaponDamagePct" | "lightMelee" | "heavyMelee" | "cooldownReductionPct" | "itemCooldownReductionPct" | "durationPct" | "rangePct" | "radiusPct" | "healingOutputPct" | "bonusCharges";
+const DEP_ORDER: Dep[] = ["spiritPower", "boons", "weaponDamagePct", "lightMelee", "heavyMelee", "cooldownReductionPct", "itemCooldownReductionPct", "durationPct", "rangePct", "radiusPct", "healingOutputPct", "bonusCharges"];
 /** Campo lido por powerStat/multiplier para cada stat de escala (EChannelDuration é constante). */
 const STAT_DEP: Record<string, Dep> = {
   ETechPower: "spiritPower",
   ELevelUpBoons: "boons",
   EWeaponPower: "weaponDamagePct",
   EBaseWeaponDamageIncrease: "weaponDamagePct",
+  ELightMeleeDamage: "lightMelee",
+  EHeavyMeleeDamage: "heavyMelee",
   ETechCooldown: "cooldownReductionPct",
   EItemCooldown: "itemCooldownReductionPct",
   ETechDuration: "durationPct",

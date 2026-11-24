@@ -74,3 +74,41 @@ describe("uso de corpo a corpo por herói", () => {
     expect(base.totalDps).toBeCloseTo(base.weaponDps + base.abilityDps + base.itemDps + base.meleeDps);
   });
 });
+
+describe("golpes corpo a corpo e habilidades que escalam com eles", () => {
+  const build = (hero: string, tier = 0, items: string[] = []) => evaluateBuild(data, { hero, souls: 50_000, items, itemSlots: 12, abilityTiers: [tier, tier, tier, tier] });
+
+  it("crescem por boon como na wiki: Viscous 118,3 e 217,9; Abrams 110,9 e 257,1", () => {
+    const viscous = build("Viscous");
+    expect(viscous.progression.boons).toBe(35);
+    expect(viscous.stats.lightMelee).toBeCloseTo(118.3, 1);
+    expect(viscous.stats.heavyMelee).toBeCloseTo(217.8, 0);
+    expect(build("Abrams").stats.lightMelee).toBeCloseTo(110.9, 0);
+    expect(build("Abrams").stats.heavyMelee).toBeCloseTo(257.1, 0);
+  });
+
+  it("metade do bônus de dano de arma vale para o corpo a corpo", () => {
+    const base = build("Viscous").stats;
+    const item = data.items.find((i) => (i.innate.MODIFIER_VALUE_WEAPON_DAMAGE_INCREASE ?? 0) > 0 && !i.innate.MODIFIER_VALUE_MELEE_DAMAGE_INCREASE)!;
+    const armed = build("Viscous", 0, [item.name]).stats;
+    expect(armed.lightMelee / base.lightMelee).toBeCloseTo(1 + armed.weaponDamagePct / 200, 3);
+  });
+
+  it("Puddle Punch: 57,8 no nível 1; no upgrade 3 troca o golpe leve pelo pesado", () => {
+    const punch = (b: ReturnType<typeof build>) => b.abilities.find((a) => a.name === "Puddle Punch")!.properties;
+    const start = evaluateBuild(data, { hero: "Viscous", souls: 0, items: [] });
+    expect(punch(start).Damage!.value).toBeCloseTo(57.8, 1);
+    const max = build("Viscous", 3);
+    expect(punch(max).Damage!.value).toBeCloseTo(0, 5);
+    expect(punch(max).DamageHeavyMelee!.value).toBeCloseTo(40 + 0.6 * max.stats.heavyMelee, 3);
+    expect(punch(max).Damage!.unresolved).toEqual([]);
+  });
+
+  it("o dano da habilidade conta como arma: cai com resistência a bala, não com a de spirit", () => {
+    const b = build("Viscous", 3);
+    const at = (bullet: number, spirit: number) => computeMetrics(b, { ...DEFAULT_METRIC_OPTIONS, targetBulletResist: bullet, targetSpiritResist: spirit });
+    expect(at(50, 0).abilityDps).toBeLessThan(at(0, 0).abilityDps);
+    expect(at(0, 50).gunDps).toBeCloseTo(at(0, 0).gunDps, 5);
+    expect(at(0, 100).abilityDps).toBeGreaterThan(0);
+  });
+});

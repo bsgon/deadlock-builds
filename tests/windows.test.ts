@@ -124,7 +124,7 @@ describe("winrate por janela de compra", () => {
       fake.heroes[String(h.id)] = byItem;
     }
     // Sem o peso das partidas: com dados fictícios tão separados, ele já desfaz os quase-empates.
-    const steps = ["Haze", "Abrams", "Seven"].flatMap((hero) => optimize({ ...data, windows: fake }, { hero, objective: "dps", souls: 20000, matchWeight: 0 }).order);
+    const steps = ["Haze", "Abrams", "Seven", "Venator", "Yamato", "Celeste"].flatMap((hero) => optimize({ ...data, windows: fake }, { hero, objective: "dps", souls: 20000, matchWeight: 0 }).order);
     const broken = steps.filter((s) => s.tieBreak);
     expect(broken.length).toBeGreaterThan(0);
     for (const s of broken) {
