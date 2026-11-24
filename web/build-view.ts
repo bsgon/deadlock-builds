@@ -16,7 +16,7 @@ import type { Theory, TheoryKind } from "../src/knowledge/theories.ts";
 import { controlBreakdown, DEFAULT_METRIC_OPTIONS } from "../src/optimizer/metrics.ts";
 import { delta, fmt, fmt1, h, icon } from "./dom.ts";
 import type { App } from "./main.ts";
-import { abilityIcon, infoTip, itemIcon, withItemTip } from "./tooltip.ts";
+import { abilityIcon, infoTip, itemIcon, tipBody, withItemTip, withTip } from "./tooltip.ts";
 import type { Recommendation } from "../src/combat/explain.ts";
 import { SCENARIO_LABEL, scenarioMix, type ScenarioId } from "../src/combat/value.ts";
 import { phaseLabel, phaseOf } from "../src/optimizer/route.ts";
@@ -44,6 +44,11 @@ const SLOTS = 12;
 /** Efeitos condicionais sem duração/cooldown na API valem metade do tempo. */
 const UPTIME = DEFAULT_METRIC_OPTIONS.uptime;
 
+/** A partir desta pontuação a sinergia é "forte" (escala da wiki em synergy.ts) e aparece sem mouse-over. */
+const STRONG_SYNERGY = 1.6;
+/** Abaixo disto a sinergia é básica: não aparece nem no mouse-over. */
+const MIN_SYNERGY = 1;
+
 /** Motivos de um item estar na build: encaixe no kit (e como o herói é jogado) e sinergia com os outros itens. */
 function reasonsFor(app: App, item: Item, heroId: number, others: Item[]): Link[] {
   if (!app.graph.itemNode.has(item.className)) return [];
@@ -51,7 +56,7 @@ function reasonsFor(app: App, item: Item, heroId: number, others: Item[]): Link[
   const withItems = others.filter((o) => app.graph.itemNode.has(o.className)).flatMap((o) => itemPairLinks(app.graph, item, o));
   const withKit = heroItemFit(app.graph, hero, item).links;
   // Uma sinergia com outro item da build vem primeiro: é o que o usuário não vê sozinho.
-  return [...topLinks(withItems, 1), ...topLinks(withKit, 2)].slice(0, 2);
+  return [...topLinks(withItems, 1), ...topLinks(withKit, 2)].filter((l) => l.score >= MIN_SYNERGY).slice(0, 2);
 }
 
 /** Um motivo na lista; quando vem da wiki, com o link da página. */
@@ -317,9 +322,13 @@ function soulTrack(app: App, result: OptimizeResult): HTMLElement {
     h(
       "figcaption",
       {},
-      tr(
+      tr("Souls gastos ", "Souls spent "),
+      infoTip(
+        tr("Trilha de souls", "Soul track"),
+        tr(
         `${fmt(result.spent)} de ${fmt(result.souls)} souls gastos. A largura de cada fatia é o preço da compra.${spikeText}`,
         `${fmt(result.spent)} of ${fmt(result.souls)} souls spent. Each slice's width is the purchase price.${spikeText}`,
+        ),
       ),
     ),
   );
@@ -344,7 +353,7 @@ const verdictLabel = () =>
     contradicted: tr("os dados discordam", "the data disagrees"),
   }) as const;
 /** Teorias mostradas por grupo (as com mais builds primeiro). */
-const THEORIES_PER_GROUP = 5;
+const THEORIES_PER_GROUP = 3;
 
 /**
  * Itens a fixar para montar a partir de um arquétipo: só o topo de cada cadeia de
@@ -382,9 +391,9 @@ function theoriesSection(app: App, heroId: number): HTMLElement | null {
       ),
     );
   return h(
-    "section",
-    { class: "theories" },
-    h("h2", {}, tr("Teorias da comunidade", "Community theories")),
+    "details",
+    { class: "theories folded" },
+    h("summary", {}, h("h2", {}, tr("Teorias da comunidade", "Community theories"))),
     h(
       "p",
       { class: "hint" },
@@ -404,7 +413,7 @@ function theoriesSection(app: App, heroId: number): HTMLElement | null {
 }
 
 /** De onde vem a vida efetiva da build final: vida e resistência, mais o que só itens dão. */
-function defenseLine(result: OptimizeResult): HTMLElement {
+function defenseLine(result: OptimizeResult): string {
   const d = defenseOf(result.build);
   const parts = [
     d.barrier > 0 ? tr(`barreiras somam ${fmt(d.barrier)} de vida por luta`, `barriers add ${fmt(d.barrier)} HP per fight`) : "",
@@ -413,13 +422,11 @@ function defenseLine(result: OptimizeResult): HTMLElement {
     d.deflect > 0 ? tr(`${Math.round(d.deflect * 100)}% das balas desviadas`, `${Math.round(d.deflect * 100)}% of bullets deflected`) : "",
   ].filter(Boolean);
   const where = d.sources.length ? ` (${[...new Set(d.sources.map((s) => s.name))].join(", ")})` : "";
-  return h(
-    "p",
-    { class: "hint" },
+  return (
     tr(`Vida efetiva no fim: ${fmt(result.metrics.ehp)}.`, `Final effective HP: ${fmt(result.metrics.ehp)}.`) +
       (parts.length
         ? tr(` Além de vida e resistência, ${parts.join(", ")}${where}.`, ` Besides health and resistance, ${parts.join(", ")}${where}.`)
-        : tr(" Só vida e resistência: nenhum item de barreira, imunidade ou proteção contra controle.", " Only health and resistance: no barrier, immunity or control-protection items.")),
+        : tr(" Só vida e resistência: nenhum item de barreira, imunidade ou proteção contra controle.", " Only health and resistance: no barrier, immunity or control-protection items."))
   );
 }
 
@@ -478,19 +485,17 @@ function finalBuild(app: App, result: OptimizeResult, slots: number): HTMLElemen
   return h(
     "section",
     { class: "final-build" },
-    h("h2", {}, tr("Build final", "Final build")),
-    h(
-      "p",
-      { class: "hint" },
+    h("h2", {}, tr("Build final", "Final build"), " ", infoTip(
+      tr("Build final", "Final build"),
       tr(
         `${items.length} de ${slots} slots ocupados e ${actives} de ${MAX_ACTIVE_ITEMS} itens ativos${history.length ? `, depois de ${history.join(" e ")}` : ""}. ` +
           `Valor dos itens: ${fmt(value)} souls (arma ${fmt(bySlot("weapon"))}, vitalidade ${fmt(bySlot("vitality"))}, spirit ${fmt(bySlot("spirit"))}).`,
         `${items.length} of ${slots} slots filled and ${actives} of ${MAX_ACTIVE_ITEMS} active items${history.length ? `, after ${history.join(" and ")}` : ""}. ` +
           `Item value: ${fmt(value)} souls (weapon ${fmt(bySlot("weapon"))}, vitality ${fmt(bySlot("vitality"))}, spirit ${fmt(bySlot("spirit"))}).`,
       ),
-    ),
+      defenseLine(result),
+    )),
     h("ul", { class: "final-grid", "aria-label": tr(`Itens no fim: ${items.length} de ${slots} slots`, `Final items: ${items.length} of ${slots} slots`) }, cells),
-    defenseLine(result),
     swapList(result),
   );
 }
@@ -498,13 +503,6 @@ function finalBuild(app: App, result: OptimizeResult, slots: number): HTMLElemen
 function purchaseList(app: App, result: OptimizeResult, heroId: number): HTMLElement {
   const { state } = app;
   const meta = heroMeta(app.data, heroId);
-  const usage = (item: Item) => {
-    if (!meta) return "";
-    const rate = pickRate(meta, item);
-    return rate === null
-      ? tr(" Quase ninguém compra com este herói.", " Almost nobody buys it on this hero.")
-      : tr(` Comprado em ${fmt(rate * 100)}% das partidas do herói.`, ` Bought in ${fmt(rate * 100)}% of the hero's matches.`);
-  };
   if (result.order.length === 0) {
     return h("p", { class: "empty" }, tr("Nenhum item cabe nesse orçamento. Aumente os souls para ver a primeira compra.", "No item fits this budget. Raise the souls to see the first purchase."));
   }
@@ -520,100 +518,96 @@ function purchaseList(app: App, result: OptimizeResult, heroId: number): HTMLEle
   return h("ol", { class: "buys" }, rows);
 
   function buyRow(step: OptimizeResult["order"][number]): HTMLElement {
-    const gain = step.gain;
-    const pinned = state.required.includes(step.item.name);
-    const upgrade = result.order.find((later) => later.upgradeFrom === step.item);
-    const sale = result.order.find((later) => later.sold === step.item);
-    const notes = [
-      step.upgradeFrom ? tr(`Melhora ${step.upgradeFrom.name}, já pago em parte.`, `Upgrades ${step.upgradeFrom.name}, already partly paid for.`) : "",
-      step.sold ? tr(`Vende ${step.sold.name} para abrir o slot.`, `Sells ${step.sold.name} to free the slot.`) : "",
-      upgrade
-        ? tr(`Rende enquanto junta souls e depois vira ${upgrade.item.name}.`, `Pays off while saving souls, then becomes ${upgrade.item.name}.`)
-        : step.isComponent
-          ? tr("Rende enquanto junta souls e depois vira componente de um upgrade.", "Pays off while saving souls, then becomes a component of an upgrade.")
-          : "",
-      sale ? tr(`Vendido depois, para dar lugar a ${sale.item.name}.`, `Sold later, to make room for ${sale.item.name}.`) : "",
-    ].filter(Boolean);
-    const reasons = [...notes, ...(step.isComponent || sale ? [] : reasonsFor(app, step.item, heroId, result.items.filter((i) => i !== step.item)))].slice(0, 3);
-    const real = buyMinute(app.data, heroId, step.item);
+    const { item, gain } = step;
+    const pinned = state.required.includes(item.name);
+    const upgrade = result.order.find((later) => later.upgradeFrom === item);
+    const sale = result.order.find((later) => later.sold === item);
+    // Um selo só: o que esta compra faz com outro item da build.
+    const badge = step.sold
+      ? tr(`vende ${step.sold.name}`, `sells ${step.sold.name}`)
+      : step.upgradeFrom
+        ? tr(`melhora ${step.upgradeFrom.name}`, `upgrades ${step.upgradeFrom.name}`)
+        : sale
+          ? tr(`vendido por ${sale.item.name}`, `sold for ${sale.item.name}`)
+          : upgrade
+            ? tr(`vira ${upgrade.item.name}`, `becomes ${upgrade.item.name}`)
+            : step.isComponent
+              ? tr("componente", "component")
+              : step.opensCombo
+                ? tr(`abre jogada com ${step.opensCombo.join(", ")}`, `opens a play with ${step.opensCombo.join(", ")}`)
+                : "";
+    const links = step.isComponent || sale ? [] : reasonsFor(app, item, heroId, result.items.filter((i) => i !== item));
+    const strong = links.find((l) => l.score >= STRONG_SYNERGY);
+    const diverges = step.why?.observed?.diverges ?? false;
+    const real = buyMinute(app.data, heroId, item);
     const when = tr(
       `Paga ${fmt(step.cost)} com ${fmt(step.earned)} souls ganhos, por volta do minuto ${Math.round(step.minute)}${real === null ? "" : ` (jogadores: minuto ${Math.round(real)})`}.`,
       `Pays ${fmt(step.cost)} with ${fmt(step.earned)} souls earned, around minute ${Math.round(step.minute)}${real === null ? "" : ` (players: minute ${Math.round(real)})`}.`,
     );
-    return h(
-      "li",
-      { class: `buy buy-${step.item.slot}` },
-      itemIcon(app, step.item, "item-icon"),
+    const matches = [
+      step.matchPrior && Math.abs(step.matchPrior.factor - 1) >= 0.05 ? matchPriorText(step.matchPrior) : "",
+      step.tieBreak
+        ? tr(
+            `Desempate pelas partidas: ganho por soul quase igual ao de ${step.tieBreak.over.name}; quando comprado aos ${step.tieBreak.window}, vence ${fmt1(step.tieBreak.diff)} pp mais (± ${fmt1(step.tieBreak.margin)}).`,
+            `Tiebreak by matches: gain per soul almost equal to ${step.tieBreak.over.name}'s; when bought at ${step.tieBreak.window}, wins ${fmt1(step.tieBreak.diff)} pp more (± ${fmt1(step.tieBreak.margin)}).`,
+          )
+        : "",
+    ].filter(Boolean);
+    const gainText = `${gain >= 0 ? "+" : "−"}${fmt(Math.abs(gain) * 100)} pts`;
+    const rate = meta ? pickRate(meta, item) ?? 0 : null;
+    const percent = rate === null ? "" : rate > 0 && rate < 0.01 ? "<1%" : `${Math.round(rate * 100)}%`;
+
+    // Detalhes: montados só quando a linha é aberta.
+    const more = h("div", { class: "buy-more", hidden: true });
+    const toggle = h("button", { class: "buy-toggle", type: "button", "aria-expanded": "false", "aria-label": tr(`Detalhes de ${item.name}`, `${item.name} details`) }, "▾");
+    toggle.addEventListener("click", () => {
+      const open = more.hidden;
+      if (open && !more.hasChildNodes())
+        more.append(
+          h("p", { class: "buy-meta" }, when),
+          ...matches.map((m) => h("p", { class: "buy-meta" }, m)),
+          ...[step.why ? whyBlock(step.why) : null, links.length ? h("ul", { class: "reasons" }, links.map(reasonItem)) : null, step.isComponent ? null : actions()].filter((n) => n !== null),
+        );
+      more.hidden = !open;
+      toggle.setAttribute("aria-expanded", String(open));
+    });
+    const actions = () =>
       h(
         "div",
-        { class: "buy-main" },
+        { class: "buy-actions" },
         h(
-          "h3",
-          {},
-          h("span", {}, step.item.name),
-          " ",
-          step.item.isActive ? h("span", { class: "chip" }, tr("ativo", "active")) : null,
-          " ",
-          step.isComponent ? h("span", { class: "chip" }, tr("componente", "component")) : null,
-          " ",
-          sale ? h("span", { class: "chip" }, tr("vendido depois", "sold later")) : null,
-          " ",
-          step.opensCombo ? h("span", { class: "chip chip-combo" }, tr(`abre jogada com ${step.opensCombo.join(", ")}`, `opens a play with ${step.opensCombo.join(", ")}`)) : null,
-          " ",
-          step.tieBreak
-            ? h(
-                "span",
-                {
-                  class: "chip chip-combo",
-                  title: tr(
-                    `Ganho por soul quase igual ao de ${step.tieBreak.over.name}; quando comprado aos ${step.tieBreak.window}, vence ${fmt1(step.tieBreak.diff)} pp mais (± ${fmt1(step.tieBreak.margin)}).`,
-                    `Gain per soul almost equal to ${step.tieBreak.over.name}'s; when bought at ${step.tieBreak.window}, wins ${fmt1(step.tieBreak.diff)} pp more (± ${fmt1(step.tieBreak.margin)}).`,
-                  ),
-                },
-                tr(`desempate pelas partidas: no lugar de ${step.tieBreak.over.name}`, `tiebreak by matches: instead of ${step.tieBreak.over.name}`),
-              )
-            : null,
-          " ",
-          step.matchPrior && Math.abs(step.matchPrior.factor - 1) >= 0.05
-            ? h(
-                "span",
-                {
-                  class: `chip ${step.matchPrior.factor > 1 ? "chip-combo" : "chip-warn"}`,
-                  title: matchPriorText(step.matchPrior),
-                },
-                tr(`partidas ×${step.matchPrior.factor.toFixed(2)}`, `matches ×${step.matchPrior.factor.toFixed(2)}`),
-              )
-            : null,
+          "button",
+          { class: "link", "aria-pressed": String(pinned), onclick: () => app.update({ required: pinned ? state.required.filter((n) => n !== item.name) : [...state.required, item.name] }) },
+          pinned ? tr("Soltar", "Unlock") : tr("Fixar", "Lock"),
         ),
-        h("p", { class: "buy-meta" }, `${slotLabel()[step.item.slot]}, tier ${step.item.tier}. ${when}${step.isComponent || sale ? "" : usage(step.item)}`),
-        step.why ? whyBlock(step.why) : null,
-        reasons.length ? h("ul", { class: "reasons" }, reasons.map(reasonItem)) : null,
-        step.isComponent
-          ? null
-          : h(
-              "div",
-              { class: "buy-actions" },
-              h(
-                "button",
-                {
-                  class: "link",
-                  "aria-pressed": String(pinned),
-                  onclick: () => app.update({ required: pinned ? state.required.filter((n) => n !== step.item.name) : [...state.required, step.item.name] }),
-                },
-                pinned ? tr("Soltar", "Unlock") : tr("Fixar", "Lock"),
-              ),
-              h(
-                "button",
-                {
-                  class: "link",
-                  onclick: () => app.update({ banned: [...state.banned, step.item.name], required: state.required.filter((n) => n !== step.item.name) }),
-                },
-                tr("Tirar da build", "Remove from build"),
-              ),
-            ),
+        h(
+          "button",
+          { class: "link", onclick: () => app.update({ banned: [...state.banned, item.name], required: state.required.filter((n) => n !== item.name) }) },
+          tr("Tirar da build", "Remove from build"),
+        ),
+      );
+
+    const main = h(
+      "div",
+      { class: "buy-main" },
+      h("h3", {}, h("span", {}, item.name), pinned ? h("span", { class: "chip chip-combo" }, tr("fixado", "locked")) : null, badge ? h("span", { class: "chip" }, badge) : null),
+      h(
+        "p",
+        { class: "buy-meta" },
+        `${Math.round(step.minute)} min · ${fmt(step.cost)} souls`,
+        percent ? [" · ", h("strong", { class: "pick-rate" }, percent), tr(" das partidas", " of matches")] : null,
+        diverges ? [" · ", h("span", { class: "diverges" }, tr("as partidas discordam", "matches disagree"))] : null,
       ),
-      h("div", { class: "buy-side" }, h("span", { class: "gain", title: tr("Ganho na pontuação do objetivo com esta compra", "Gain in the goal score from this purchase") }, `${gain >= 0 ? "+" : "−"}${fmt(Math.abs(gain) * 100)} pts`)),
+      strong ? h("p", { class: "buy-reason" }, strong.reason) : null,
     );
+    withTip(main, () =>
+      tipBody({
+        title: tr(`Por que ${item.name} agora`, `Why ${item.name} now`),
+        meta: `${when} ${gainText}.`,
+        sections: [...(step.why?.text ? [step.why.text] : []), ...links.map((l) => l.reason), ...matches].map((text) => ({ text })),
+      }),
+    );
+    return h("li", { class: `buy buy-${item.slot}` }, itemIcon(app, item, "item-icon"), main, h("div", { class: "buy-side" }, h("span", { class: "gain", title: tr("Ganho na pontuação do objetivo com esta compra", "Gain in the goal score from this purchase") }, gainText), toggle), more);
   }
 }
 
@@ -779,9 +773,9 @@ function playPanel(app: App, payload: BuildPayload, input: OptimizeInput): HTMLE
   // Simulação, trocas situacionais e checagem da rota vêm prontas do worker (compute.ts).
   const { scenarios, situational: situ, issues } = payload;
   return h(
-    "section",
-    { class: "plays" },
-    h("h2", {}, tr("Jogadas da build", "Build plays")),
+    "details",
+    { class: "plays folded" },
+    h("summary", {}, h("h2", {}, tr("Jogadas da build", "Build plays"))),
     h(
       "p",
       { class: "hint" },

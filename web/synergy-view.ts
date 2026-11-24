@@ -57,6 +57,8 @@ function picker(app: App, selected: Item): HTMLElement {
 export function renderSynergyView(app: App): HTMLElement {
   const item = findItem(app.data, app.state.item);
   const byTree = partnersByTree(app.graph, item, 5);
+  // Parceiro fraco não entra; item barato (tier 1 e 2) só com sinergia forte.
+  for (const slot of SLOTS) byTree[slot] = byTree[slot].filter((p) => p.score >= (p.item.tier <= 2 ? 1.6 : 1));
   // Outras árvores primeiro: são as combinações menos óbvias.
   const trees = [...SLOTS.filter((s) => s !== item.slot), item.slot].filter((s) => byTree[s].length > 0);
   const heroes = heroesForItem(app.graph, item).slice(0, 12);
@@ -85,7 +87,7 @@ export function renderSynergyView(app: App): HTMLElement {
           h("ol", { class: "buys" }, byTree[slot].map(partnerItem)),
         ),
       )
-    : [h("p", { class: "empty" }, tr("Este item não tem combinação direta com outros: ele só concede atributos ou depende do kit do herói.", "This item has no direct combination with others: it only grants stats or depends on the hero's kit."))];
+    : [h("p", { class: "empty" }, tr("Nenhuma sinergia forte com outros itens.", "No strong synergy with other items."))];
 
   const heroList = heroes.length
     ? h(
