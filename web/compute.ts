@@ -9,7 +9,7 @@ import type { GameData, Item } from "../src/data/types.ts";
 import { findHero } from "../src/engine/index.ts";
 import { buildPlay, situationalOptions, type Situational } from "../src/combat/explain.ts";
 import type { PlanId, PlayReport } from "../src/combat/value.ts";
-import { compareWithElite, compareWithPopular, type BuildComparison } from "../src/meta/compare.ts";
+import { compareWithElite, compareWithPopular, referenceBuild, type BuildComparison, type ReferenceBuild } from "../src/meta/compare.ts";
 import { heroMeta } from "../src/meta/stats.ts";
 import { optimize, type OptimizeInput, type OptimizeResult } from "../src/optimizer/optimize.ts";
 import { validateRoute, type RouteIssue } from "../src/optimizer/route.ts";
@@ -27,6 +27,8 @@ export interface BuildPayload {
   comparisons: BuildComparison[] | null;
   /** Caminho de itens do elo alto medido pelo motor; null sem elite.json ou sem itens que caibam. */
   elite: BuildComparison | null;
+  /** Build mais jogada completa até os souls finais, para "O que a build muda"; null sem dados. */
+  reference: ReferenceBuild | null;
 }
 
 export function computeBuild(data: GameData, input: OptimizeInput): BuildPayload {
@@ -39,7 +41,8 @@ export function computeBuild(data: GameData, input: OptimizeInput): BuildPayload
   const issues = validateRoute(data, result, input.itemSlots ?? 9);
   const comparisons = heroMeta(data, findHero(data, input.hero).id) ? compareWithPopular(data, result, input) : null;
   const elite = compareWithElite(data, result, input);
-  return { result, plan, scenarios: report.scenarios, situational, issues, comparisons, elite };
+  const reference = referenceBuild(data, input);
+  return { result, plan, scenarios: report.scenarios, situational, issues, comparisons, elite, reference };
 }
 
 /** Os mesmos dados sem os ícones (na página publicada são data URIs: pesam e o worker não desenha nada). */

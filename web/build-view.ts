@@ -6,7 +6,7 @@ import { heroItemFit, itemPairLinks, topLinks, type Link } from "../src/interact
 import type { Metrics } from "../src/optimizer/metrics.ts";
 import { archetypeWeights } from "../src/optimizer/archetype.ts";
 import type { UiObjective } from "./main.ts";
-import type { BuildComparison } from "../src/meta/compare.ts";
+import type { BuildComparison, ReferenceBuild } from "../src/meta/compare.ts";
 import { buyMinute, heroMeta, meleePickRate, pickRate, powerWindows, vitalitySpikeOf } from "../src/meta/stats.ts";
 import { VITALITY_SPIKE_SOULS } from "../src/engine/rules.ts";
 import type { OptimizeInput, OptimizeResult } from "../src/optimizer/optimize.ts";
@@ -16,7 +16,7 @@ import type { Theory, TheoryKind } from "../src/knowledge/theories.ts";
 import { controlBreakdown, DEFAULT_METRIC_OPTIONS } from "../src/optimizer/metrics.ts";
 import { delta, fmt, fmt1, h, icon } from "./dom.ts";
 import type { App } from "./main.ts";
-import { abilityIcon, itemIcon, withItemTip } from "./tooltip.ts";
+import { abilityIcon, infoTip, itemIcon, withItemTip } from "./tooltip.ts";
 import type { Recommendation } from "../src/combat/explain.ts";
 import { SCENARIO_LABEL, scenarioMix, type ScenarioId } from "../src/combat/value.ts";
 import { phaseLabel, phaseOf } from "../src/optimizer/route.ts";
@@ -139,23 +139,14 @@ function controls(app: App): HTMLElement {
   const heroId = findHero(data, state.hero).id;
   const spike = vitalitySpikeOf(data, heroId, VITALITY_SPIKE_SOULS);
   const level = progressionFromSouls(data.shared, SOULS).level;
-  const match = h(
-    "ul",
-    { class: "fixed" },
-    h("li", {}, tr(`${fmt(SOULS)} souls (nível ${level}) e ${SLOTS} slots de item: a build de fim de partida.`, `${fmt(SOULS)} souls (level ${level}) and ${SLOTS} item slots: the late-game build.`)),
-    h(
-      "li",
-      {},
-      tr(
+  const match = [
+    tr(`${fmt(SOULS)} souls (nível ${level}) e ${SLOTS} slots de item: a build de fim de partida.`, `${fmt(SOULS)} souls (level ${level}) and ${SLOTS} item slots: the late-game build.`),
+    tr(
         `Efeitos condicionais: ativos e procs valem pela duração ÷ cooldown do item; condições sem esses números (como “acima de 65% de vida”) valem ${Math.round(UPTIME * 100)}% do tempo.`,
         `Conditional effects: actives and procs count by the item's duration ÷ cooldown; conditions without those numbers (like “above 65% health”) count ${Math.round(UPTIME * 100)}% of the time.`,
-      ),
     ),
-    h(
-      "li",
-      {},
-      spike
-        ? tr(
+    spike
+      ? tr(
             `Pico de vitality (${fmt(VITALITY_SPIKE_SOULS)} souls em vitality) até ${fmt(spike.souls)} souls, por volta do minuto ${Math.round(spike.minute)}: a média dos jogadores de ${state.hero}.`,
             `Vitality spike (${fmt(VITALITY_SPIKE_SOULS)} souls in vitality) by ${fmt(spike.souls)} souls, around minute ${Math.round(spike.minute)}: the average for ${state.hero} players.`,
           )
@@ -163,15 +154,12 @@ function controls(app: App): HTMLElement {
             `Pico de vitality sem prazo: na média, os jogadores de ${state.hero} não chegam a ${fmt(VITALITY_SPIKE_SOULS)} souls em vitality.`,
             `Vitality spike with no deadline: on average, ${state.hero} players don't reach ${fmt(VITALITY_SPIKE_SOULS)} souls in vitality.`,
           ),
-    ),
-  );
+  ];
 
   const fp = app.data.fights;
   const pct = (x: number) => `${Math.round(x * 100)}%`;
   const fightInfo = fp
-    ? h(
-        "p",
-        { class: "hint" },
+    ? [
         tr(
           `Medido em ${fp.matches.toLocaleString(locale())} partidas: o alvo morre em ${fp.timeToKill.median.toLocaleString(locale())} s (mediana) depois do primeiro dano. `,
           `Measured in ${fp.matches.toLocaleString(locale())} matches: the target dies ${fp.timeToKill.median.toLocaleString(locale())} s (median) after the first damage. `,
@@ -181,15 +169,13 @@ function controls(app: App): HTMLElement {
           `Of the deaths, ${pct(fp.sizes.duel)} are in fights of 2 heroes, ${pct(fp.sizes.skirmish)} of 3 to 5 and ${pct(fp.sizes.teamfight)} of 6 or more. `,
         ),
         tr(`Perseguição e iniciação inimiga não aparecem nos dados e têm peso fixo.`, `Chases and enemy engages don't show up in the data and have a fixed weight.`),
-      )
-    : h(
-        "p",
-        { class: "hint" },
+      ]
+    : [
         tr(
           "Sem dados de lutas das partidas: usa uma luta de 10 s e uma mistura de tipos de luta escolhida pelo projeto.",
           "No fight data from matches: uses a 10 s fight and a mix of fight types chosen by the project.",
         ),
-      );
+      ];
 
   const progressive = h(
     "label",
@@ -204,24 +190,29 @@ function controls(app: App): HTMLElement {
     h("section", {}, h("h2", {}, tr("Herói", "Hero")), heroes),
     archetypeSection(app, heroId),
     h("section", {}, h("h2", {}, tr("Objetivo", "Goal")), objectives),
-    h("section", {}, h("h2", {}, tr("Partida", "Match")), match),
-    h("section", {}, h("h2", {}, tr("Lutas", "Fights")), fightInfo),
+    h(
+      "section",
+      { class: "info-row" },
+      infoHeading(tr("Partida", "Match"), ...match),
+      infoHeading(tr("Lutas", "Fights"), ...fightInfo),
+    ),
     h(
       "section",
       {},
-      h("h2", {}, tr("Ordem de compra", "Purchase order")),
-      progressive,
-      h(
-        "p",
-        { class: "hint" },
+      infoHeading(
+        tr("Ordem de compra", "Purchase order"),
         tr(
           "Cada compra é a de maior ganho entre as que o herói já consegue pagar. Itens de 1.600, 3.200 e 6.400 só entram a partir dos souls em que os jogadores desse herói costumam comprá-los. Desmarcado, mostra a build mais forte para os souls finais, que nem sempre dá para montar na partida.",
           "Each purchase is the biggest gain among those the hero can already afford. 1,600, 3,200 and 6,400 items only come in from the souls at which this hero's players usually buy them. Unchecked, it shows the strongest build for the final souls, which can't always be assembled in a match.",
         ),
       ),
+      progressive,
     ),
   );
 }
+
+/** Título com a explicação no mouse-over. */
+const infoHeading = (title: string, ...texts: string[]): HTMLElement => h("h2", { class: "info-heading" }, title, " ", infoTip(title, ...texts));
 
 /** Arquétipos da comunidade para o herói, com a fatia das partidas de cada um entre eles. */
 function heroArchetypes(app: App, heroId: number): { theory: Theory; share: number | null }[] {
@@ -876,7 +867,10 @@ function bannedBar(app: App): HTMLElement | null {
   );
 }
 
-function metricsTable(m: Metrics, b: Metrics): HTMLElement {
+/** Compara a build com a mais jogada do herói; sem dados de partidas, com o herói sem itens. */
+function metricsTable(result: OptimizeResult, ref: ReferenceBuild | null, notes: string[]): HTMLElement {
+  const m = result.metrics;
+  const b = ref?.metrics ?? result.baseline;
   const row = (label: string, base: number, now: number, one = false, sub = false) => {
     const d = delta(now, base);
     return h(
@@ -888,10 +882,30 @@ function metricsTable(m: Metrics, b: Metrics): HTMLElement {
       h("td", { class: d.startsWith("+") || d === tr("novo", "new") ? "up" : d.startsWith("−") ? "down" : "" }, d),
     );
   };
+  const column = !ref ? tr("Sem itens", "No items") : ref.source === "popular" ? tr("Mais jogada", "Most played") : tr("Elo alto", "High elo");
+  const title = tr("O que a build muda", "What the build changes");
+  const about = ref
+    ? [
+        tr(
+          `${ref.build.name || "Build sem nome"}: ${fmt(ref.build.matches)} partidas, ${fmt1((ref.build.wins / Math.max(1, ref.build.matches)) * 100)}% de vitória.`,
+          `${ref.build.name || "Unnamed build"}: ${fmt(ref.build.matches)} matches, ${fmt1((ref.build.wins / Math.max(1, ref.build.matches)) * 100)}% win rate.`,
+        ),
+        tr(
+          `As duas medidas pelo mesmo motor, no mesmo nível: ela gasta ${fmt(ref.spent)} souls em ${ref.items.length} itens, esta gasta ${fmt(result.spent)} em ${result.items.length}.`,
+          `Both measured by the same engine, at the same level: it spends ${fmt(ref.spent)} souls on ${ref.items.length} items, this one spends ${fmt(result.spent)} on ${result.items.length}.`,
+        ),
+        ref.filled.length
+          ? tr(
+              `A build publicada não chega aos ${fmt(result.souls)} souls; completei com opcionais dela e os mais comprados do herói: ${ref.filled.map((i) => i.name).join(", ")}.`,
+              `The published build doesn't reach ${fmt(result.souls)} souls; completed with its optional items and the hero's most bought: ${ref.filled.map((i) => i.name).join(", ")}.`,
+            )
+          : "",
+      ]
+    : [tr("Sem partidas do herói, a referência é ele sem itens.", "Without hero matches, the reference is the hero with no items.")];
   return h(
     "table",
     { class: "metrics" },
-    h("caption", {}, tr("O que a build muda", "What the build changes")),
+    h("caption", {}, title, " ", infoTip(title, ...about, ...notes), ref?.source === "popular" ? h("span", { class: "caption-meta" }, `${tr("contra", "vs")} ${ref.build.name || tr("build sem nome", "unnamed build")}`) : null),
     h(
       "thead",
       {},
@@ -899,9 +913,9 @@ function metricsTable(m: Metrics, b: Metrics): HTMLElement {
         "tr",
         {},
         h("th", { scope: "col" }, tr("Por segundo", "Per second")),
-        h("th", { scope: "col" }, tr("Sem itens", "No items")),
-        h("th", { scope: "col" }, tr("Com a build", "With build")),
-        h("th", { scope: "col" }, tr("Variação", "Change")),
+        h("th", { scope: "col" }, column),
+        h("th", { scope: "col" }, tr("Esta build", "This build")),
+        h("th", { scope: "col" }, tr("Diferença", "Difference")),
       ),
     ),
     h(
@@ -912,7 +926,7 @@ function metricsTable(m: Metrics, b: Metrics): HTMLElement {
       row(tr("Habilidades", "Abilities"), b.abilityDps, m.abilityDps, false, true),
       row(tr("Efeitos de itens", "Item effects"), b.itemDps, m.itemDps, false, true),
       row(tr("Corpo a corpo", "Melee"), b.meleeDps, m.meleeDps, false, true),
-      ...(m.antiHealDps > 0 ? [row(tr("Cura negada ao inimigo", "Healing denied to enemy"), b.antiHealDps, m.antiHealDps, false, true)] : []),
+      ...(Math.max(m.antiHealDps, b.antiHealDps) > 0 ? [row(tr("Cura negada ao inimigo", "Healing denied to enemy"), b.antiHealDps, m.antiHealDps, false, true)] : []),
       row(tr("Cura", "Healing"), b.sustain, m.sustain, true),
     ),
     h(
@@ -1011,20 +1025,19 @@ function eliteComparison(app: App, payload: BuildPayload, input: OptimizeInput):
       "p",
       { class: "hint" },
       tr(
-        `Itens que os jogadores de ${input.hero} em partidas ${rank} (cerca do top ${top}%) compram em pelo menos ${Math.round(ELITE_PATH_MIN_RATE * 100)}% das partidas, na ordem do minuto médio de compra, nos últimos ${app.data.elite.days} dias. Cortados nos mesmos souls e medidos pelo mesmo motor.`,
-        `Items that ${input.hero} players in ${rank} matches (about the top ${top}%) buy in at least ${Math.round(ELITE_PATH_MIN_RATE * 100)}% of matches, in order of average purchase minute, over the last ${app.data.elite.days} days. Cut at the same souls and measured by the same engine.`,
+        `Itens que os jogadores de ${input.hero} em partidas ${rank} (cerca do top ${top}%) compram em pelo menos ${Math.round(ELITE_PATH_MIN_RATE * 100)}% das partidas, na ordem do minuto médio de compra, nos últimos ${app.data.elite.days} dias. Cortados nos mesmos souls.`,
+        `Items that ${input.hero} players in ${rank} matches (about the top ${top}%) buy in at least ${Math.round(ELITE_PATH_MIN_RATE * 100)}% of matches, in order of average purchase minute, over the last ${app.data.elite.days} days. Cut at the same souls.`,
       ),
     ),
     h(
       "ol",
       { class: "compare-list" },
-      comparisonCard(app, c, payload.result, {
+      comparisonCard(app, c, {
         title: tr(`Caminho ${rank}`, `${rank} path`),
         summary: tr(
           `${fmt(c.build.matches)} partidas do herói nesse elo, ${fmt1(c.winrate * 100)}% de vitória.`,
           `${fmt(c.build.matches)} matches of the hero at this elo, ${fmt1(c.winrate * 100)}% win rate.`,
         ),
-        column: tr("Elo alto", "High elo"),
         listLabel: tr("Itens do elo alto até esses souls", "High elo items up to these souls"),
       }),
     ),
@@ -1034,54 +1047,37 @@ function eliteComparison(app: App, payload: BuildPayload, input: OptimizeInput):
 interface CardText {
   title: string;
   summary: string;
-  column: string;
   listLabel: string;
 }
 
-function comparisonCard(app: App, c: BuildComparison, ours: OptimizeResult, text?: CardText): HTMLElement {
+/** Uma build de referência em uma linha: nome, partidas e itens; o resto no mouse-over. */
+function comparisonCard(app: App, c: BuildComparison, text?: CardText): HTMLElement {
   const shared = new Set(c.shared.map((i) => i.className));
-  const cm = c.result.metrics;
-  const am = ours.metrics;
-  const cell = (label: string, theirs: number, ours: number) => h("tr", {}, h("th", { scope: "row" }, label), h("td", {}, fmt(theirs)), h("td", {}, fmt(ours)));
   const v = c.result.vitality;
-  const spikeNote =
-    v?.reachedAt != null
-      ? tr(` Pico de vitality por volta do minuto ${Math.round(v.reachedMinute ?? 0)}.`, ` Vitality spike around minute ${Math.round(v.reachedMinute ?? 0)}.`)
-      : tr(" Não chega ao pico de vitality com esses souls.", " Doesn't reach the vitality spike with these souls.");
+  const title = text?.title ?? (c.build.name || tr("Build sem nome", "Unnamed build"));
   return h(
     "li",
     { class: "compare-card" },
-    h("h3", {}, text?.title ?? (c.build.name || tr("Build sem nome", "Unnamed build"))),
-    h("p", { class: "buy-meta" }, (text?.summary ?? tr(`${fmt(c.build.matches)} partidas, ${fmt1(c.winrate * 100)}% de vitória.`, `${fmt(c.build.matches)} matches, ${fmt1(c.winrate * 100)}% win rate.`)) + spikeNote),
+    h(
+      "h3",
+      {},
+      title,
+      " ",
+      infoTip(
+        title,
+        c.onlyApp.length
+          ? tr(`Só no app: ${c.onlyApp.map((i) => i.name).join(", ")}.`, `Only in the app: ${c.onlyApp.map((i) => i.name).join(", ")}.`)
+          : tr("Todos os itens do app estão nesta build.", "Every app item is in this build."),
+        v?.reachedAt != null
+          ? tr(`Pico de vitality por volta do minuto ${Math.round(v.reachedMinute ?? 0)}.`, `Vitality spike around minute ${Math.round(v.reachedMinute ?? 0)}.`)
+          : tr("Não chega ao pico de vitality com esses souls.", "Doesn't reach the vitality spike with these souls."),
+      ),
+    ),
+    h("p", { class: "buy-meta" }, text?.summary ?? tr(`${fmt(c.build.matches)} partidas, ${fmt1(c.winrate * 100)}% de vitória.`, `${fmt(c.build.matches)} matches, ${fmt1(c.winrate * 100)}% win rate.`)),
     h(
       "ul",
       { class: "compare-items", "aria-label": text?.listLabel ?? tr("Itens da build publicada até esses souls", "Items of the published build up to these souls") },
-      c.items.map((i) =>
-        h(
-          "li",
-          { class: shared.has(i.className) ? "in-both" : "" },
-          itemIcon(app, i, `item-icon small buy-${i.slot}`),
-        ),
-      ),
-    ),
-    h(
-      "table",
-      { class: "metrics compact" },
-      h("thead", {}, h("tr", {}, h("th", { scope: "col" }, tr("Pelo motor", "By the engine")), h("th", { scope: "col" }, text?.column ?? tr("Publicada", "Published")), h("th", { scope: "col" }, "App"))),
-      h(
-        "tbody",
-        {},
-        cell(tr("Dano total/s", "Total damage/s"), cm.totalDps, am.totalDps),
-        cell(tr("Vida efetiva", "Effective HP"), cm.ehp, am.ehp),
-        cell(tr("Pontos", "Points"), c.result.score * 100, ours.score * 100),
-      ),
-    ),
-    h(
-      "p",
-      { class: "hint" },
-      c.onlyApp.length
-        ? tr(`Só no app: ${c.onlyApp.map((i) => i.name).join(", ")}.`, `Only in the app: ${c.onlyApp.map((i) => i.name).join(", ")}.`)
-        : tr("Todos os itens do app estão nesta build.", "Every app item is in this build."),
+      c.items.map((i) => h("li", { class: shared.has(i.className) ? "in-both" : "" }, itemIcon(app, i, `item-icon small buy-${i.slot}`))),
     ),
   );
 }
@@ -1090,7 +1086,6 @@ function comparison(app: App, payload: BuildPayload, input: OptimizeInput): HTML
   const meta = heroMeta(app.data, findHero(app.data, input.hero).id);
   const cards = payload.comparisons;
   if (!meta || !cards) return null;
-  const result = payload.result;
   const best = [...powerWindows(meta)].sort((a, b) => b.winrate - a.winrate)[0];
   const window = best
     ? tr(
@@ -1106,12 +1101,12 @@ function comparison(app: App, payload: BuildPayload, input: OptimizeInput): HTML
       "p",
       { class: "hint" },
       tr(
-        `Builds publicadas no jogo com mais partidas nos últimos ${app.data.stats!.days} dias, cortadas nos mesmos souls e medidas pelo mesmo motor. Ícones com borda clara também estão na build do app.${window}`,
-        `Builds published in the game with the most matches in the last ${app.data.stats!.days} days, cut at the same souls and measured by the same engine. Icons with a light border are also in the app's build.${window}`,
+        `Builds publicadas no jogo com mais partidas nos últimos ${app.data.stats!.days} dias, cortadas nos mesmos souls. Ícones com borda clara também estão na build do app.${window}`,
+        `Builds published in the game with the most matches in the last ${app.data.stats!.days} days, cut at the same souls. Icons with a light border are also in the app's build.${window}`,
       ),
     ),
     cards.length
-      ? h("ol", { class: "compare-list" }, cards.map((c) => comparisonCard(app, c, result)))
+      ? h("ol", { class: "compare-list" }, cards.map((c) => comparisonCard(app, c)))
       : h("p", { class: "empty" }, tr("Nenhuma build publicada tem itens que caibam nesses souls.", "No published build has items that fit these souls.")),
   );
 }
@@ -1265,19 +1260,16 @@ function resultView(app: App, payload: BuildPayload, input: OptimizeInput, statu
       h(
         "div",
         { class: "side" },
-        metricsTable(result.metrics, result.baseline),
-        h("p", { class: "hint" }, meleeNote(app, result, hero.id)),
+        metricsTable(result, payload.reference, [
+          meleeNote(app, result, hero.id),
+          tr(
+            "Os números são estimativas para comparar builds do mesmo herói. Dano de habilidade assume uso a cada cooldown; dano de efeitos de itens é o menos preciso.",
+            "The numbers are estimates for comparing builds of the same hero. Ability damage assumes use on every cooldown; item effect damage is the least precise.",
+          ),
+        ]),
         objective === "control" ? controlPanel(result, input.metric?.uptime ?? UPTIME) : null,
         playPanel(app, payload, input),
         abilityPlan(app, result),
-        h(
-          "p",
-          { class: "caveat" },
-          tr(
-            "Os números são estimativas para comparar builds do mesmo herói. Dano de habilidade assume uso a cada cooldown; dano de efeitos de itens é o menos preciso. Confira no sandbox antes de confiar.",
-            "The numbers are estimates for comparing builds of the same hero. Ability damage assumes use on every cooldown; item effect damage is the least precise. Check in the sandbox before trusting it.",
-          ),
-        ),
       ),
     ),
     theoriesSection(app, hero.id),

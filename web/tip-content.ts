@@ -16,7 +16,7 @@ export interface TipSection {
 
 export interface TipContent {
   title: string;
-  meta: string;
+  meta?: string;
   sections: TipSection[];
   footer?: string;
 }

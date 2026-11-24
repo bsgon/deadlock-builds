@@ -1215,3 +1215,55 @@ input[type="search"] {
   font-weight: 600;
   text-align: right;
 }
+
+/* Botão de informação: o texto fica no mouse-over */
+.info {
+  display: inline-grid;
+  place-items: center;
+  width: 1.25rem;
+  height: 1.25rem;
+  padding: 0;
+  border: 1px solid var(--muted);
+  border-radius: 50%;
+  background: none;
+  color: var(--muted);
+  font: 700 0.8125rem/1 var(--body);
+  vertical-align: middle;
+  cursor: help;
+}
+
+.info:hover,
+.info:focus-visible {
+  border-color: var(--brass);
+  color: var(--brass);
+}
+
+.controls .info-heading {
+  margin-bottom: 0;
+}
+
+.controls .info-heading + .check {
+  margin-top: 0.625rem;
+}
+
+.info-row {
+  display: flex;
+  gap: 1.75rem;
+}
+
+.caption-meta {
+  display: block;
+  color: var(--muted);
+  font: 400 0.875rem/1.4 var(--body);
+  letter-spacing: 0;
+}
+
+.compare-list {
+  grid-template-columns: minmax(0, 1fr);
+  gap: 0.75rem;
+}
+
+.compare-card {
+  gap: 0.25rem;
+  padding: 0.75rem 1rem;
+}

@@ -1,10 +1,10 @@
 import { describe, expect, it } from "vitest";
 import { loadSnapshot } from "../src/data/load.ts";
-import { findItem } from "../src/engine/index.ts";
+import { equippedItems, findItem, MAX_ACTIVE_ITEMS } from "../src/engine/index.ts";
 import { VITALITY_SPIKE_SOULS } from "../src/engine/rules.ts";
 import { buildGraph, linksBetween, partnersByTree } from "../src/interactions/synergy.ts";
-import { popularAtSouls } from "../src/meta/compare.ts";
-import { midGameSouls, minuteForSouls, soulsAtMinute } from "../src/meta/stats.ts";
+import { completeBuild, popularAtSouls, referenceBuild } from "../src/meta/compare.ts";
+import { heroMeta, midGameSouls, minuteForSouls, soulsAtMinute } from "../src/meta/stats.ts";
 import { score } from "../src/optimizer/metrics.ts";
 import { optimize } from "../src/optimizer/optimize.ts";
 
@@ -97,5 +97,24 @@ describe("objetivo Otimizada", () => {
     expect(at(2200)).toBeGreaterThan(at(2000));
     // 10% a mais de vida acima do piso vale menos que 10% a mais de dano.
     expect(at(2200) - at(2000)).toBeLessThan(at(2000, 330) - at(2000));
+  });
+});
+
+describe("build de referência", () => {
+  it("completa a mais jogada dentro dos souls, slots e ativos, sem itens repetidos", () => {
+    for (const hero of data.heroes) {
+      const build = heroMeta(data, hero.id)?.builds[0];
+      if (!build) continue;
+      const { items, spent } = completeBuild(data, hero.id, build, 50_000, 12);
+      expect(spent, hero.name).toBeLessThanOrEqual(50_000);
+      expect(spent, hero.name).toBeGreaterThan(42_000);
+      expect(items.length, hero.name).toBe(12);
+      expect(items.filter((i) => i.isActive).length, hero.name).toBeLessThanOrEqual(MAX_ACTIVE_ITEMS);
+      expect(equippedItems(data, items).length, hero.name).toBe(items.length);
+    }
+  });
+
+  it("sem estatísticas nem elo alto não há referência", () => {
+    expect(referenceBuild({ ...data, stats: undefined, elite: undefined }, { hero: "Haze", objective: "optimized", souls: 50_000 })).toBeNull();
   });
 });

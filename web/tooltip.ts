@@ -5,6 +5,7 @@
  */
 import type { Ability, Item } from "../src/data/types.ts";
 import { findHero } from "../src/engine/index.ts";
+import { tr } from "../src/i18n.ts";
 import { h, icon } from "./dom.ts";
 import type { App } from "./main.ts";
 import { abilityTip, itemTip, type TipContent } from "./tip-content.ts";
@@ -104,7 +105,7 @@ export function tipBody(c: TipContent): HTMLElement {
     "div",
     {},
     h("p", { class: "tip-title" }, c.title),
-    h("p", { class: "tip-meta" }, c.meta),
+    c.meta ? h("p", { class: "tip-meta" }, c.meta) : null,
     c.sections.map((s) =>
       h(
         "div",
@@ -117,6 +118,10 @@ export function tipBody(c: TipContent): HTMLElement {
     c.footer ? h("p", { class: "tip-footer" }, c.footer) : null,
   );
 }
+
+/** Botão "i" com um texto explicativo só no mouse-over (foco e toque também abrem). */
+export const infoTip = (title: string, ...texts: string[]): HTMLElement =>
+  withTip(h("button", { class: "info", type: "button", "aria-label": tr(`Sobre: ${title}`, `About: ${title}`) }, "i"), () => tipBody({ title, sections: texts.filter(Boolean).map((text) => ({ text })) }));
 
 /** Na aba de sinergias não há herói em foco, então não há taxa de compra. */
 const heroIdOf = (app: App) => (app.state.tab === "build" ? findHero(app.data, app.state.hero).id : null);
