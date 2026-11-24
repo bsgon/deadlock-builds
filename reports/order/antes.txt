@@ -1,0 +1,183 @@
+
+== Paige: 6.072 pontos, 18 compras, 3761 souls parados, 13 com menos de 5% de compra
+jogadores: 5870
+1º T1: app 1.5 | jogadores p10 1.0 p50 1.4 p75 1.7
+1º T2: app 9.3 | jogadores p10 2.9 p50 4.8 p75 6.8
+1º T3: app 21.0 | jogadores p10 8.8 p50 13.9 p75 16.4
+1º T4: app 29.0 | jogadores p10 17.9 p50 24.2 p75 27.6
+espera 0-5 min: app máx 1.5 | jogadores p50 1.6 p90 2.9
+espera 5-10 min: app máx 3.8 | jogadores p50 1.5 p90 3.4
+espera 10-15 min: app máx 1.8 | jogadores p50 1.6 p90 4.0
+espera 15+ min: app máx 5.5 | jogadores p50 1.9 p90 4.5
+  min  esper parad  compra elite real  item
+  1.5    1.5     0     59%   83%  6.3  T1 Grit (800)
+  2.8    1.3     0     73%   94%  2.5  T1 High-Velocity Rounds (800)
+  4.3    1.5     0      8%   15% 10.6  T1 Extra Health (800)
+  5.5    1.3     0      2%    1%  9.1  T1 Rapid Rounds (800)
+  9.3    3.8  1247      1%    3% 20.6  T2 Bullet Resist Shredder (1600)
+ 10.3    1.0     0     53%   82%  7.0  T2 Opening Rounds (800) melhora High-Velocity Rounds
+ 11.0    0.8     0      4%   10% 18.1  T2 Weapon Shielding (800) melhora Grit
+ 12.8    1.8     0      1%    2% 16.4  T2 Battle Vest (1600)
+ 13.5    0.8     0      1%    1% 12.5  T2 Swift Striker (800) melhora Rapid Rounds
+ 15.3    1.8     0      0%    0% 22.9  T2 Weakening Headshot (1600)
+ 16.8    1.5     0     12%   28% 17.4  T2 Spirit Shielding (1600)
+ 21.0    4.3  1497      0%    0% 26.3  T3 Blood Tribute (3200)
+ 23.5    2.5     0      1%    0% 22.8  T3 Burst Fire (3200)
+ 29.0    5.5  1017      0%    0% 30.6  T4 Glass Cannon (6400)
+ 33.5    4.5     0      0%    0% 38.1  T4 Frenzy (6400)
+ 35.5    2.0     0      2%    0% 30.9  T3 Bullet Resilience (2800) vende Extra Health
+ 38.5    3.0     0      0%    0% 34.8  T4 Crippling Headshot (4800) melhora Weakening Headshot
+ 42.0    3.5     0      2%    0% 40.2  T4 Diviner's Kevlar (5600) vende Spirit Shielding
+
+== Infernus: 6.511 pontos, 18 compras, 3977 souls parados, 8 com menos de 5% de compra
+jogadores: 6952
+1º T1: app 1.5 | jogadores p10 1.0 p50 1.5 p75 2.1
+1º T2: app 7.0 | jogadores p10 3.0 p50 4.6 p75 5.8
+1º T3: app 20.0 | jogadores p10 10.8 p50 15.0 p75 17.6
+1º T4: app 27.5 | jogadores p10 17.4 p50 23.2 p75 26.2
+espera 0-5 min: app máx 4.3 | jogadores p50 1.6 p90 3.0
+espera 5-10 min: app máx 1.8 | jogadores p50 1.6 p90 3.3
+espera 10-15 min: app máx 1.5 | jogadores p50 1.7 p90 4.0
+espera 15+ min: app máx 5.0 | jogadores p50 2.1 p90 4.7
+  min  esper parad  compra elite real  item
+  1.5    1.5     0     10%   34% 12.9  T1 Grit (800)
+  2.8    1.3     0     79%   94%  3.6  T1 Extra Spirit (800)
+  7.0    4.3  1137      8%   11% 17.6  T2 Enchanter's Emblem (1600)
+  8.0    1.0     0     93%   95%  6.9  T2 Improved Spirit (800) melhora Extra Spirit
+  9.0    1.0     0      7%   24% 19.1  T2 Spirit Shielding (800) melhora Grit
+ 10.8    1.8     0      2%    6% 20.9  T2 Weapon Shielding (1600)
+ 12.3    1.5     0      1%    1% 18.1  T2 Mystic Shot (1600)
+ 13.8    1.5     0     72%   80% 16.8  T2 Mystic Vulnerability (1600)
+ 15.3    1.5     0      2%    2% 12.1  T2 Cold Front (1600)
+ 20.0    4.8  2204      2%    4% 24.5  T3 Tesla Bullets (3200)
+ 22.5    2.5     0      0%    0% 24.5  T3 Torment Pulse (3200)
+ 27.5    5.0   636      0%    1% 39.0  T4 Diviner's Kevlar (6400)
+ 30.0    2.5     0      2%    3% 32.9  T4 Capacitor (3200) melhora Tesla Bullets
+ 34.3    4.3     0     13%    2% 35.1  T4 Spirit Burn (6400)
+ 37.5    3.3     0     63%   63% 27.5  T4 Escalating Exposure (4800) melhora Mystic Vulnerability
+ 40.5    3.0     0     52%   28% 30.9  T4 Boundless Spirit (4800) melhora Improved Spirit
+ 41.5    1.0     0      2%    5% 16.5  T2 Battle Vest (1600)
+ 42.0    0.5     0      7%   16% 23.2  T2 Reactive Barrier (800) vende Cold Front
+
+== Haze: 11.862 pontos, 18 compras, 1892 souls parados, 7 com menos de 5% de compra
+jogadores: 9239
+1º T1: app 1.5 | jogadores p10 0.9 p50 1.3 p75 1.7
+1º T2: app 7.5 | jogadores p10 3.4 p50 5.1 p75 6.2
+1º T3: app 17.0 | jogadores p10 9.6 p50 13.1 p75 15.3
+1º T4: app 25.3 | jogadores p10 15.5 p50 22.2 p75 25.3
+espera 0-5 min: app máx 3.5 | jogadores p50 1.6 p90 3.1
+espera 5-10 min: app máx 1.8 | jogadores p50 1.7 p90 3.6
+espera 10-15 min: app máx 3.8 | jogadores p50 1.9 p90 4.2
+espera 15+ min: app máx 4.5 | jogadores p50 2.2 p90 4.8
+  min  esper parad  compra elite real  item
+  1.5    1.5     0      5%   10% 14.2  T1 Grit (800)
+  2.8    1.3     0     88%   94%  3.8  T1 Rapid Rounds (800)
+  4.0    1.3     0      8%    7% 18.2  T1 High-Velocity Rounds (800)
+  7.5    3.5   732     48%   61% 16.9  T2 Bullet Resist Shredder (1600)
+  9.3    1.8     0     22%   42% 12.9  T2 Battle Vest (1600)
+ 10.3    1.0     0     93%   98%  7.3  T2 Swift Striker (800) melhora Rapid Rounds
+ 11.0    0.8     0      3%    1% 14.2  T2 Opening Rounds (800) melhora High-Velocity Rounds
+ 11.8    0.8     0      1%    1% 21.1  T2 Weapon Shielding (800) melhora Grit
+ 13.3    1.5     0     74%   77%  8.3  T2 Active Reload (1600)
+ 17.0    3.8  1160     44%   41% 20.3  T3 Tesla Bullets (3200)
+ 19.5    2.5     0      1%    1% 26.6  T3 Blood Tribute (3200)
+ 20.8    1.3     0      4%    9% 18.1  T2 Spirit Shielding (1600)
+ 25.3    4.5     0      3%    1% 37.3  T4 Frenzy (6400)
+ 27.3    2.0     0     38%   38% 27.5  T4 Capacitor (3200) melhora Tesla Bullets
+ 31.5    4.3     0      7%    1% 30.9  T4 Glass Cannon (6400)
+ 35.8    4.3     0      0%    0% 35.9  T4 Spirit Burn (6400)
+ 37.3    1.5     0     81%   86% 19.6  T3 Burst Fire (2400) vende Opening Rounds
+ 40.5    3.3     0      1%    0% 39.1  T4 Diviner's Kevlar (5600) vende Active Reload
+
+== Abrams: 6.675 pontos, 21 compras, 2400 souls parados, 13 com menos de 5% de compra
+jogadores: 7234
+1º T1: app 1.5 | jogadores p10 1.0 p50 1.3 p75 1.7
+1º T2: app 9.0 | jogadores p10 4.5 p50 6.8 p75 8.0
+1º T3: app 19.5 | jogadores p10 10.3 p50 13.9 p75 15.9
+1º T4: app 27.0 | jogadores p10 17.5 p50 24.4 p75 27.9
+espera 0-5 min: app máx 1.5 | jogadores p50 1.7 p90 3.0
+espera 5-10 min: app máx 2.5 | jogadores p50 1.9 p90 3.6
+espera 10-15 min: app máx 5.0 | jogadores p50 2.2 p90 4.5
+espera 15+ min: app máx 5.0 | jogadores p50 2.3 p90 4.9
+  min  esper parad  compra elite real  item
+  1.5    1.5     0      6%    6% 15.1  T1 Grit (800)
+  2.8    1.3     0     46%   21%  9.5  T1 Spirit Strike (800)
+  4.3    1.5     0      6%    2% 11.4  T1 Extra Spirit (800)
+  5.5    1.3     0     32%   19% 13.1  T1 Extra Health (800)
+  6.5    1.0     0      0%    0% 13.3  T1 Rapid Rounds (800)
+  9.0    2.5   341      8%    9% 14.9  T2 Enchanter's Emblem (1600)
+ 10.8    1.8     0     18%   25% 13.4  T2 Battle Vest (1600)
+ 11.5    0.8     0      5%    2% 18.3  T2 Improved Spirit (800) melhora Extra Spirit
+ 12.3    0.8     0      2%    1% 21.8  T2 Weapon Shielding (800) melhora Grit
+ 13.8    1.5     0      4%    2% 23.8  T2 Mystic Vulnerability (1600)
+ 14.5    0.8     0       -    0%    -  T1 Extra Charge (800)
+ 19.5    5.0  2059      0%    0% 27.2  T3 Tesla Bullets (3200)
+ 20.3    0.8     0      0%    0% 16.5  T2 Swift Striker (800) melhora Rapid Rounds
+ 22.0    1.8     0     50%   25% 21.3  T3 Spirit Snatch (2400) melhora Spirit Strike
+ 27.0    5.0     0      0%    0% 40.5  T4 Diviner's Kevlar (6400)
+ 29.5    2.5     0      0%    0% 38.0  T4 Capacitor (3200) melhora Tesla Bullets
+ 31.8    2.3     0      0%    0% 26.3  T3 Blood Tribute (3200)
+ 36.3    4.5     0      1%    1% 36.0  T4 Spirit Burn (6000) vende Extra Charge
+ 39.5    3.3     0      3%    1% 33.4  T4 Escalating Exposure (4800) melhora Mystic Vulnerability
+ 42.5    3.0     0      4%    1% 32.6  T4 Boundless Spirit (4800) melhora Improved Spirit
+ 43.3    0.8     0      7%    2% 22.2  T2 Reactive Barrier (1200) vende Extra Health
+
+== Seven: 4.131 pontos, 18 compras, 2216 souls parados, 8 com menos de 5% de compra
+jogadores: 6806
+1º T1: app 1.5 | jogadores p10 1.0 p50 1.4 p75 1.9
+1º T2: app 10.0 | jogadores p10 3.9 p50 6.0 p75 7.5
+1º T3: app 17.5 | jogadores p10 8.2 p50 11.9 p75 14.9
+1º T4: app 25.8 | jogadores p10 17.0 p50 22.5 p75 25.6
+espera 0-5 min: app máx 1.5 | jogadores p50 1.7 p90 3.2
+espera 5-10 min: app máx 3.3 | jogadores p50 1.8 p90 3.5
+espera 10-15 min: app máx 2.8 | jogadores p50 1.6 p90 3.8
+espera 15+ min: app máx 5.5 | jogadores p50 1.9 p90 4.4
+  min  esper parad  compra elite real  item
+  1.5    1.5     0     21%   41%  9.4  T1 Grit (800)
+  2.8    1.3     0     65%   33%  7.1  T1 Extra Spirit (800)
+  4.3    1.5     0     12%   10%  5.8  T1 High-Velocity Rounds (800)
+  5.5    1.3     0      8%    4% 12.2  T1 Extra Health (800)
+  6.8    1.3     0     52%   24%  7.9  T1 Extra Charge (800)
+ 10.0    3.3  1203     64%   87% 15.2  T2 Healbane (1600)
+ 11.8    1.8     0      5%   22%  8.9  T2 Battle Vest (1600)
+ 12.5    0.8     0      1%    4% 21.0  T2 Weapon Shielding (800) melhora Grit
+ 14.0    1.5     0     15%   29% 20.9  T2 Reactive Barrier (1600)
+ 14.8    0.8     0     64%   27% 13.1  T2 Improved Spirit (800) melhora Extra Spirit
+ 17.5    2.8     0      0%    0% 24.1  T3 Alchemical Fire (3200)
+ 20.3    2.8     0      0%    0% 26.1  T3 Blood Tribute (3200)
+ 25.8    5.5  1013     74%   92% 25.6  T4 Escalating Exposure (6400)
+ 30.3    4.5     0      4%    2% 38.4  T4 Diviner's Kevlar (6400)
+ 32.0    1.8     0      4%    2% 29.5  T3 Bullet Resilience (2800) vende High-Velocity Rounds
+ 36.0    4.0     0      0%    0% 43.4  T4 Cheat Death (6000) vende Extra Charge
+ 39.3    3.3     0     50%   22% 30.3  T4 Boundless Spirit (4800) melhora Improved Spirit
+ 40.8    1.5     0      3%    8% 29.3  T3 Metal Skin (2800) vende Extra Health
+
+== Vindicta: 10.398 pontos, 18 compras, 3315 souls parados, 5 com menos de 5% de compra
+jogadores: 5712
+1º T1: app 1.5 | jogadores p10 1.0 p50 1.4 p75 1.9
+1º T2: app 5.5 | jogadores p10 2.6 p50 3.7 p75 5.1
+1º T3: app 14.0 | jogadores p10 8.6 p50 11.2 p75 13.3
+1º T4: app 30.5 | jogadores p10 20.9 p50 27.0 p75 29.8
+espera 0-5 min: app máx 2.8 | jogadores p50 1.6 p90 3.0
+espera 5-10 min: app máx 5.3 | jogadores p50 1.6 p90 3.5
+espera 10-15 min: app máx 2.3 | jogadores p50 1.5 p90 3.8
+espera 15+ min: app máx 5.8 | jogadores p50 1.9 p90 4.7
+  min  esper parad  compra elite real  item
+  1.5    1.5     0      5%   12% 20.4  T1 Grit (800)
+  2.8    1.3     0     56%   64% 12.2  T1 Rapid Rounds (800)
+  5.5    2.8     0      1%    0% 19.2  T2 Intensifying Magazine (1600)
+  6.8    1.3     0      4%   10% 22.6  T2 Spirit Shielding (800) melhora Grit
+  8.8    2.0     0     12%   18% 14.8  T2 Battle Vest (1600)
+ 14.0    5.3  1905     14%   18% 28.2  T3 Blood Tribute (3200)
+ 16.3    2.3     0     73%   70% 22.8  T3 Burst Fire (2400) melhora Rapid Rounds
+ 17.8    1.5     0      8%   11% 14.1  T2 Bullet Resist Shredder (1600)
+ 19.3    1.5     0      1%    2% 25.0  T2 Weapon Shielding (1600)
+ 22.0    2.8     0      2%    0% 26.8  T3 Weighted Shots (3200)
+ 23.5    1.5     0      6%    5% 28.9  T2 Weakening Headshot (1600)
+ 24.8    1.3     0      5%    6% 15.3  T2 Active Reload (1600)
+ 30.5    5.8  1410      0%    0% 39.8  T4 Frenzy (6400)
+ 35.3    4.8     0     11%    2% 30.9  T4 Glass Cannon (6400)
+ 38.5    3.3     0     14%    6% 35.6  T4 Crippling Headshot (4800) melhora Weakening Headshot
+ 42.3    3.8     0     36%   15% 31.4  T4 Mercurial Magnum (5600) vende Bullet Resist Shredder
+ 42.8    0.5     0     61%   48% 20.6  T2 Titanic Magazine (800) vende Active Reload
+ 43.3    0.5     0     69%   78% 15.3  T2 Swift Striker (800) vende Intensifying Magazine
