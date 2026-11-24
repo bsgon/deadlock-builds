@@ -1,6 +1,6 @@
 # Plano: página enxuta e ordem de compra revista
 
-Escrito em 24/11/2026. Nada foi implementado ainda. Um commit por batch.
+Escrito em 24/11/2026 e implementado na branch `pagina-enxuta` (batches 0 a 7). Diferenças na execução estão na seção 5.
 
 ## 1. O que medi
 
@@ -119,9 +119,19 @@ pt e en) e commit. Interface (1–4) e otimizador (5–6) não se misturam: até
 
 ## 3. Decisões em aberto
 
-- **Batch 5, itens caros:** recomendo também limitar T3/T4 com menos de 2% de compra, exceto com sinergia forte. Não cortar
+- **Batch 5, itens caros:** decidido não cortar (custa de 9 a 12 pontos percentuais de pontuação). Proposta original: recomendo também limitar T3/T4 com menos de 2% de compra, exceto com sinergia forte. Não cortar
   mantém a build cheia de itens que ninguém usa; cortar demais copia o meta. Medir no batch 5 antes de ligar.
 
 ## 4. Ordem
 
 0 → 1 → 2 → 3 → 4 → 5 → 6 → 7. O 3 depende do 1; o 6 depende do 0 e do 5. O 2 e o 4 podem trocar de lugar.
+
+## 5. O que saiu diferente do plano
+
+- **Batch 2:** a build mais jogada é completada até os souls finais (`referenceBuild`), porque muitas publicadas param em 25 a 40 mil souls.
+- **Antes do batch 4:** correção do motor, upgrades em porcentagem aplicados como multiplicador (Baba, Lash).
+- **Antes do batch 5:** correção do melee (crescimento por nível, dano de arma, habilidades que escalam com o golpe).
+- **Batch 5:** só volta o componente de um item que o herói usa, não de qualquer upgrade.
+- **Batch 6:** custo em minutos testado e descartado (sem diferença); `item-flow-stats` não foi preciso.
+- **Pendências:** 10 heróis com um tier fora da faixa dos jogadores, Mo & Krill com 11 itens, T3/T4 pouco comprados que o motor
+  valoriza (Torment Pulse, Blood Tribute), escalas não resolvidas em Mina, Solomon, Venator e Victor.

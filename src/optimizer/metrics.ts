@@ -284,7 +284,6 @@ const LIGHT_MELEE_PER_SECOND = 0.6;
 const HEAVY_MELEE_EVERY = 3;
 /** Parte da luta que mesmo quem vive de melee passa colado no alvo, batendo. */
 const MELEE_FIGHT_SHARE = 0.35;
-const M = "MODIFIER_VALUE_";
 
 interface MeleeParts {
   /** Dano por segundo de golpes corpo a corpo, já ponderado pelo uso de melee do herói. */

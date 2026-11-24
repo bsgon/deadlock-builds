@@ -3,11 +3,11 @@ import { abilityPoints, badgeName, ELITE_PATH_MIN_RATE, eliteMaxFirst, heroElite
 import type { ItemWpa } from "../src/meta/wpa.ts";
 import { componentTree, heroAbilities, findHero, progressionFromSouls, MAX_ACTIVE_ITEMS } from "../src/engine/index.ts";
 import { heroItemFit, itemPairLinks, topLinks, type Link } from "../src/interactions/synergy.ts";
-import type { Metrics } from "../src/optimizer/metrics.ts";
 import { archetypeWeights } from "../src/optimizer/archetype.ts";
 import type { UiObjective } from "./main.ts";
 import type { BuildComparison, ReferenceBuild } from "../src/meta/compare.ts";
 import { buyMinute, heroMeta, meleePickRate, pickRate, powerWindows, vitalitySpikeOf } from "../src/meta/stats.ts";
+import { STRONG_SYNERGY } from "../src/meta/useful.ts";
 import { VITALITY_SPIKE_SOULS } from "../src/engine/rules.ts";
 import type { OptimizeInput, OptimizeResult } from "../src/optimizer/optimize.ts";
 import { CONTROL_LABEL, CONTROL_MIN_PER_MINUTE, heroControl } from "../src/optimizer/control.ts";
@@ -37,15 +37,12 @@ const objectiveLabel = (): Record<UiObjective, { name: string; hint: string }> =
 /** Objetivos oferecidos no seletor, na ordem. */
 const SHOWN_OBJECTIVES: UiObjective[] = ["optimized", "weapon", "spirit", "survival", "control", "archetype"];
 
-const slotLabel = () => ({ weapon: tr("Arma", "Weapon"), vitality: tr("Vitalidade", "Vitality"), spirit: "Spirit" }) as const;
 /** A build é sempre a de fim de partida: souls e slots fixos. */
 const SOULS = 50_000;
 const SLOTS = 12;
 /** Efeitos condicionais sem duração/cooldown na API valem metade do tempo. */
 const UPTIME = DEFAULT_METRIC_OPTIONS.uptime;
 
-/** A partir desta pontuação a sinergia é "forte" (escala da wiki em synergy.ts) e aparece sem mouse-over. */
-const STRONG_SYNERGY = 1.6;
 /** Abaixo disto a sinergia é básica: não aparece nem no mouse-over. */
 const MIN_SYNERGY = 1;
 
@@ -611,10 +608,12 @@ function purchaseList(app: App, result: OptimizeResult, heroId: number): HTMLEle
   }
 }
 
+const factor2 = (x: number) => x.toLocaleString(locale(), { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
 /** Dica do chip "partidas ×N": de onde veio o Δ e quanto ele mudou o ganho por soul. */
 function matchPriorText(p: NonNullable<OptimizeResult["order"][number]["matchPrior"]>): string {
   const d = `${signedPp(p.delta)} ± ${fmt1(p.margin)}`;
-  const factor = tr(` O ganho por soul do modelo foi multiplicado por ${p.factor.toFixed(2)}.`, ` The model's gain per soul was multiplied by ${p.factor.toFixed(2)}.`);
+  const factor = tr(` O ganho por soul do modelo foi multiplicado por ${factor2(p.factor)}.`, ` The model's gain per soul was multiplied by ${factor2(p.factor)}.`);
   if (p.source === "wpa")
     return (
       tr(
