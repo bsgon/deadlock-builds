@@ -12,6 +12,7 @@ import { MID_GAME_MINUTE, VITALITY_SPIKE_SOULS } from "../engine/rules.ts";
 import { heroMeta, midGameSouls, minuteForSouls, popularAtSouls, tierGates } from "../meta/stats.ts";
 import { compareInWindow, priorFactor, tierPrior, type TierPrior } from "../meta/windows.ts";
 import { blendPriors, wpaPrior } from "../meta/wpa.ts";
+import { unusedItems } from "../meta/useful.ts";
 import { SELL_REFUND } from "../engine/rules.ts";
 import { computeMetrics, DEFAULT_METRIC_OPTIONS, OBJECTIVES, score, type MetricOptions, type Metrics, type Objective, type Weights } from "./metrics.ts";
 import type { PlanId, ScenarioId } from "../combat/value.ts";
@@ -80,6 +81,13 @@ export interface OptimizeInput {
    * DEFAULT_MATCH_SOURCE quando o snapshot tem wpa.json; sem ele, "window".
    */
   matchSource?: "window" | "wpa" | "blend";
+  /**
+   * Tira da busca itens baratos (tier 1 e 2) que quase ninguém compra com o herói e sem
+   * sinergia forte com o kit (src/meta/useful.ts). Padrão: true.
+   */
+  pruneUnused?: boolean;
+  /** Estende a poda aos tiers 3 e 4, com esta taxa mínima de compra (0 = não poda). */
+  expensiveMinPick?: number;
 }
 
 /** Peso padrão das partidas na escolha das compras (ver `matchWeight`). */
@@ -194,9 +202,12 @@ export function optimize(data: GameData, input: OptimizeInput, memo: EvaluationM
   const banned = new Set((input.banned ?? []).map((n) => findItem(data, n).className));
   const required = (input.required ?? []).map((n) => findItem(data, n));
   const requiredClasses = new Set(required.map((i) => i.className));
-  // Fora do conjunto: proibidos, tier acima do limite e upgrades que absorveriam um item obrigatório.
+  const unused = input.fixedItems || input.pruneUnused === false ? new Set<string>() : unusedItems(data, hero, input.expensiveMinPick ?? 0);
+  // Item fixado, e os componentes dele, nunca saem.
+  for (const item of required) for (const c of [item.className, ...componentTree(data, item)]) unused.delete(c);
+  // Fora do conjunto: proibidos, itens sem uso (unusedItems), tier acima do limite e upgrades que absorveriam um item obrigatório.
   const pool = data.items.filter(
-    (i) => i.tier <= (input.maxTier ?? 4) && !banned.has(i.className) && ![...componentTree(data, i)].some((c) => requiredClasses.has(c)),
+    (i) => i.tier <= (input.maxTier ?? 4) && !banned.has(i.className) && !unused.has(i.className) && ![...componentTree(data, i)].some((c) => requiredClasses.has(c)),
   );
   const byClass = new Map(data.items.map((i) => [i.className, i]));
   let evaluations = 0;
