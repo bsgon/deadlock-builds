@@ -207,8 +207,8 @@ function controls(app: App): HTMLElement {
       infoHeading(
         tr("Ordem de compra", "Purchase order"),
         tr(
-          "Cada compra é a de maior ganho entre as que o herói já consegue pagar. Itens de 1.600, 3.200 e 6.400 só entram a partir dos souls em que os jogadores desse herói costumam comprá-los. Desmarcado, mostra a build mais forte para os souls finais, que nem sempre dá para montar na partida.",
-          "Each purchase is the biggest gain among those the hero can already afford. 1,600, 3,200 and 6,400 items only come in from the souls at which this hero's players usually buy them. Unchecked, it shows the strongest build for the final souls, which can't always be assembled in a match.",
+          "Cada compra é a de maior ganho entre as que o herói já consegue pagar. Itens de 1.600, 3.200 e 6.400 só entram a partir dos souls em que os jogadores desse herói costumam comprá-los, e a rota não espera pela próxima compra mais tempo do que eles (90% das esperas). Desmarcado, mostra a build mais forte para os souls finais, que nem sempre dá para montar na partida.",
+          "Each purchase is the biggest gain among those the hero can already afford. 1,600, 3,200 and 6,400 items only come in from the souls at which this hero's players usually buy them, and the route never waits for the next purchase longer than they do (90% of waits). Unchecked, it shows the strongest build for the final souls, which can't always be assembled in a match.",
         ),
       ),
       progressive,

@@ -9,6 +9,7 @@
 import type { GameData, Item } from "../data/types.ts";
 import { equippedItems, owns } from "../engine/inventory.ts";
 import { MAX_ACTIVE_ITEMS, MID_GAME_MINUTE } from "../engine/rules.ts";
+import { heroPace } from "./timing.ts";
 
 export interface DurationBucket {
   /** Duração mínima da partida, em minutos. */
@@ -137,12 +138,19 @@ const GATE_QUANTILE = 0.1;
 
 /**
  * Souls ganhos a partir dos quais o herói costuma comprar itens de cada tier
- * (índice = tier). Vem do minuto médio de compra de cada item, convertido em
+ * (índice = tier). Com timing.json, é o minuto em que 10% dos jogadores já fizeram a
+ * primeira compra do tier. Sem ele, vem do minuto médio de compra de cada item, convertido em
  * souls pela curva do herói, e fica no ponto em que 10% das compras daquele
  * tier (ponderadas pelo número de partidas) já aconteceram. Tier 1 é livre.
  */
 export function tierGates(data: GameData, heroId: number): number[] {
   const meta = heroMeta(data, heroId);
+  const pace = heroPace(data, heroId);
+  if (pace) {
+    const gates = [...FALLBACK_TIER_GATES];
+    for (let tier = 2; tier <= 4; tier++) gates[tier] = Math.max(gates[tier - 1]!, soulsAtMinute(data, heroId, pace.first[tier - 1]![0]));
+    return gates.map((g, i) => (i > 4 ? Math.max(g, gates[4]!) : g));
+  }
   if (!meta) return FALLBACK_TIER_GATES;
   const byClass = new Map(data.items.map((i) => [i.className, i]));
   const samples: [number, number][][] = [[], [], [], [], [], []];

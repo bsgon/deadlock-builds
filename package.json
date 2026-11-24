@@ -32,6 +32,7 @@
     "windows": "node scripts/windows.ts",
     "elite": "node scripts/elite.ts",
     "wpa": "node scripts/wpa.ts",
+    "timing": "node scripts/timing.ts",
     "order-report": "node scripts/order-report.ts",
     "priors": "node scripts/priors.ts",
     "fights": "node scripts/fights.ts"

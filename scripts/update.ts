@@ -49,6 +49,7 @@ function matchDataAge(patchDate: string | undefined): void {
     ["windows.json", "npm run windows -- --refresh", "winrate por janela de compra"],
     ["elite.json", "npm run elite -- --refresh", "itens e habilidades do elo alto"],
     ["wpa.json", "npm run wpa -- --refresh", "vitória acima do esperado"],
+    ["timing.json", "npm run timing", "ritmo das compras (depois do wpa)"],
     ["fights.json", "npm run fights -- --refresh", "duração e tamanho das lutas"],
   ];
   const patchTime = patchDate ? Date.parse(patchDate) : NaN;

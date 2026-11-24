@@ -9,10 +9,11 @@
 import type { GameData, Item } from "../data/types.ts";
 import { type BuildResult, abilityPointsSpent, componentTree, equippedItems, evaluateBuild, findHero, findItem, owns, progressionFromSouls, ABILITY_UPGRADE_COST, BASE_ITEM_SLOTS, MAX_ACTIVE_ITEMS } from "../engine/index.ts";
 import { MID_GAME_MINUTE, VITALITY_SPIKE_SOULS } from "../engine/rules.ts";
-import { heroMeta, midGameSouls, minuteForSouls, popularAtSouls, tierGates } from "../meta/stats.ts";
+import { heroMeta, midGameSouls, minuteForSouls, popularAtSouls, soulsAtMinute, tierGates } from "../meta/stats.ts";
 import { compareInWindow, priorFactor, tierPrior, type TierPrior } from "../meta/windows.ts";
 import { blendPriors, wpaPrior } from "../meta/wpa.ts";
 import { unusedItems } from "../meta/useful.ts";
+import { heroPace, maxWaitMinutes } from "../meta/timing.ts";
 import { SELL_REFUND } from "../engine/rules.ts";
 import { computeMetrics, DEFAULT_METRIC_OPTIONS, OBJECTIVES, score, type MetricOptions, type Metrics, type Objective, type Weights } from "./metrics.ts";
 import type { PlanId, ScenarioId } from "../combat/value.ts";
@@ -172,7 +173,7 @@ export interface OptimizeResult {
 }
 
 const MAX_SWAP_PASSES = 3;
-/** Quantos souls além do preço o herói junta esperando um tier liberar antes de comprar outra coisa. */
+/** Sem timing.json: quantos souls além do preço o herói junta esperando um tier liberar antes de comprar outra coisa. */
 const MAX_WAIT_SOULS = 2500;
 /** Trocas de fim de jogo (vender um item para comprar outro) avaliadas no fim da montagem. */
 const MAX_LATE_SWAPS = 6;
@@ -353,6 +354,29 @@ export function optimize(data: GameData, input: OptimizeInput, memo: EvaluationM
     const sellTheory = (item: Item) => communitySwaps.find((th) => th.items[0] === item.className) ?? null;
     const communityBonus = (builds: number) => COMMUNITY_SWAP_BONUS * Math.min(COMMUNITY_MAX_BUILDS, builds);
 
+    // Ritmo dos jogadores: quanto esperar pela próxima compra, em minutos.
+    const pace = heroPace(data, hero.id);
+    const paceCache = new Map<number, number>();
+    /** Minuto contínuo em que o herói tem `souls` (minuteForSouls anda de 15 em 15 s). */
+    const clock = (souls: number) => {
+      const key = Math.round(souls);
+      let m = paceCache.get(key);
+      if (m === undefined) {
+        const hi = minuteForSouls(data, hero.id, key);
+        const lo = Math.max(0, hi - 0.25);
+        const a = soulsAtMinute(data, hero.id, lo);
+        const b = soulsAtMinute(data, hero.id, hi);
+        paceCache.set(key, (m = b > a ? lo + (0.25 * Math.max(0, key - a)) / (b - a) : hi));
+      }
+      return m;
+    };
+    /** A compra em `at` cabe na espera normal dos jogadores desde a anterior (feita em `from` souls). */
+    const patient = (from: number, at: number, pay: number) => {
+      const start = clock(from);
+      const limit = maxWaitMinutes(pace, start);
+      return limit === null ? at - (from + pay) <= MAX_WAIT_SOULS : clock(at) - start <= limit;
+    };
+
     let owned: Item[] = [];
     const soldOnce = new Set<string>(); // item vendido não volta: recomprar só desperdiça souls
     let earned = 0; // souls ganhos até a última compra (o que foi gasto, já descontadas as vendas)
@@ -513,7 +537,7 @@ export function optimize(data: GameData, input: OptimizeInput, memo: EvaluationM
       // de mãos vazias: espera longa só vale quando nada liberado ajuda. (Comparar com
       // uma compra muito à frente engana: lá o piso de defesa já subiu e qualquer item
       // de vida parece ótimo.)
-      let best = pick(pool2.filter((o) => o.at - (earned + o.pay) <= MAX_WAIT_SOULS)) ?? pick(pool2);
+      let best = pick(pool2.filter((o) => patient(earned, o.at, o.pay))) ?? pick(pool2);
       if (!best) break;
       // Busca em pares: uma compra que sozinha rende pouco pode passar à frente quando
       // completa uma interação com a seguinte (candidatos pelas mecânicas e pelo ranking).
@@ -532,7 +556,7 @@ export function optimize(data: GameData, input: OptimizeInput, memo: EvaluationM
             const payB = cost(nextAB) - cost(a.next);
             if (payB <= 0) continue;
             const atB = Math.max(a.at + payB, gates[b.item.tier] ?? Infinity);
-            if (atB > input.souls || atB - (a.at + payB) > MAX_WAIT_SOULS) continue;
+            if (atB > input.souls || !patient(a.at, atB, payB)) continue;
             const sAB = scoreAt(nextAB, atB);
             const rawAB = (sAB - a.before) / (atB - earned - a.pay - payB + effectivePay(a.item, a.pay) + effectivePay(b.item, payB));
             const perSoul = rawAB > 0 ? rawAB * Math.sqrt(factorOf(a.item, a.at) * factorOf(b.item, atB)) : rawAB;

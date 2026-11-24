@@ -164,7 +164,7 @@ describe("otimizador", () => {
     const gates = tierGates(data, hero.id);
     for (const step of dps.order) expect(step.earned).toBeGreaterThanOrEqual(gates[step.item.tier]!);
     // Nada de 3.200 souls antes de o herói costumar comprar esse tier.
-    expect(gates[3]).toBeGreaterThan(8000);
+    expect(gates[3]).toBeGreaterThan(7000);
   });
 
   it("vender um item devolve metade do preço e libera o slot", () => {

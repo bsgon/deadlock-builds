@@ -24,6 +24,7 @@ npm run update       # atualiza os dados depois de um patch
 npm run fights       # mede duração e tamanho das lutas em partidas recentes
 npm run elite        # itens e ordem de habilidades do elo alto (Ascendant 1+)
 npm run wpa          # vitória acima do esperado por compra, em 20 mil partidas recentes
+npm run timing       # ritmo das compras nas partidas baixadas pelo wpa
 npm run priors       # compara as fontes do peso das partidas no otimizador
 ```
 
