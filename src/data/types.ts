@@ -7,6 +7,7 @@ import type { WpaStats } from "../meta/wpa.ts";
 import type { PaceStats } from "../meta/timing.ts";
 import type { SalesStats } from "../meta/sales.ts";
 import type { Interaction } from "../knowledge/interactions.ts";
+import type { CopurchaseStats } from "../knowledge/item-combos.ts";
 import type { Theory } from "../knowledge/theories.ts";
 
 export type Slot = "weapon" | "vitality" | "spirit";
@@ -180,6 +181,8 @@ export interface GameData {
   timing?: PaceStats;
   /** Vendas, slots e trocas nas partidas (data/snapshot/sales.json, `npm run sales`), se existir. */
   sales?: SalesStats;
+  /** Compras conjuntas de T4 com T2/T3 (data/snapshot/copurchase.json, `npm run copurchase`), se existir. */
+  copurchase?: CopurchaseStats;
   /** Traduções para o inglês dos textos dos dados (português → inglês; data/snapshot/i18n-en.json), se existirem. */
   translations?: Record<string, string>;
 }

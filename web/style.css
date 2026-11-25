@@ -1418,3 +1418,39 @@ input[type="search"] {
 .options .option p {
   margin: 0;
 }
+
+/* Combos de T4: agrupados por papel, sem numeração */
+.buy.combo {
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: start;
+  padding: 0.75rem 0;
+}
+
+.buy.combo::before {
+  content: none;
+}
+
+.combo-text {
+  margin: 0.25rem 0;
+  max-width: 38rem;
+}
+
+.combo-other {
+  display: flex;
+  gap: 0.75rem;
+  align-items: flex-start;
+  padding: 0.5rem 0;
+}
+
+.combo-other > span {
+  display: grid;
+  justify-items: start;
+}
+
+.combo-other small {
+  color: var(--muted);
+}
+
+.hero-fit .fit-reason {
+  color: var(--paper);
+}

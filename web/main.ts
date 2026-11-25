@@ -40,7 +40,7 @@ export interface App {
 }
 
 const STORAGE_KEY = "deadlock-builds:state";
-const DEFAULTS: State = { tab: "build", hero: "Infernus", objective: "optimized", archetype: "", progressive: true, required: [], banned: [], item: "Mystic Vulnerability" };
+const DEFAULTS: State = { tab: "build", hero: "Infernus", objective: "optimized", archetype: "", progressive: true, required: [], banned: [], item: "Vortex Web" };
 /** Objetivos que saíram do seletor: os de defesa viram "Tanque/Sustain", o resto volta ao padrão. */
 const RETIRED_OBJECTIVES: Record<string, UiObjective> = { dps: "optimized", bruiser: "optimized", tank: "survival", sustain: "survival" };
 
@@ -56,7 +56,8 @@ function loadState(data: GameData): State {
   // Um patch pode remover heróis ou itens salvos.
   const itemNames = new Set(data.items.map((i) => i.name));
   if (!data.heroes.some((h) => h.name === state.hero)) state.hero = data.heroes[0]!.name;
-  if (!itemNames.has(state.item)) state.item = data.items[0]!.name;
+  // A aba de sinergias cobre T4 e os T2/T3 que combinam com eles.
+  if (!data.items.some((i) => i.name === state.item && i.tier >= 2)) state.item = DEFAULTS.item;
   state.required = state.required.filter((n) => itemNames.has(n));
   state.banned = state.banned.filter((n) => itemNames.has(n));
   return state;
@@ -100,6 +101,9 @@ async function loadData(): Promise<GameData> {
   const sales = await fetch("./sales.json")
     .then((res) => (res.ok ? res.json() : undefined))
     .catch(() => undefined);
+  const copurchase = await fetch("./copurchase.json")
+    .then((res) => (res.ok ? res.json() : undefined))
+    .catch(() => undefined);
   // Traduções dos textos dos dados: só baixa quando a página está em inglês.
   const translations =
     lang() === "en"
@@ -107,7 +111,7 @@ async function loadData(): Promise<GameData> {
           .then((res) => (res.ok ? res.json() : undefined))
           .catch(() => undefined)
       : undefined;
-  return withoutBrawlItems({ meta, shared, heroes, abilities, items, ...(stats ? { stats } : {}), ...(knowledge ? { knowledge } : {}), ...(theories ? { theories } : {}), ...(windows ? { windows } : {}), ...(fights ? { fights } : {}), ...(elite ? { elite } : {}), ...(wpa ? { wpa } : {}), ...(timing ? { timing } : {}), ...(sales ? { sales } : {}), ...(translations ? { translations } : {}) });
+  return withoutBrawlItems({ meta, shared, heroes, abilities, items, ...(stats ? { stats } : {}), ...(knowledge ? { knowledge } : {}), ...(theories ? { theories } : {}), ...(windows ? { windows } : {}), ...(fights ? { fights } : {}), ...(elite ? { elite } : {}), ...(wpa ? { wpa } : {}), ...(timing ? { timing } : {}), ...(sales ? { sales } : {}), ...(copurchase ? { copurchase } : {}), ...(translations ? { translations } : {}) });
 }
 
 const root = document.getElementById("app")!;

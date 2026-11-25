@@ -7,7 +7,9 @@
  */
 import { loadSnapshot } from "../src/data/load.ts";
 import { findHero, findItem } from "../src/engine/index.ts";
-import { buildGraph, heroesForItem, heroesForPair, itemsForHero, partnersByTree, topReasons } from "../src/interactions/synergy.ts";
+import { combosOf } from "../src/knowledge/item-combos.ts";
+import { heroesFor } from "../src/knowledge/hero-combos.ts";
+import { buildGraph, heroesForPair, itemsForHero, partnersByTree, topReasons } from "../src/interactions/synergy.ts";
 
 const data = loadSnapshot();
 const graph = buildGraph(data);
@@ -29,6 +31,11 @@ if (mode === "hero" && first) {
   }
 } else if (mode === "item" && first) {
   const item = findItem(data, first);
+  console.log(`Combos de ${item.name} (análise dos T4 com T2/T3):`);
+  for (const { combo, t4, partner, evidence } of combosOf(data, item)) {
+    const other = item.name === t4.name ? partner : t4;
+    console.log(`  ${"*".repeat(combo.strength).padEnd(3)} ${other.name} (T${other.tier}, ${combo.kind})${evidence ? ` ${evidence.lift.toFixed(2)}x o esperado` : ""}: ${combo.pt}`);
+  }
   const byTree = partnersByTree(graph, item, 5);
   // Outras árvores primeiro: são as combinações menos óbvias.
   for (const slot of [...(["weapon", "vitality", "spirit"] as const).filter((s) => s !== item.slot), item.slot]) {
@@ -40,8 +47,8 @@ if (mode === "hero" && first) {
     }
   }
   console.log(`\nHeróis que mais aproveitam ${item.name}:`);
-  for (const h of heroesForItem(graph, item).slice(0, 10)) {
-    console.log(`${h.score.toFixed(1).padStart(5)}  ${h.hero.name}: ${topReasons(h.links, 1)[0] ?? ""}`);
+  for (const u of heroesFor(data, item)) {
+    console.log(`${u.rate === null ? "    " : `${Math.round(u.rate * 100)}%`.padStart(4)}  ${u.hero.name}: ${u.reason ?? "compra bem acima da média"}`);
   }
 } else if (mode === "pair" && first && second) {
   const a = findItem(data, first);

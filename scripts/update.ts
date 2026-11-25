@@ -50,6 +50,7 @@ function matchDataAge(patchDate: string | undefined): void {
     ["elite.json", "npm run elite -- --refresh", "itens e habilidades do elo alto"],
     ["wpa.json", "npm run wpa -- --refresh", "vitória acima do esperado"],
     ["timing.json", "npm run timing", "ritmo das compras (depois do wpa)"],
+    ["copurchase.json", "npm run copurchase", "T2/T3 comprados com cada T4 (depois do wpa)"],
     ["sales.json", "npm run sales -- --refresh", "vendas, slots e trocas da comunidade"],
     ["fights.json", "npm run fights -- --refresh", "duração e tamanho das lutas"],
   ];

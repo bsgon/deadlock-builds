@@ -28,6 +28,7 @@ npm run wpa          # vitória acima do esperado por compra, em 20 mil partidas
 npm run timing       # ritmo das compras nas partidas baixadas pelo wpa
 npm run order-report # ordem de compra do app contra o ritmo dos jogadores
 npm run priors       # compara as fontes do peso das partidas no otimizador
+npm run copurchase   # T2/T3 comprados junto com cada T4, nas partidas baixadas pelo wpa
 npm run sales        # vendas, slots e trocas nas partidas (npm run sales -- --refresh depois de um patch)
 npm run build-report # vendas, itens raros e força das builds do app, contra os jogadores
 npm run validate-routes # semelhança com as rotas contra vitórias, em partidas fora da amostra
